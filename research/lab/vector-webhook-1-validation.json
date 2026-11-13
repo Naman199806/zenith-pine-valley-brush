@@ -1,0 +1,27 @@
+{
+  "runId": "vector-20261113-webhook-1",
+  "bars": 30,
+  "first": "2026-10-14",
+  "last": "2026-11-12",
+  "lastClose": 71369.9,
+  "recomputed": {
+    "SMA10": 75422.79,
+    "SMA20": 77219.89,
+    "SMA30": 78805.55,
+    "EMA10": 74935.82,
+    "RSI14": 29.24,
+    "ATR14": 2302.5,
+    "ATR14_simple": 2400.69,
+    "ROC10": -0.0692,
+    "ROC20": -0.1197,
+    "RV29": 0.3697,
+    "RV14": 0.4382,
+    "drawdownClose": -0.1506,
+    "drawdownHigh": -0.1589
+  },
+  "matchesReported": true,
+  "asOfUtcPresent": false,
+  "thesisPresent": false,
+  "supportIsDescriptiveOnly": true,
+  "decisionContractValid": false
+}

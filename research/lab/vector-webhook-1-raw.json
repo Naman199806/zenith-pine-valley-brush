@@ -1,0 +1,15 @@
+{
+  "provenance": "MANUAL_COPY",
+  "source": "Vector transcript message t8s1",
+  "note": "Copied from the Bot chat for audit. Not an authenticated Apex delivery.",
+  "schema_version": "apex-bot-research-v1",
+  "run_id": "vector-20261113-webhook-1",
+  "agent_id": "Vector",
+  "symbol": "BTC/USD",
+  "as_of_utc": null,
+  "stance": "SUPPORT",
+  "thesis": "No thesis was supplied. SUPPORT is descriptive only.",
+  "bar_count": 30,
+  "broker_action": "NONE",
+  "missing_inputs": ["as_of_utc", "thesis", "1017 of 1047 bars", "filings", "news", "macro", "options"]
+}

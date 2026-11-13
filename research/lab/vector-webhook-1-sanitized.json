@@ -1,0 +1,15 @@
+{
+  "runId": "vector-20261113-webhook-1",
+  "providerRunId": "82d2a3cb-68f2-4a72-80fb-ebccf0d395fa",
+  "httpStatus": 200,
+  "host": "api2.cursor.sh",
+  "accepted": true,
+  "vectorMessageId": "t8s1",
+  "vectorTimestampMs": 1794603054377,
+  "stance": "SUPPORT",
+  "barsCited": 30,
+  "lastCloseCited": 71369.9,
+  "brokerAction": "NONE",
+  "apexIngested": false,
+  "credentialStatus": "UNVERIFIED_STILL_PRESENT"
+}

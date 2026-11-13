@@ -1,0 +1,10 @@
+{
+  "ranAt": "2026-11-13T19:54:00Z",
+  "retention": "RETAINED",
+  "vector": "DEFER",
+  "bear": "DEFER",
+  "sentinel": "REJECT",
+  "nativeRisk": "still authoritative",
+  "unattended": false,
+  "orders": 0
+}
