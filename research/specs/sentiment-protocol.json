@@ -1,0 +1,7 @@
+{
+  "status": "NOT_EVALUABLE",
+  "reason": "No point-in-time news archive. Present-day headlines cannot be used as historical labels.",
+  "arms": ["price-only", "price-plus-sentiment", "price-plus-sentiment-plus-agents"],
+  "holdout": "untouched",
+  "promotion": false
+}

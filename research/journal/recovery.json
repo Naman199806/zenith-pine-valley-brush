@@ -1,0 +1,29 @@
+{
+  "opened": {
+    "id": "exp-1",
+    "status": "OPEN",
+    "clientId": "mock-exp-1",
+    "qty": 0.001,
+    "entry": 70000,
+    "exitRule": "operator-supervised market sell"
+  },
+  "again": {
+    "id": "exp-1",
+    "status": "OPEN",
+    "clientId": "mock-exp-1",
+    "qty": 0.001,
+    "entry": 70000,
+    "exitRule": "operator-supervised market sell"
+  },
+  "closed": {
+    "id": "exp-1",
+    "status": "FLAT",
+    "clientId": "mock-exp-1",
+    "qty": 0,
+    "entry": 70000,
+    "exitRule": "operator-supervised market sell"
+  },
+  "gate": "BLOCKED_EXPERIMENT_OFF",
+  "brokerWrites": 0,
+  "ranAt": "2026-11-13T17:48:19.887Z"
+}

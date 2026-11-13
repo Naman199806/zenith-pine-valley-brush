@@ -1,0 +1,21 @@
+{
+  "ranAt": "2026-11-13T19:20:00Z",
+  "trigger": "bot_send_prompt",
+  "results": [
+    {"bot": "Scout", "stance": "DEFER"},
+    {"bot": "Vector", "stance": "DEFER"},
+    {"bot": "Atlas", "stance": "DEFER"},
+    {"bot": "Oracle", "stance": "DEFER"},
+    {"bot": "Pulse", "stance": "DEFER"},
+    {"bot": "Volta", "stance": "DEFER"},
+    {"bot": "Bull", "stance": "DEFER"},
+    {"bot": "Bear", "stance": "DEFER"},
+    {"bot": "Sigma", "stance": "DEFER"},
+    {"bot": "Sentinel", "stance": "DEFER"},
+    {"bot": "Allocator", "stance": "DEFER"},
+    {"bot": "Pilot", "stance": "DEFER"},
+    {"bot": "Hermes", "stance": "DEFER"}
+  ],
+  "assessment": "NO_TRADE",
+  "reason": "All advisory. No approved strategy. Risk veto still applies."
+}

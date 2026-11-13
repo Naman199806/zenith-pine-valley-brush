@@ -1,0 +1,34 @@
+{
+  "news": {
+    "status": "OK",
+    "model": "grok-4.3",
+    "text": "INSUFFICIENT_EVIDENCE",
+    "tokens": 665
+  },
+  "btc": {
+    "instrument": "BTC-USD",
+    "quantOk": false,
+    "riskOk": true,
+    "strategyApproved": false,
+    "action": "NO_TRADE",
+    "reason": "Quant rejected.",
+    "quantRejects": true,
+    "riskRejects": false
+  },
+  "spy": {
+    "instrument": "SPY",
+    "quantOk": false,
+    "riskOk": true,
+    "strategyApproved": false,
+    "action": "NO_TRADE",
+    "reason": "Quant rejected.",
+    "quantRejects": true,
+    "riskRejects": false
+  },
+  "headlines": [
+    "Fed pricing for payment services effective 2027-01-01",
+    "Fed revised FOMC schedule for 2027",
+    "Fed enforcement action with a former bank employee"
+  ],
+  "ranAt": "2026-11-13T02:09:24.221Z"
+}

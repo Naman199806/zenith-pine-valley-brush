@@ -1,0 +1,19 @@
+{
+  "btc": {
+    "instrument": "BTC-USD",
+    "proposal": "NO_TRADE",
+    "reason": "No approved strategy.",
+    "paperAuto": false,
+    "orderSent": false
+  },
+  "eth": {
+    "instrument": "ETH-USD",
+    "proposal": "NO_TRADE",
+    "reason": "No approved strategy.",
+    "paperAuto": false,
+    "orderSent": false
+  },
+  "state": "ERROR",
+  "brokerOrders": 0,
+  "ranAt": "2026-11-13T02:41:15.950Z"
+}

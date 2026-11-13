@@ -1,0 +1,30 @@
+=== shutdown diagnostic @ SIGTERM ===
+--- date ---
+2026-11-12T06:04:55Z
+--- ps (top 60 by cpu, comm only) ---
+
+--- pstree of self ---
+--- loadavg ---
+0.13 0.45 0.47 7/189 26777
+--- recent dmesg (oom/killed) ---
+[Thu Nov 12 05:35:19 2026] [   1462]     0  1462    72062      530      512       18         0   110592        0             0 grok-files
+[Thu Nov 12 05:35:19 2026] [   1541]     0  1541   149349     1964     1952       12         0   221184        0             0 grok-files
+[Thu Nov 12 05:35:19 2026] [   1593]     0  1593      622       43        0       43         0    45056        0             0 fusermount3
+[Thu Nov 12 05:35:19 2026] [   1601]     0  1601   278565     3085     3033       52         0   716800        0             0 npm run dev
+[Thu Nov 12 05:35:19 2026] [   1675]     0  1675      646       32        0       32         0    40960        0             0 sh
+[Thu Nov 12 05:35:19 2026] [   1686]     0  1686   187366     1947     1888       59         0   495616        0             0 node
+[Thu Nov 12 05:35:19 2026] [   1746]     0  1746  8846717   363845   363821       24         0 16142336        0             0 node
+[Thu Nov 12 05:35:19 2026] [  11140]     0 11140   278566     3042     2997       45         0   716800        0             0 npm run preview
+[Thu Nov 12 05:35:19 2026] [  11152]     0 11152      647       52        0       52         0    45056        0             0 sh
+[Thu Nov 12 05:35:19 2026] [  11153]     0 11153   187367     1932     1886       46         0   495616        0             0 node
+[Thu Nov 12 05:35:19 2026] [  11160]     0 11160  8586405    42014    41973       41         0  3059712        0             0 node
+[Thu Nov 12 05:35:19 2026] [   9553]     0  9553 68558329    78221    44801        0     33420  1404928        0             0 VBCSCompiler
+[Thu Nov 12 05:35:19 2026] [  14289]     0 14289   198937    82350    82336       14         0  1003520        0             0 hermes
+[Thu Nov 12 05:35:19 2026] [  15015]     0 15015     1122       83       64       19         0    57344        0             0 bash
+[Thu Nov 12 05:35:19 2026] [  15026]     0 15026   278513     3110     3063       47         0   704512        0             0 npm run build
+[Thu Nov 12 05:35:19 2026] [  15038]     0 15038      647       62       32       30         0    45056        0             0 sh
+[Thu Nov 12 05:35:19 2026] [  15039]     0 15039   187367     1938     1888       50         0   491520        0             0 node
+[Thu Nov 12 05:35:19 2026] [  15046]     0 15046  8807561   338729   338689       40         0  8650752        0             0 node
+[Thu Nov 12 05:35:19 2026] oom-kill:constraint=CONSTRAINT_NONE,nodemask=(null),cpuset=ch-inner,mems_allowed=0,global_oom,task_memcg=/ch-inner,task=node,pid=1746,uid=0
+[Thu Nov 12 05:35:19 2026] Out of memory: Killed process 1746 (node) total-vm:35386868kB, anon-rss:1455284kB, file-rss:96kB, shmem-rss:0kB, UID:0 pgtables:15764kB oom_score_adj:0
+=== end ===

@@ -1,0 +1,23 @@
+{
+  "ok": true,
+  "hypotheses": [
+    {
+      "id": "H1",
+      "rationale": "Post-2008 regulatory changes and QE suppressed equity volatility, reducing the risk premium that historically compensated momentum strategies for their crash risk; with lower vol, momentum's turnover costs now dominate, leading to underperformance vs buy-and-hold on daily SPY data after costs.",
+      "falsifier": "A daily backtest of 12-1 momentum (long if prior 252-day return >0, else cash earning T-bill rate) on SPY data ending no later than 2025-11-10, with realistic per-trade costs (e.g. 5-10bp round-trip), shows annualized return exceeding buy-and-hold SPY."
+    },
+    {
+      "id": "H2",
+      "rationale": "Earnings quality deterioration in large-cap equities (rising accruals, lower ROE persistence) has eroded the predictive power of short-term price momentum; rational investors now demand higher compensation or avoid such signals, causing 12-1 SPY momentum to lag after daily turnover costs.",
+      "falsifier": "A daily backtest of 12-1 momentum on SPY (signal based on 252-day return, rebalanced daily, cash in T-bills) ending no later than 2025-11-10, incorporating transaction costs, generates lower Sharpe or total return than passive SPY buy-and-hold."
+    },
+    {
+      "id": "H3",
+      "rationale": "Increased algorithmic trading and retail participation have accelerated information diffusion, shortening the half-life of momentum signals; what was once a 12-month edge now decays within weeks, making 12-1 SPY momentum unprofitable net of daily rebalancing and slippage costs.",
+      "falsifier": "A daily backtest of 12-1 momentum (enter long SPY if 252-trading-day return positive, else T-bills) through data no later than 2025-11-10, with explicit per-trade costs, yields annualized returns below those of buy-and-hold SPY."
+    }
+  ],
+  "selfDeclaredSuccess": false,
+  "canApprove": false,
+  "ranAt": "2026-11-12T22:47:26Z"
+}

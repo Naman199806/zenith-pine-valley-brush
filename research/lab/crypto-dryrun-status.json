@@ -1,0 +1,17 @@
+{
+  "dryRun": true,
+  "placeOrders": false,
+  "exchangeTrading": false,
+  "leverage": false,
+  "spotOnly": true,
+  "equityCutoffApplies": false,
+  "risk": {
+    "perTrade": 0.001,
+    "maxPositions": 2,
+    "sessionDrawdownBlock": 0.005
+  },
+  "data": "Coinbase public candles, 350 daily bars max per request",
+  "status": "CONFIGURED_NOT_STREAMING",
+  "reason": "No continuous exchange websocket was left running. Dry-run cannot place orders. Forward observations require a later session with a stable feed.",
+  "baselinesPreserved": ["btc-sma-10-30", "eth-sma-10-30"]
+}

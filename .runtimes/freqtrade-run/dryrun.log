@@ -1,0 +1,398 @@
+2026-11-12 23:26:14,506 - freqtrade - INFO - freqtrade 2026.10
+2026-11-12 23:26:14,752 - numexpr.utils - INFO - NumExpr defaulting to 2 
+threads.
+2026-11-12 23:26:16,550 - freqtrade.worker - INFO - Starting worker 2026.10
+2026-11-12 23:26:16,550 - freqtrade.configuration.load_config - INFO - Using 
+config: /workspace/.runtimes/freqtrade-run/config.json ...
+2026-11-12 23:26:16,552 - freqtrade.loggers - INFO - Enabling colorized output.
+2026-11-12 23:26:16,553 - freqtrade.loggers - INFO - Logfile configured
+2026-11-12 23:26:16,553 - freqtrade.loggers - INFO - Verbosity set to 0
+2026-11-12 23:26:16,553 - freqtrade.configuration.configuration - INFO - 
+Parameter --dry-run detected, overriding dry_run to: True ...
+2026-11-12 23:26:16,554 - freqtrade.configuration.configuration - INFO - Runmode
+set to dry_run.
+2026-11-12 23:26:16,554 - freqtrade.configuration.configuration - INFO - 
+Parameter --db-url detected ...
+2026-11-12 23:26:16,554 - freqtrade.configuration.configuration - INFO - Dry run
+is enabled
+2026-11-12 23:26:16,554 - freqtrade.configuration.configuration - INFO - Using 
+DB: "sqlite:////workspace/.runtimes/freqtrade-run/state/dryrun.sqlite"
+2026-11-12 23:26:16,555 - freqtrade.configuration.configuration - INFO - Using 
+max_open_trades: 1 ...
+2026-11-12 23:26:16,555 - freqtrade.configuration.configuration - INFO - Using 
+user-data directory: /workspace/.runtimes/freqtrade-run/user_data ...
+2026-11-12 23:26:16,555 - freqtrade.configuration.configuration - INFO - Using 
+data directory: /workspace/.runtimes/freqtrade-run/user_data/data/kraken ...
+2026-11-12 23:26:16,556 - freqtrade.exchange.check_exchange - INFO - Checking 
+exchange...
+2026-11-12 23:26:16,559 - freqtrade.exchange.check_exchange - INFO - Exchange 
+"kraken" is officially supported by the Freqtrade development team.
+2026-11-12 23:26:16,560 - freqtrade.configuration.configuration - INFO - Using 
+pairlist from configuration.
+2026-11-12 23:26:16,560 - freqtrade.exchange.exchange - INFO - Instance is 
+running with dry_run enabled
+2026-11-12 23:26:16,561 - freqtrade.exchange.exchange - INFO - Using CCXT 4.5.92
+2026-11-12 23:26:16,564 - freqtrade.exchange.exchange - INFO - Using Exchange 
+"Kraken"
+2026-11-12 23:26:17,800 - freqtrade.exchange.exchange - INFO - Time offset to 
+Kraken is 738ms.
+2026-11-12 23:26:17,801 - freqtrade.resolvers.exchange_resolver - INFO - Using 
+resolved exchange class 'Kraken' ...
+2026-11-12 23:26:17,802 - freqtrade.resolvers.iresolver - INFO - Using resolved 
+strategy ApexDry from 
+'/workspace/.runtimes/freqtrade-run/user_data/strategies/ApexDry.py'...
+2026-11-12 23:26:17,803 - freqtrade.strategy.hyper - INFO - Found no parameter 
+file.
+2026-11-12 23:26:17,803 - freqtrade.resolvers.strategy_resolver - INFO - 
+Override strategy 'timeframe' with value from the configuration: 5m.
+2026-11-12 23:26:17,804 - freqtrade.resolvers.strategy_resolver - INFO - 
+Override strategy 'stake_currency' with value from the configuration: USD.
+2026-11-12 23:26:17,804 - freqtrade.resolvers.strategy_resolver - INFO - 
+Override strategy 'stake_amount' with value from the configuration: 100.
+2026-11-12 23:26:17,804 - freqtrade.resolvers.strategy_resolver - INFO - 
+Override strategy 'max_open_trades' with value from the configuration: 1.
+2026-11-12 23:26:17,804 - freqtrade.resolvers.strategy_resolver - INFO - 
+Strategy using minimal_roi: {'0': 0.02}
+2026-11-12 23:26:17,804 - freqtrade.resolvers.strategy_resolver - INFO - 
+Strategy using timeframe: 5m
+2026-11-12 23:26:17,805 - freqtrade.resolvers.strategy_resolver - INFO - 
+Strategy using stoploss: -0.01
+2026-11-12 23:26:17,805 - freqtrade.resolvers.strategy_resolver - INFO - 
+Strategy using trailing_stop: False
+2026-11-12 23:26:17,805 - freqtrade.resolvers.strategy_resolver - INFO - 
+Strategy using trailing_stop_positive_offset: 0.0
+2026-11-12 23:26:17,805 - freqtrade.resolvers.strategy_resolver - INFO - 
+Strategy using trailing_only_offset_is_reached: False
+2026-11-12 23:26:17,805 - freqtrade.resolvers.strategy_resolver - INFO - 
+Strategy using use_custom_stoploss: False
+2026-11-12 23:26:17,806 - freqtrade.resolvers.strategy_resolver - INFO - 
+Strategy using process_only_new_candles: True
+2026-11-12 23:26:17,806 - freqtrade.resolvers.strategy_resolver - INFO - 
+Strategy using order_types: {'entry': 'limit', 'exit': 'limit', 'stoploss': 
+'limit', 'stoploss_on_exchange': False, 'stoploss_on_exchange_interval': 60}
+2026-11-12 23:26:17,806 - freqtrade.resolvers.strategy_resolver - INFO - 
+Strategy using order_time_in_force: {'entry': 'GTC', 'exit': 'GTC'}
+2026-11-12 23:26:17,806 - freqtrade.resolvers.strategy_resolver - INFO - 
+Strategy using stake_currency: USD
+2026-11-12 23:26:17,806 - freqtrade.resolvers.strategy_resolver - INFO - 
+Strategy using stake_amount: 100
+2026-11-12 23:26:17,807 - freqtrade.resolvers.strategy_resolver - INFO - 
+Strategy using startup_candle_count: 30
+2026-11-12 23:26:17,807 - freqtrade.resolvers.strategy_resolver - INFO - 
+Strategy using use_exit_signal: True
+2026-11-12 23:26:17,807 - freqtrade.resolvers.strategy_resolver - INFO - 
+Strategy using exit_profit_only: False
+2026-11-12 23:26:17,807 - freqtrade.resolvers.strategy_resolver - INFO - 
+Strategy using ignore_roi_if_entry_signal: False
+2026-11-12 23:26:17,807 - freqtrade.resolvers.strategy_resolver - INFO - 
+Strategy using exit_profit_offset: 0.0
+2026-11-12 23:26:17,807 - freqtrade.resolvers.strategy_resolver - INFO - 
+Strategy using disable_dataframe_checks: False
+2026-11-12 23:26:17,808 - freqtrade.resolvers.strategy_resolver - INFO - 
+Strategy using ignore_buying_expired_candle_after: 0
+2026-11-12 23:26:17,808 - freqtrade.resolvers.strategy_resolver - INFO - 
+Strategy using position_adjustment_enable: False
+2026-11-12 23:26:17,808 - freqtrade.resolvers.strategy_resolver - INFO - 
+Strategy using max_entry_position_adjustment: -1
+2026-11-12 23:26:17,808 - freqtrade.resolvers.strategy_resolver - INFO - 
+Strategy using max_open_trades: 1
+2026-11-12 23:26:17,808 - freqtrade.configuration.config_validation - INFO - 
+Validating configuration ...
+2026-11-12 23:26:17,840 - freqtrade.wallets - INFO - Wallets synced.
+2026-11-12 23:26:17,845 - freqtrade.resolvers.iresolver - INFO - Using resolved 
+pairlist StaticPairList from 
+'/workspace/.runtimes/freqtrade/lib/python3.12/site-packages/freqtrade/plugins/p
+airlist/StaticPairList.py'...
+2026-11-12 23:26:17,846 - freqtrade.freqtradebot - INFO - Starting initial 
+pairlist refresh
+2026-11-12 23:26:17,848 - freqtrade.plugins.pairlistmanager - INFO - Whitelist 
+with 1 pairs: ['BTC/USD']
+2026-11-12 23:26:17,848 - freqtrade.freqtradebot - INFO - Initial Pairlist 
+refresh took 0.00s
+2026-11-12 23:26:17,849 - freqtrade.plugins.protectionmanager - INFO - No 
+protection Handlers defined.
+2026-11-12 23:26:17,850 - freqtrade.rpc.rpc_manager - INFO - Sending rpc 
+message: {'type': status, 'status': 'running'}
+2026-11-12 23:26:17,850 - freqtrade.worker - INFO - Changing state to: RUNNING
+2026-11-12 23:26:17,855 - freqtrade.rpc.rpc_manager - INFO - Sending rpc 
+message: {'type': warning, 'status': 'Dry run is enabled. All trades are 
+simulated.'}
+2026-11-12 23:26:17,856 - freqtrade.rpc.rpc_manager - INFO - Sending rpc 
+message: {'type': startup, 'status': "*Exchange:* `kraken`\n*Stake per trade:* 
+`100 USD`\n*Minimum ROI:* `{'0': 0.02}`\n*Stoploss:* `-0.01`\n*Position 
+adjustment:* `Off`\n*Timeframe:* `5m`\n*Strategy:* `ApexDry`"}
+2026-11-12 23:26:17,856 - freqtrade.rpc.rpc_manager - INFO - Sending rpc 
+message: {'type': startup, 'status': "Searching for USD pairs to buy and sell 
+based on [{'StaticPairList': 'StaticPairList'}]"}
+2026-11-12 23:26:22,858 - freqtrade.worker - INFO - Bot heartbeat. PID=5379, 
+version='2026.10', state='RUNNING'
+2026-11-12 23:27:24,856 - freqtrade.worker - INFO - Bot heartbeat. PID=5379, 
+version='2026.10', state='RUNNING'
+2026-11-12 23:28:24,859 - freqtrade.worker - INFO - Bot heartbeat. PID=5379, 
+version='2026.10', state='RUNNING'
+2026-11-12 23:29:24,862 - freqtrade.worker - INFO - Bot heartbeat. PID=5379, 
+version='2026.10', state='RUNNING'
+2026-11-12 23:30:26,001 - freqtrade.worker - INFO - Bot heartbeat. PID=5379, 
+version='2026.10', state='RUNNING'
+2026-11-12 23:31:26,003 - freqtrade.worker - INFO - Bot heartbeat. PID=5379, 
+version='2026.10', state='RUNNING'
+2026-11-12 23:32:26,006 - freqtrade.worker - INFO - Bot heartbeat. PID=5379, 
+version='2026.10', state='RUNNING'
+2026-11-12 23:33:26,009 - freqtrade.worker - INFO - Bot heartbeat. PID=5379, 
+version='2026.10', state='RUNNING'
+2026-11-12 23:34:26,012 - freqtrade.worker - INFO - Bot heartbeat. PID=5379, 
+version='2026.10', state='RUNNING'
+2026-11-12 23:35:31,001 - freqtrade.worker - INFO - Bot heartbeat. PID=5379, 
+version='2026.10', state='RUNNING'
+2026-11-12 23:36:31,004 - freqtrade.worker - INFO - Bot heartbeat. PID=5379, 
+version='2026.10', state='RUNNING'
+2026-11-12 23:37:31,006 - freqtrade.worker - INFO - Bot heartbeat. PID=5379, 
+version='2026.10', state='RUNNING'
+2026-11-12 23:38:31,009 - freqtrade.worker - INFO - Bot heartbeat. PID=5379, 
+version='2026.10', state='RUNNING'
+2026-11-12 23:39:31,012 - freqtrade.worker - INFO - Bot heartbeat. PID=5379, 
+version='2026.10', state='RUNNING'
+2026-11-12 23:40:36,001 - freqtrade.worker - INFO - Bot heartbeat. PID=5379, 
+version='2026.10', state='RUNNING'
+2026-11-12 23:41:36,004 - freqtrade.worker - INFO - Bot heartbeat. PID=5379, 
+version='2026.10', state='RUNNING'
+2026-11-12 23:42:36,006 - freqtrade.worker - INFO - Bot heartbeat. PID=5379, 
+version='2026.10', state='RUNNING'
+2026-11-12 23:43:36,009 - freqtrade.worker - INFO - Bot heartbeat. PID=5379, 
+version='2026.10', state='RUNNING'
+2026-11-12 23:44:36,016 - freqtrade.worker - INFO - Bot heartbeat. PID=5379, 
+version='2026.10', state='RUNNING'
+2026-11-12 23:45:41,001 - freqtrade.worker - INFO - Bot heartbeat. PID=5379, 
+version='2026.10', state='RUNNING'
+2026-11-12 23:46:41,004 - freqtrade.worker - INFO - Bot heartbeat. PID=5379, 
+version='2026.10', state='RUNNING'
+2026-11-12 23:47:41,007 - freqtrade.worker - INFO - Bot heartbeat. PID=5379, 
+version='2026.10', state='RUNNING'
+2026-11-12 23:48:41,010 - freqtrade.worker - INFO - Bot heartbeat. PID=5379, 
+version='2026.10', state='RUNNING'
+2026-11-12 23:49:41,016 - freqtrade.worker - INFO - Bot heartbeat. PID=5379, 
+version='2026.10', state='RUNNING'
+2026-11-12 23:50:46,003 - freqtrade.worker - INFO - Bot heartbeat. PID=5379, 
+version='2026.10', state='RUNNING'
+2026-11-12 23:51:46,012 - freqtrade.worker - INFO - Bot heartbeat. PID=5379, 
+version='2026.10', state='RUNNING'
+2026-11-12 23:52:46,015 - freqtrade.worker - INFO - Bot heartbeat. PID=5379, 
+version='2026.10', state='RUNNING'
+2026-11-12 23:53:46,027 - freqtrade.worker - INFO - Bot heartbeat. PID=5379, 
+version='2026.10', state='RUNNING'
+2026-11-12 23:54:46,040 - freqtrade.worker - INFO - Bot heartbeat. PID=5379, 
+version='2026.10', state='RUNNING'
+2026-11-12 23:55:02,264 - freqtrade.wallets - INFO - Wallets synced.
+2026-11-12 23:55:02,321 - freqtrade.freqtradebot - INFO - Long signal found: 
+about create a new trade for BTC/USD with stake_amount: 100 and price: 71384.2 
+...
+2026-11-12 23:55:03,570 - freqtrade.freqtradebot - INFO - Order 
+dry_run_buy_BTC/USD_9f361af8-a0f7-4f06-a143-7219f8328e3c was created for BTC/USD
+and status is open.
+2026-11-12 23:55:03,580 - freqtrade.wallets - INFO - Wallets synced.
+2026-11-12 23:55:03,580 - freqtrade.rpc.rpc_manager - INFO - Sending rpc 
+message: {'trade_id': 2, 'type': entry, 'buy_tag': '', 'enter_tag': '', 
+'exchange': 'Kraken', 'pair': 'BTC/USD', 'leverage': 1.0, 'direction': 'Long', 
+'limit': 71384.2, 'order_rate': 71384.2, 'open_rate': 71384.2, 'order_type': 
+'limit', 'stake_amount': 100.0, 'stake_currency': 'USD', 'base_currency': 'BTC',
+'quote_currency': 'USD', 'fiat_currency': None, 'amount': 0.00140087, 
+'open_date': datetime.datetime(2026, 11, 12, 23, 55, 3, 571511, 
+tzinfo=datetime.timezone.utc), 'current_rate': 71384.2, 'sub_trade': False}
+2026-11-12 23:55:06,036 - freqtrade.freqtradebot - INFO - Found open order for 
+Trade(id=2, pair=BTC/USD, amount=0, is_short=False, leverage=1, 
+open_rate=71384.2, open_since=2026-11-12 23:55:03)
+2026-11-12 23:55:11,030 - freqtrade.freqtradebot - INFO - Found open order for 
+Trade(id=2, pair=BTC/USD, amount=0, is_short=False, leverage=1, 
+open_rate=71384.2, open_since=2026-11-12 23:55:03)
+2026-11-12 23:55:16,026 - freqtrade.freqtradebot - INFO - Found open order for 
+Trade(id=2, pair=BTC/USD, amount=0, is_short=False, leverage=1, 
+open_rate=71384.2, open_since=2026-11-12 23:55:03)
+2026-11-12 23:55:21,029 - freqtrade.freqtradebot - INFO - Found open order for 
+Trade(id=2, pair=BTC/USD, amount=0, is_short=False, leverage=1, 
+open_rate=71384.2, open_since=2026-11-12 23:55:03)
+2026-11-12 23:55:26,120 - freqtrade.freqtradebot - INFO - Found open order for 
+Trade(id=2, pair=BTC/USD, amount=0, is_short=False, leverage=1, 
+open_rate=71384.2, open_since=2026-11-12 23:55:03)
+2026-11-12 23:55:31,032 - freqtrade.freqtradebot - INFO - Found open order for 
+Trade(id=2, pair=BTC/USD, amount=0, is_short=False, leverage=1, 
+open_rate=71384.2, open_since=2026-11-12 23:55:03)
+2026-11-12 23:55:36,107 - freqtrade.freqtradebot - INFO - Found open order for 
+Trade(id=2, pair=BTC/USD, amount=0, is_short=False, leverage=1, 
+open_rate=71384.2, open_since=2026-11-12 23:55:03)
+2026-11-12 23:55:41,113 - freqtrade.freqtradebot - INFO - Found open order for 
+Trade(id=2, pair=BTC/USD, amount=0, is_short=False, leverage=1, 
+open_rate=71384.2, open_since=2026-11-12 23:55:03)
+2026-11-12 23:55:46,035 - freqtrade.freqtradebot - INFO - Found open order for 
+Trade(id=2, pair=BTC/USD, amount=0, is_short=False, leverage=1, 
+open_rate=71384.2, open_since=2026-11-12 23:55:03)
+2026-11-12 23:55:51,001 - freqtrade.worker - INFO - Bot heartbeat. PID=5379, 
+version='2026.10', state='RUNNING'
+2026-11-12 23:55:51,097 - freqtrade.freqtradebot - INFO - Found open order for 
+Trade(id=2, pair=BTC/USD, amount=0, is_short=False, leverage=1, 
+open_rate=71384.2, open_since=2026-11-12 23:55:03)
+2026-11-12 23:55:56,031 - freqtrade.freqtradebot - INFO - Found open order for 
+Trade(id=2, pair=BTC/USD, amount=0, is_short=False, leverage=1, 
+open_rate=71384.2, open_since=2026-11-12 23:55:03)
+2026-11-12 23:55:56,034 - freqtrade.freqtradebot - INFO - Fee for Trade 
+Trade(id=2, pair=BTC/USD, amount=0, is_short=False, leverage=1, 
+open_rate=71384.2, open_since=2026-11-12 23:55:03) [buy]: 0.15999997 USD - rate:
+0.0016
+2026-11-12 23:55:56,035 - freqtrade.persistence.trade_model - INFO - Updating 
+trade (id=2) ...
+2026-11-12 23:55:56,035 - freqtrade.persistence.trade_model - INFO - LIMIT_BUY 
+has been fulfilled for Trade(id=2, pair=BTC/USD, amount=0.00140087, 
+is_short=False, leverage=1, open_rate=71384.2, open_since=2026-11-12 23:55:03).
+2026-11-12 23:55:56,040 - freqtrade.wallets - INFO - Wallets synced.
+2026-11-12 23:55:56,041 - freqtrade.rpc.rpc_manager - INFO - Sending rpc 
+message: {'trade_id': 2, 'type': entry_fill, 'buy_tag': '', 'enter_tag': '', 
+'exchange': 'Kraken', 'pair': 'BTC/USD', 'leverage': 1.0, 'direction': 'Long', 
+'limit': 71384.2, 'order_rate': 71384.2, 'open_rate': 71384.2, 'order_type': 
+'limit', 'stake_amount': 99.999984254, 'stake_currency': 'USD', 'base_currency':
+'BTC', 'quote_currency': 'USD', 'fiat_currency': None, 'amount': 0.00140087, 
+'open_date': datetime.datetime(2026, 11, 12, 23, 55, 3, 571511, 
+tzinfo=datetime.timezone.utc), 'current_rate': 71384.2, 'sub_trade': False}
+2026-11-12 23:56:51,004 - freqtrade.worker - INFO - Bot heartbeat. PID=5379, 
+version='2026.10', state='RUNNING'
+2026-11-12 23:57:51,012 - freqtrade.worker - INFO - Bot heartbeat. PID=5379, 
+version='2026.10', state='RUNNING'
+2026-11-12 23:58:51,019 - freqtrade.worker - INFO - Bot heartbeat. PID=5379, 
+version='2026.10', state='RUNNING'
+2026-11-12 23:59:51,033 - freqtrade.worker - INFO - Bot heartbeat. PID=5379, 
+version='2026.10', state='RUNNING'
+2026-11-13 00:00:56,002 - freqtrade.worker - INFO - Bot heartbeat. PID=5379, 
+version='2026.10', state='RUNNING'
+2026-11-13 00:01:56,004 - freqtrade.worker - INFO - Bot heartbeat. PID=5379, 
+version='2026.10', state='RUNNING'
+2026-11-13 00:02:56,007 - freqtrade.worker - INFO - Bot heartbeat. PID=5379, 
+version='2026.10', state='RUNNING'
+2026-11-13 00:03:56,013 - freqtrade.worker - INFO - Bot heartbeat. PID=5379, 
+version='2026.10', state='RUNNING'
+2026-11-13 00:04:56,016 - freqtrade.worker - INFO - Bot heartbeat. PID=5379, 
+version='2026.10', state='RUNNING'
+2026-11-13 00:06:01,003 - freqtrade.worker - INFO - Bot heartbeat. PID=5379, 
+version='2026.10', state='RUNNING'
+2026-11-13 00:07:01,013 - freqtrade.worker - INFO - Bot heartbeat. PID=5379, 
+version='2026.10', state='RUNNING'
+2026-11-13 00:08:01,016 - freqtrade.worker - INFO - Bot heartbeat. PID=5379, 
+version='2026.10', state='RUNNING'
+2026-11-13 00:09:01,020 - freqtrade.worker - INFO - Bot heartbeat. PID=5379, 
+version='2026.10', state='RUNNING'
+2026-11-13 00:10:02,344 - freqtrade.freqtradebot - INFO - Exit for BTC/USD 
+detected. Reason: exit_signal Tag: 
+2026-11-13 00:10:02,346 - freqtrade.wallets - INFO - Wallets synced.
+2026-11-13 00:10:03,622 - freqtrade.rpc.rpc_manager - INFO - Sending rpc 
+message: {'type': exit, 'trade_id': 2, 'exchange': 'Kraken', 'pair': 'BTC/USD', 
+'leverage': 1.0, 'direction': 'Long', 'gain': 'loss', 'limit': 71273.4, 
+'order_rate': 71273.4, 'order_type': 'limit', 'amount': 0.00140087, 'open_rate':
+71384.2, 'close_rate': 71273.4, 'current_rate': 71273.4, 'profit_amount': 
+-0.474968, 'profit_ratio': -0.00474209, 'buy_tag': '', 'enter_tag': '', 
+'exit_reason': 'exit_signal', 'open_date': datetime.datetime(2026, 11, 12, 23, 
+55, 3, 571511, tzinfo=datetime.timezone.utc), 'close_date': 
+datetime.datetime(2026, 11, 13, 0, 10, 3, 622511, tzinfo=datetime.timezone.utc),
+'stake_amount': 99.999984254, 'stake_currency': 'USD', 'base_currency': 'BTC', 
+'quote_currency': 'USD', 'fiat_currency': None, 'sub_trade': False, 
+'cumulative_profit': 0.0, 'final_profit_ratio': None, 'is_final_exit': False}
+2026-11-13 00:10:03,627 - freqtrade.wallets - INFO - Wallets synced.
+2026-11-13 00:10:06,000 - freqtrade.worker - INFO - Bot heartbeat. PID=5379, 
+version='2026.10', state='RUNNING'
+2026-11-13 00:10:06,038 - freqtrade.freqtradebot - INFO - Found open order for 
+Trade(id=2, pair=BTC/USD, amount=0.00140087, is_short=False, leverage=1, 
+open_rate=71384.2, open_since=2026-11-12 23:55:03)
+2026-11-13 00:10:11,029 - freqtrade.freqtradebot - INFO - Found open order for 
+Trade(id=2, pair=BTC/USD, amount=0.00140087, is_short=False, leverage=1, 
+open_rate=71384.2, open_since=2026-11-12 23:55:03)
+2026-11-13 00:10:16,024 - freqtrade.freqtradebot - INFO - Found open order for 
+Trade(id=2, pair=BTC/USD, amount=0.00140087, is_short=False, leverage=1, 
+open_rate=71384.2, open_since=2026-11-12 23:55:03)
+2026-11-13 00:10:21,108 - freqtrade.freqtradebot - INFO - Found open order for 
+Trade(id=2, pair=BTC/USD, amount=0.00140087, is_short=False, leverage=1, 
+open_rate=71384.2, open_since=2026-11-12 23:55:03)
+2026-11-13 00:10:26,024 - freqtrade.freqtradebot - INFO - Found open order for 
+Trade(id=2, pair=BTC/USD, amount=0.00140087, is_short=False, leverage=1, 
+open_rate=71384.2, open_since=2026-11-12 23:55:03)
+2026-11-13 00:10:31,115 - freqtrade.freqtradebot - INFO - Found open order for 
+Trade(id=2, pair=BTC/USD, amount=0.00140087, is_short=False, leverage=1, 
+open_rate=71384.2, open_since=2026-11-12 23:55:03)
+2026-11-13 00:10:31,118 - freqtrade.freqtradebot - INFO - Fee for Trade 
+Trade(id=2, pair=BTC/USD, amount=0.00140087, is_short=False, leverage=1, 
+open_rate=71384.2, open_since=2026-11-12 23:55:03) [sell]: 0.15975163 USD - 
+rate: 0.0016
+2026-11-13 00:10:31,119 - freqtrade.persistence.trade_model - INFO - Updating 
+trade (id=2) ...
+2026-11-13 00:10:31,119 - freqtrade.persistence.trade_model - INFO - LIMIT_SELL 
+has been fulfilled for Trade(id=2, pair=BTC/USD, amount=0.00140087, 
+is_short=False, leverage=1, open_rate=71384.2, open_since=2026-11-12 23:55:03).
+2026-11-13 00:10:31,120 - freqtrade.persistence.trade_model - INFO - Marking 
+Trade(id=2, pair=BTC/USD, amount=0.00140087, is_short=False, leverage=1, 
+open_rate=71384.2, open_since=closed) as closed as the trade is fulfilled and 
+found no open orders for it.
+2026-11-13 00:10:31,124 - freqtrade.wallets - INFO - Wallets synced.
+2026-11-13 00:10:31,125 - freqtrade.rpc.rpc_manager - INFO - Sending rpc 
+message: {'type': exit_fill, 'trade_id': 2, 'exchange': 'Kraken', 'pair': 
+'BTC/USD', 'leverage': 1.0, 'direction': 'Long', 'gain': 'loss', 'limit': 
+71273.4, 'order_rate': 71273.4, 'order_type': 'limit', 'amount': 0.00140087, 
+'open_rate': 71384.2, 'close_rate': 71273.4, 'current_rate': None, 
+'profit_amount': -0.474968, 'profit_ratio': -0.00474209, 'buy_tag': '', 
+'enter_tag': '', 'exit_reason': 'exit_signal', 'open_date': 
+datetime.datetime(2026, 11, 12, 23, 55, 3, 571511, 
+tzinfo=datetime.timezone.utc), 'close_date': datetime.datetime(2026, 11, 13, 0, 
+10, 31, 116000, tzinfo=datetime.timezone.utc), 'stake_amount': 99.999984254, 
+'stake_currency': 'USD', 'base_currency': 'BTC', 'quote_currency': 'USD', 
+'fiat_currency': None, 'sub_trade': False, 'cumulative_profit': -0.474968, 
+'final_profit_ratio': -0.0047420933984472155, 'is_final_exit': True}
+2026-11-13 00:11:06,003 - freqtrade.worker - INFO - Bot heartbeat. PID=5379, 
+version='2026.10', state='RUNNING'
+2026-11-13 00:12:06,006 - freqtrade.worker - INFO - Bot heartbeat. PID=5379, 
+version='2026.10', state='RUNNING'
+2026-11-13 00:13:06,008 - freqtrade.worker - INFO - Bot heartbeat. PID=5379, 
+version='2026.10', state='RUNNING'
+2026-11-13 00:14:06,015 - freqtrade.worker - INFO - Bot heartbeat. PID=5379, 
+version='2026.10', state='RUNNING'
+2026-11-13 00:15:11,001 - freqtrade.worker - INFO - Bot heartbeat. PID=5379, 
+version='2026.10', state='RUNNING'
+2026-11-13 00:16:11,020 - freqtrade.worker - INFO - Bot heartbeat. PID=5379, 
+version='2026.10', state='RUNNING'
+2026-11-13 00:17:11,027 - freqtrade.worker - INFO - Bot heartbeat. PID=5379, 
+version='2026.10', state='RUNNING'
+2026-11-13 00:18:11,030 - freqtrade.worker - INFO - Bot heartbeat. PID=5379, 
+version='2026.10', state='RUNNING'
+2026-11-13 00:19:11,033 - freqtrade.worker - INFO - Bot heartbeat. PID=5379, 
+version='2026.10', state='RUNNING'
+2026-11-13 00:20:16,000 - freqtrade.worker - INFO - Bot heartbeat. PID=5379, 
+version='2026.10', state='RUNNING'
+2026-11-13 00:21:16,003 - freqtrade.worker - INFO - Bot heartbeat. PID=5379, 
+version='2026.10', state='RUNNING'
+2026-11-13 00:22:16,006 - freqtrade.worker - INFO - Bot heartbeat. PID=5379, 
+version='2026.10', state='RUNNING'
+2026-11-13 00:23:16,008 - freqtrade.worker - INFO - Bot heartbeat. PID=5379, 
+version='2026.10', state='RUNNING'
+2026-11-13 00:24:16,011 - freqtrade.worker - INFO - Bot heartbeat. PID=5379, 
+version='2026.10', state='RUNNING'
+2026-11-13 00:25:21,000 - freqtrade.worker - INFO - Bot heartbeat. PID=5379, 
+version='2026.10', state='RUNNING'
+2026-11-13 00:26:21,004 - freqtrade.worker - INFO - Bot heartbeat. PID=5379, 
+version='2026.10', state='RUNNING'
+2026-11-13 00:26:23,591 - freqtrade.plugins.pairlistmanager - INFO - Whitelist 
+with 1 pairs: ['BTC/USD']
+2026-11-13 00:27:21,017 - freqtrade.worker - INFO - Bot heartbeat. PID=5379, 
+version='2026.10', state='RUNNING'
+2026-11-13 00:28:21,019 - freqtrade.worker - INFO - Bot heartbeat. PID=5379, 
+version='2026.10', state='RUNNING'
+2026-11-13 00:29:21,022 - freqtrade.worker - INFO - Bot heartbeat. PID=5379, 
+version='2026.10', state='RUNNING'
+2026-11-13 00:30:26,001 - freqtrade.worker - INFO - Bot heartbeat. PID=5379, 
+version='2026.10', state='RUNNING'
+2026-11-13 00:31:26,003 - freqtrade.worker - INFO - Bot heartbeat. PID=5379, 
+version='2026.10', state='RUNNING'
+2026-11-13 00:32:26,006 - freqtrade.worker - INFO - Bot heartbeat. PID=5379, 
+version='2026.10', state='RUNNING'
+2026-11-13 00:33:26,008 - freqtrade.worker - INFO - Bot heartbeat. PID=5379, 
+version='2026.10', state='RUNNING'
+2026-11-13 00:34:26,011 - freqtrade.worker - INFO - Bot heartbeat. PID=5379, 
+version='2026.10', state='RUNNING'
+2026-11-13 00:35:31,001 - freqtrade.worker - INFO - Bot heartbeat. PID=5379, 
+version='2026.10', state='RUNNING'
+2026-11-13 00:36:31,003 - freqtrade.worker - INFO - Bot heartbeat. PID=5379, 
+version='2026.10', state='RUNNING'
+2026-11-13 00:37:31,006 - freqtrade.worker - INFO - Bot heartbeat. PID=5379, 
+version='2026.10', state='RUNNING'

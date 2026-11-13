@@ -1,0 +1,7 @@
+{
+  "ok": true,
+  "note": "Freqtrade dry-run on Kraken opened BTC/USD trade at 71425.4 (0.00140006 BTC). Process died; restart detected same open trade. dry_run=true, no broker order placed, no profit realized.",
+  "selfDeclaredSuccess": false,
+  "canApprove": false,
+  "ranAt": "2026-11-12T23:13:54Z"
+}

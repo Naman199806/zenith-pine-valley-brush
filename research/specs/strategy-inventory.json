@@ -1,0 +1,13 @@
+{
+  "status": "NO_EDGE_DEMONSTRATED",
+  "holdoutUsed": false,
+  "candidates": [
+    { "id": "mom-12-1", "market": "SPY", "status": "RETIRED_FROM_PROMOTION", "note": "0.56 percent one-share. 95 percent variant lagged buy-and-hold." },
+    { "id": "trend-200", "market": "BTC-USD", "status": "REJECTED", "netReturn": -0.0761 },
+    { "id": "mean-revert-20", "market": "BTC-USD", "status": "REJECTED", "netReturn": -0.1768 },
+    { "id": "mom-20", "market": "BTC-USD", "status": "REJECTED", "netReturn": -0.1822 },
+    { "id": "sma-10-30", "market": "BTC-USD", "status": "REJECTED", "netReturn": -0.0755 }
+  ],
+  "recommendation": "CONTINUE RESEARCH",
+  "paperTrial": false
+}

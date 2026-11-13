@@ -1,0 +1,14 @@
+{
+  "variant": "mom-12-1-v2-equity95",
+  "baseline": "mom-12-1 one-share, unchanged",
+  "sizing": "95 percent of equity",
+  "costs": "5 bps commission plus 1 bp slippage",
+  "holdoutFrom": "2025-11-11",
+  "holdoutUsed": false,
+  "endingEquity": 1201369.42,
+  "netReturn": 11.0137,
+  "buyAndHoldReturn": 14.5093,
+  "promoted": false,
+  "note": "Versioned research variant. Not a promotion. One-share baseline is unchanged.",
+  "ranAt": "2026-11-12T21:17:55Z"
+}

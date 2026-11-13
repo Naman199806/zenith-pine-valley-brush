@@ -1,0 +1,41 @@
+{
+  "url": "http://127.0.0.1:8080/",
+  "viewports": {
+    "desktop": {
+      "width": 1280,
+      "height": 800,
+      "status": 200,
+      "title": "APEX QUANT X",
+      "hasCanvas": false,
+      "bodyTextLen": 2134,
+      "bodyTextHash": "201546b17c29180e2822416ed1fdeaa3d8816f7f258ad931f7d3088b715bbc91",
+      "bodyTextPrefix": "AX APEX QUANT X Research organization · simulated capital RESEAR",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/app-builder-preview-now.png"
+    },
+    "mobile": {
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "title": "APEX QUANT X",
+      "hasCanvas": false,
+      "bodyTextLen": 2134,
+      "bodyTextHash": "201546b17c29180e2822416ed1fdeaa3d8816f7f258ad931f7d3088b715bbc91",
+      "bodyTextPrefix": "AX APEX QUANT X Research organization · simulated capital RESEAR",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/app-builder-preview-now-mobile.png"
+    }
+  },
+  "brandWarnings": [],
+  "authWarnings": [],
+  "verdictFile": "/workspace/screenshots/app-builder-preview-now.json",
+  "divergesFromBaseline": true,
+  "baselineReasons": [
+    "desktop: body text changed (1143 -> 2134 chars, hash mismatch)",
+    "mobile: body text changed (1143 -> 2134 chars, hash mismatch)"
+  ]
+}

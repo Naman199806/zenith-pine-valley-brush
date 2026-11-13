@@ -1,0 +1,9 @@
+{
+  "preregistered": "2026-11-13T16:16:00Z",
+  "holdout": "Do not open. No candidate passed development.",
+  "pass": "After-cost return beats the matching buy-and-hold on development, with at least 30 trades and max drawdown under 40 percent.",
+  "fail": "Loses to buy-and-hold, or profit factor under 1.0 after costs.",
+  "inconclusive": "Fewer than 30 trades, or costs not modeled.",
+  "multipleTesting": "Three BTC hypotheses were already tested. Do not retune them.",
+  "executedHoldout": false
+}

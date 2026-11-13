@@ -1,0 +1,21 @@
+{
+  "bull": {
+    "status": "OK",
+    "model": "grok-4.3",
+    "text": "Price history from BTC's completed daily bars is the only available evidence.",
+    "tokens": 413
+  },
+  "bear": {
+    "status": "OK",
+    "model": "grok-4.3",
+    "text": "Given that three prior daily hypotheses lost to buy-and-hold, caution is warranted on BTC.",
+    "tokens": 539
+  },
+  "spy": {
+    "status": "OK",
+    "model": "grok-4.3",
+    "text": "Although SPY Yahoo daily data exists, the required SEC filing remains unloaded.",
+    "tokens": 585
+  },
+  "ranAt": "2026-11-13T01:46:13.174Z"
+}

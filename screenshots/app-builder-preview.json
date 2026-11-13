@@ -1,0 +1,36 @@
+{
+  "url": "http://127.0.0.1:8080/",
+  "viewports": {
+    "desktop": {
+      "width": 1280,
+      "height": 800,
+      "status": 200,
+      "title": "APEX QUANT X",
+      "hasCanvas": false,
+      "bodyTextLen": 4956,
+      "bodyTextHash": "ef726e2df90d34c17f662b24fd0f1cd4ec54b6d71f62acc94bcc17bde83b3010",
+      "bodyTextPrefix": "AX APEX QUANT X Research organization · simulated capital RESEAR",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/app-builder-preview.png"
+    },
+    "mobile": {
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "title": "APEX QUANT X",
+      "hasCanvas": false,
+      "bodyTextLen": 4954,
+      "bodyTextHash": "2dfc4208816a6507e787e60d0e7f743871268634f093ed3a7a95d77eebfc2778",
+      "bodyTextPrefix": "AX APEX QUANT X Research organization · simulated capital RESEAR",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/app-builder-preview-mobile.png"
+    }
+  },
+  "brandWarnings": [],
+  "authWarnings": [],
+  "verdictFile": "/workspace/screenshots/app-builder-preview.json"
+}

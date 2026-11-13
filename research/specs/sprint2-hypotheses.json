@@ -1,0 +1,25 @@
+{
+  "hypotheses": [
+    {
+      "id": "vol-regime-mom",
+      "rationale": "Momentum is more reliable when realized volatility is not extreme.",
+      "features": ["close", "20-day return", "20-day realized vol"],
+      "feasible": true,
+      "failIf": "Does not beat buy-and-hold after 25 bps on the development window."
+    },
+    {
+      "id": "liquidity-reversal",
+      "rationale": "A down day on unusually high volume may revert.",
+      "features": ["close", "volume"],
+      "feasible": true,
+      "failIf": "Expectancy after costs is not positive on development."
+    },
+    {
+      "id": "event-momentum",
+      "rationale": "News shocks may continue.",
+      "features": ["point-in-time headlines"],
+      "feasible": false,
+      "failIf": "No point-in-time news archive exists. Rejected before testing."
+    }
+  ]
+}

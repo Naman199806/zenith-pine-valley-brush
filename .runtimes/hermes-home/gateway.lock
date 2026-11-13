@@ -1,0 +1,1 @@
+{"pid": 1301, "kind": "hermes-gateway", "argv": ["/workspace/.runtimes/src/hermes-agent/hermes_cli/main.py", "gateway", "run", "--quiet", "--idle-exit"], "start_time": 4733, "hermes_home": "/workspace/.runtimes/hermes-home"}

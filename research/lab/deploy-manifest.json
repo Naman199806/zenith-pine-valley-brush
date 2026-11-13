@@ -1,0 +1,13 @@
+{
+  "status": "NOT_DEPLOYED",
+  "requirements": [
+    "Persistent host with a durable disk",
+    "Freqtrade sqlite and Apex state on that disk",
+    "Secrets outside the repo",
+    "Supervisor with heartbeat alerts",
+    "Off-host backup of state and the execution journal",
+    "PAPER_AUTO stays off until unattended exit handling is tested"
+  ],
+  "live": false,
+  "paperAuto": false
+}

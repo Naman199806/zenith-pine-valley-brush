@@ -1,0 +1,468 @@
+{
+  "schemaVersion": "apex.integration.v1",
+  "generatedAt": "2026-11-12T21:24:19.402Z",
+  "complete": false,
+  "licensingClearance": false,
+  "reason": "All six research engines are INTEGRATED for internal research: output is consumed by Strategy Lab or Research. GPL distribution for Freqtrade and Backtrader is not cleared. None are ACTIVE. Research output cannot become paper-auto.",
+  "runs": {
+    "backtrader": {
+      "fixture": {
+        "ok": true,
+        "engine": "backtrader",
+        "version": "1.9.78.123",
+        "placeOrders": false,
+        "startValue": 1000000,
+        "endValue": 1000019.8,
+        "netPnl": 19.8,
+        "expectedNetDollars": 19.8,
+        "ranAt": "2026-11-12T21:24:19Z"
+      },
+      "sma": {
+        "ok": true,
+        "engine": "backtrader",
+        "workflow": "sma-2-3",
+        "version": "1.9.78.123",
+        "placeOrders": false,
+        "bars": [
+          [
+            10,
+            10.2,
+            9.8,
+            10
+          ],
+          [
+            10,
+            10.2,
+            9.8,
+            10
+          ],
+          [
+            10,
+            10.2,
+            9.8,
+            10
+          ],
+          [
+            11,
+            12.2,
+            10.8,
+            12
+          ],
+          [
+            12,
+            12.2,
+            11.8,
+            12
+          ],
+          [
+            11,
+            11.2,
+            8.8,
+            9
+          ],
+          [
+            9,
+            9.2,
+            8.8,
+            9
+          ],
+          [
+            9,
+            9.2,
+            8.8,
+            9
+          ]
+        ],
+        "fills": [
+          {
+            "bar": 5,
+            "size": 10,
+            "price": 12,
+            "value": 120,
+            "comm": 0.12
+          },
+          {
+            "bar": 7,
+            "size": -10,
+            "price": 9,
+            "value": 120,
+            "comm": 0.09
+          }
+        ],
+        "startValue": 100000,
+        "endValue": 99969.79000000001,
+        "netPnl": -30.21,
+        "ranAt": "2026-11-12T21:24:20Z"
+      },
+      "fixtureCode": 0,
+      "smaCode": 0
+    },
+    "freqtrade": {
+      "ok": true,
+      "code": 0,
+      "engine": "freqtrade",
+      "version": "2026.10",
+      "placeOrders": false,
+      "dryRun": true,
+      "dataset": "synthetic-5m-not-market-history",
+      "tradeCount": 1,
+      "absoluteProfitUsd": 2.005,
+      "finalBalanceUsd": 1002.005,
+      "log": "/workspace/.runtimes/freqtrade-run/backtest.log",
+      "tail": "┳━━━━━━━━┳━━━━━━━━━┳━━━━━━━━━┳━━━━━━━━━┳━━━━━━━━━┳━━━━━━━━━┳━━━━━━━━━┓\n┃         ┃        ┃         ┃         ┃         ┃         ┃     Win ┃         ┃\n┃         ┃        ┃     Avg ┃     Tot ┃     Tot ┃         ┃    Draw ┃         ┃\n┃         ┃        ┃  Profit ┃  Profit ┃  Profit ┃     Avg ┃    Loss ┃         ┃\n┃ Strate… ┃ Trades ┃       % ┃     USD ┃       % ┃ Durati… ┃    Win% ┃ Drawdo… ┃\n┡━━━━━━━━━╇━━━━━━━━╇━━━━━━━━━╇━━━━━━━━━╇━━━━━━━━━╇━━━━━━━━━╇━━━━━━━━━╇━━━━━━━━━┩\n│ Sample… │      1 │    2.00 │   2.005 │     0.2 │ 0:45:00 │       1 │   0 USD │\n│         │        │         │         │         │         │ 0     0 │   0.00% │\n│         │        │         │         │         │         │     100 │         │\n└─────────┴────────┴─────────┴─────────┴─────────┴─────────┴─────────┴─────────┘\n"
+    },
+    "dayTrader": {
+      "ok": true,
+      "steps": [
+        {
+          "code": 0,
+          "tail": "}"
+        },
+        {
+          "code": 0,
+          "tail": "}"
+        },
+        {
+          "code": 0,
+          "tail": "}"
+        },
+        {
+          "code": 0,
+          "tail": "}"
+        },
+        {
+          "code": 1,
+          "tail": "}"
+        },
+        {
+          "code": 0,
+          "tail": "}"
+        },
+        {
+          "code": 0,
+          "tail": "}"
+        }
+      ],
+      "brokerInvoked": false,
+      "log": "/workspace/.runtimes/day-trader-run/workflow.json",
+      "riskVerdict": "BLOCK",
+      "riskReasons": [
+        "loss: 8 shares x 8.16 risk a share = $65.28 at the stop, over your $50 max loss per trade",
+        "reward:risk: 0.44 (target 370.04, entry 366.48, stop 358.32) is under your minimum 1"
+      ],
+      "plan": {
+        "entry": 364.18,
+        "stop": 358.32,
+        "target": 375.9,
+        "stopRule": "or_mid"
+      }
+    },
+    "lean": {
+      "code": 0,
+      "pid": 6095,
+      "summary": {
+        "engine": "lean",
+        "pin": "655ac6d475ad8539ff54583a26327e63b59c5703",
+        "algorithm": "ApexFixtureAlgorithm",
+        "dataset": "synthetic-custom-data",
+        "brokerOrders": false,
+        "barsSeen": 4,
+        "tradeCount": 1,
+        "fills": [
+          {
+            "orderId": 1,
+            "utc": "2024-01-02T15:01:00.0000000Z",
+            "fillPrice": 100.5,
+            "fillQuantity": 100,
+            "orderFee": 0,
+            "direction": "Buy"
+          },
+          {
+            "orderId": 2,
+            "utc": "2024-01-02T15:03:00.0000000Z",
+            "fillPrice": 101,
+            "fillQuantity": -100,
+            "orderFee": 0,
+            "direction": "Sell"
+          }
+        ],
+        "netProfit": 50,
+        "equity": 100050,
+        "holdings": 0,
+        "cash": 100050
+      },
+      "status": "Completed",
+      "endEquity": "100050"
+    },
+    "tradingagents": {
+      "ok": true,
+      "engine": "tradingagents",
+      "version": "0.7.1",
+      "provider": "xai",
+      "model": "grok-4.20-0309-non-reasoning",
+      "ticker": "AAPL",
+      "tradeDate": "2024-01-05",
+      "analysts": [
+        "market"
+      ],
+      "placeOrders": false,
+      "executable": false,
+      "ranAt": "2026-11-12T05:26:23Z",
+      "signal": "Hold",
+      "decision": "**Rating**: Hold\n\n**Executive Summary**: Maintain a standard neutral allocation to AAPL (e.g. benchmark weight with no active over/underweight). Do not add on this dip or initiate shorts; monitor for either a technical stabilization above the 50 SMA or further breakdown below recent lows before adjusting. If new fundamentals emerge (e.g. earnings or AI news), reassess. Time horizon is near-term uncertain pending fresh data.\n\n**Investment Thesis**: The evidence from the risk analysts' debate on AAPL remains balanced after weighing, supporting Hold as neither side decisively wins. The Aggressive Analyst argues the >5.8% sell-off from 190.21 to 178.998 as of Jan 5 2024 represents momentum exhaustion after a 2023 run, with RSI/MACD washout, Bollinger Band compression signaling snap-back, weak hands flushed, and intact fundamentals like 2B+ ecosystem, 15-20% Services growth, AI tailwinds unpriced, and Vision Pro upside—dismissing breakdowns as noise. The Conservative Analyst counters that the high-volume break below 50 SMA and 10 EMA, deteriorating RSI/MACD, elevated ATR, and Bollinger expansion in the down direction indicate real selling pressure and accelerating downside, not a \"sale\"",
+      "stateKeys": [
+        "asset_type",
+        "company_of_interest",
+        "final_rating",
+        "final_trade_decision",
+        "fundamentals_report",
+        "instrument_context",
+        "investment_debate_state",
+        "investment_plan",
+        "market_report",
+        "memory_note",
+        "messages",
+        "news_report",
+        "past_context",
+        "portfolio_context",
+        "risk_debate_state",
+        "sentiment_report",
+        "trade_date",
+        "trader_investment_plan"
+      ],
+      "reused": true
+    },
+    "hermes": {
+      "ok": true,
+      "engine": "hermes",
+      "commit": "eaac327fac2c2db0b77ee143989d49b29a6f36cb",
+      "version": "0.0.0",
+      "code": 0,
+      "selfDeclaredSuccess": false,
+      "experiment": {
+        "id": "journal-review-001",
+        "hypothesis": "The provided Apex skills enforce strict separation of research, memory, strategy proposal, and post-trade review without self-approval or order execution capabilities.",
+        "baselineId": "baseline-v0",
+        "selfDeclaredSuccess": false
+      },
+      "credentialsTouched": [],
+      "placeOrders": false,
+      "skills": [
+        "software-development",
+        ".bundled_manifest",
+        "apple",
+        "web",
+        "research-memory",
+        "email",
+        "note-taking",
+        "autonomous-ai-agents",
+        "productivity",
+        "research-analyst",
+        "media",
+        "creative",
+        "devops",
+        "post-trade-review",
+        "social-media",
+        ".usage.json",
+        ".usage.json.lock",
+        "research",
+        "strategy-improvement"
+      ],
+      "blocker": null,
+      "ranAt": "2026-11-12T05:33:48Z",
+      "reused": true
+    },
+    "alpaca": {
+      "connected": true,
+      "mode": "MONITORING",
+      "status": "ACTIVE",
+      "equity": "105442.8",
+      "clockOpen": false,
+      "clockTs": "2026-11-12T16:24:29.658077302-05:00",
+      "positions": 0,
+      "orders": 0,
+      "safety": true,
+      "recon": true,
+      "liveSelectable": false
+    },
+    "workflow": {
+      "ok": true,
+      "path": "research/workflow/sprint5.json",
+      "steps": 10,
+      "executable": false
+    }
+  },
+  "frameworks": [
+    {
+      "schemaVersion": "apex.integration.v1",
+      "adapter": "present",
+      "enabled": true,
+      "process": "authenticated-read",
+      "lastConnection": "2026-11-12T21:24:19.402Z",
+      "capabilities": [
+        "Account",
+        "clock",
+        "positions",
+        "paper orders only after launch promotion"
+      ],
+      "errors": [],
+      "id": "alpaca-paper",
+      "name": "Alpaca paper",
+      "version": "paper-api v2",
+      "license": "Alpaca API terms, not an open-source engine",
+      "status": "CONFIGURED",
+      "lastTest": "Account ACTIVE, equity 105442.8, clock 2026-11-12T16:24:29.658077302-05:00",
+      "activeCapability": "MONITORING. This command does not send an order.",
+      "permissions": "Paper host only. LIVE not selectable.",
+      "runtime": "Node fetch to paper-api.alpaca.markets",
+      "health": "Authenticated. 0 positions, 0 session orders. Safety true.",
+      "boundary": "The only execution path. No order is sent by this verify."
+    },
+    {
+      "schemaVersion": "apex.integration.v1",
+      "adapter": "present",
+      "enabled": true,
+      "process": "blocked",
+      "lastConnection": "2026-11-12T21:24:19.402Z",
+      "capabilities": [
+        "Launcher backtest on synthetic custom data"
+      ],
+      "errors": [],
+      "id": "lean",
+      "name": "QuantConnect LEAN",
+      "version": "655ac6d475ad8539ff54583a26327e63b59c5703",
+      "license": "Apache-2.0",
+      "status": "INTEGRATED",
+      "lastTest": "ApexFixtureAlgorithm custom-data backtest, net 50 dollars, fees 0",
+      "activeCapability": "One completed backtest. Not a service.",
+      "permissions": "environment=backtesting. brokerOrders false. No Alpaca call.",
+      "runtime": "dotnet 10.0.404, Launcher/bin/Release/QuantConnect.Lean.Launcher.dll",
+      "health": "Process 6095 exited 0. End equity 100050. The TypeScript 19.80 fixture was not used.",
+      "boundary": "Fills are LEAN's immediate custom-data close, not the Apex next-bar-open fixture. Net 50 versus the fixture's 19.80 is a different rule, not a second copy of that check."
+    },
+    {
+      "schemaVersion": "apex.integration.v1",
+      "adapter": "present",
+      "enabled": true,
+      "process": "blocked",
+      "lastConnection": "2026-11-12T21:24:19.402Z",
+      "capabilities": [
+        "market analyst only",
+        "xAI provider"
+      ],
+      "errors": [],
+      "id": "tradingagents",
+      "name": "TradingAgents",
+      "version": "0.7.1",
+      "license": "Apache-2.0",
+      "status": "INTEGRATED",
+      "lastTest": "AAPL 2024-01-05 signal Hold",
+      "activeCapability": "One research invocation. Not an order.",
+      "permissions": "No brokerage tool. executable false.",
+      "runtime": "/workspace/.runtimes/tradingagents Python 3.11.17",
+      "health": "Model grok-4.20-0309-non-reasoning. Stored session invocation, not a second model call. Hypothesis only.",
+      "boundary": "A rating is not a probability and not paper-auto eligible."
+    },
+    {
+      "schemaVersion": "apex.integration.v1",
+      "adapter": "present",
+      "enabled": true,
+      "process": "blocked",
+      "lastConnection": "2026-11-12T21:24:19.402Z",
+      "capabilities": [
+        "research-analyst",
+        "post-trade-review",
+        "strategy-improvement",
+        "research-memory"
+      ],
+      "errors": [],
+      "id": "hermes",
+      "name": "Hermes Agent",
+      "version": "eaac327fac2c2db0b77ee143989d49b29a6f36cb",
+      "license": "MIT",
+      "status": "INTEGRATED",
+      "lastTest": "oneshot experiment, selfDeclaredSuccess false",
+      "activeCapability": "One restricted review.",
+      "permissions": "Scratch HOME. APCA_* removed. Cannot set selfDeclaredSuccess true.",
+      "runtime": "Python 3.14.8 at .runtimes/hermes314. Commit eaac327. psutil==7.2.2 is not on the index, so psutil 7.0.0 was installed. browser-harness was skipped because it requires pillow==12.3.0 while the pin also requires pillow==13.0.0.",
+      "health": "Oneshot returned a versioned experiment with selfDeclaredSuccess false.",
+      "boundary": "Observe and propose only. It cannot approve a strategy or write the paper key file."
+    },
+    {
+      "schemaVersion": "apex.integration.v1",
+      "adapter": "present",
+      "enabled": true,
+      "process": "blocked",
+      "lastConnection": "2026-11-12T21:24:19.402Z",
+      "capabilities": [
+        "dry_run backtest"
+      ],
+      "errors": [
+        "GPL-3.0 distribution is not cleared. Internal research consumption is separate."
+      ],
+      "id": "freqtrade",
+      "name": "Freqtrade",
+      "version": "2026.10",
+      "license": "GPL-3.0-only",
+      "status": "INTEGRATED",
+      "lastTest": "SampleStrategy synthetic plus Coinbase BTC-USD research consumed by Strategy Lab",
+      "activeCapability": "One isolated backtest. Native trading disabled.",
+      "permissions": "Empty exchange keys. dry_run true. Not imported by Node.",
+      "runtime": "Python 3.12.15 venv .runtimes/freqtrade",
+      "health": "Process exited 0 on synthetic candles.",
+      "boundary": "Not vendored. A subprocess is not GPL clearance. The 0.20% figure is the synthetic series, not a market result."
+    },
+    {
+      "schemaVersion": "apex.integration.v1",
+      "adapter": "present",
+      "enabled": true,
+      "process": "blocked",
+      "lastConnection": "2026-11-12T21:24:19.402Z",
+      "capabilities": [
+        "3-bar fixture",
+        "SMA 2/3 cross"
+      ],
+      "errors": [
+        "GPL-3.0-or-later distribution is not cleared. Internal research consumption is separate."
+      ],
+      "id": "backtrader",
+      "name": "Backtrader",
+      "version": "1.9.78.123",
+      "license": "GPL-3.0-or-later",
+      "status": "INTEGRATED",
+      "lastTest": "fixture net 19.80, SMA 2/3 net -30.21, and SPY SMA 20/50 consumed by Strategy Lab",
+      "activeCapability": "Two isolated checks. Not a portfolio source.",
+      "permissions": "No broker. Cannot write the Apex ledger.",
+      "runtime": "/workspace/.runtimes/backtrader/bin/python",
+      "health": "Both processes matched the Apex formulas.",
+      "boundary": "SMA fills were next-bar opens at 12 and 9, fees 0.12 and 0.09. Same numbers as the integer-cent identity, so no unexplained difference on this series."
+    },
+    {
+      "schemaVersion": "apex.integration.v1",
+      "adapter": "present",
+      "enabled": true,
+      "process": "blocked",
+      "lastConnection": "2026-11-12T21:24:19.402Z",
+      "capabilities": [
+        "scanner",
+        "entry",
+        "exit",
+        "risk",
+        "alerts",
+        "timemachine"
+      ],
+      "errors": [],
+      "id": "day-trader-skill",
+      "name": "Day Trader Skill",
+      "version": "3d0f4ef6986f4984b7c6bd46f7ff4f87744c3abd",
+      "license": "MIT",
+      "status": "INTEGRATED",
+      "lastTest": "risk BLOCK on the TSLA fixture",
+      "activeCapability": "Offline scan, entry, exit, risk, clock, and a seeded replay.",
+      "permissions": "trader-broker was not called.",
+      "runtime": "Python 3.10, clone under .runtimes/day-trader-skill",
+      "health": "Risk blocked the fixture ticket. That block is not a forecast.",
+      "boundary": "Opening-range hits and Time Machine replays are uncalibrated. They are not probabilities and not profitability."
+    }
+  ]
+}

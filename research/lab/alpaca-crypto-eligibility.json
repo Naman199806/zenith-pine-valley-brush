@@ -1,0 +1,13 @@
+{
+  "checkedAt": "2026-11-12T22:52:01Z",
+  "account": "ACTIVE",
+  "paperHost": true,
+  "submitted": false,
+  "assets": {
+    "BTC/USD": { "tradable": true, "fractionable": true, "shortable": false, "marginable": false },
+    "ETH/USD": { "tradable": true, "fractionable": true, "shortable": false, "marginable": false },
+    "SOL/USD": { "tradable": true, "fractionable": true, "shortable": false, "marginable": false }
+  },
+  "quote": { "symbol": "BTC/USD", "bid": 71234.39, "ask": 71252.11, "ts": "2026-11-12T22:52:01.330338214Z", "source": "data.alpaca.markets" },
+  "note": "Eligible for a future operator-approved paper proposal. No order was sent. Equity 3:00 PM cutoff does not apply to crypto."
+}

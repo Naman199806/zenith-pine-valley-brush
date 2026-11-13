@@ -1,0 +1,47 @@
+{
+  "rulesFrozen": true,
+  "holdoutFrom": "2025-11-11",
+  "holdoutUsed": false,
+  "coverage": {
+    "first": "1993-01-29",
+    "last": "2025-11-10",
+    "bars": 8253
+  },
+  "checksum": "b7d2529962e3d433",
+  "backtrader": {
+    "tradeCount": 78,
+    "closedPnl": 456.75,
+    "profitFactor": 5.32,
+    "winRate": 0.641,
+    "endingEquity": 100561.92,
+    "netReturn": 0.0056,
+    "cagr": 0.0002
+  },
+  "independentOneShare": {
+    "tradeCount": 78,
+    "closedPnl": 464.44,
+    "endingEquity": 100562.04,
+    "netReturn": 0.0056,
+    "maxDrawdown": -0.0012,
+    "sharpe": 0.471,
+    "investedFraction": 0.7775
+  },
+  "fullEquitySensitivity": {
+    "note": "Not the audited baseline. Same rules, full-equity sizing. Not used for promotion.",
+    "tradeCount": 78,
+    "endingEquity": 1355570.63,
+    "netReturn": 12.5557,
+    "investedFraction": 0.7775
+  },
+  "buyAndHold": {
+    "end": 1550930.3,
+    "return": 14.5093
+  },
+  "cash": 100000,
+  "lean": {
+    "status": "BLOCKED",
+    "reason": "LEAN runtime is fixture-only. Yahoo daily is not in LEAN data format. No LEAN SPY result was fabricated."
+  },
+  "promoted": false,
+  "ranAt": "2026-11-12T21:12:12Z"
+}

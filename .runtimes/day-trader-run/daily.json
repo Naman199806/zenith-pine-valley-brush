@@ -1,0 +1,37 @@
+{
+  "created_by": "trader-scanner",
+  "created_at": "2026-10-19T13:00:00Z",
+  "mode": "daily",
+  "as_of": "2026-10-16 close",
+  "universe": 2,
+  "scanned": 2,
+  "failed": 0,
+  "source": "yahoo",
+  "filters": {
+    "min_price": 0.0,
+    "min_volume": 0
+  },
+  "note": "A scan is a list of charts that match a rule, not a list of stocks to buy.",
+  "hits": [
+    {
+      "symbol": "KO",
+      "setups": [
+        "breakout_20d"
+      ],
+      "price": 93.9,
+      "close_date": "2026-10-16",
+      "rsi": 75.3,
+      "volume": 3680307
+    }
+  ],
+  "offline": "daily-spark-2026-10-19.json",
+  "counts": {
+    "requested": 2,
+    "fetched": 2,
+    "illiquid": 0,
+    "short": 0,
+    "scanned": 2,
+    "hits": 1
+  },
+  "seconds": 0.0
+}

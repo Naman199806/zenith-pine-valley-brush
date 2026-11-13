@@ -1,0 +1,70 @@
+{
+  "filings": [
+    {
+      "cik": "0000884394",
+      "ticker": "SPY",
+      "form": "NPORT-P",
+      "filed": "2026-08-28",
+      "url": "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0000884394"
+    },
+    {
+      "cik": "0000884394",
+      "ticker": "SPY",
+      "form": "N-30D",
+      "filed": "2026-05-29",
+      "url": "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0000884394"
+    },
+    {
+      "cik": "0000884394",
+      "ticker": "SPY",
+      "form": "NPORT-P",
+      "filed": "2026-05-28",
+      "url": "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0000884394"
+    }
+  ],
+  "btcBull": {
+    "status": "OK",
+    "model": "grok-4.3",
+    "text": "I'm unable to access or analyze real-time or current completed daily bars for BTC.",
+    "tokens": 1036
+  },
+  "btcBear": {
+    "status": "OK",
+    "model": "grok-4.3",
+    "text": "Daily trading attempts on BTC have historically underperformed simple buy-and-hold due to volatility, fees, and the difficulty of consistent timing.",
+    "tokens": 494
+  },
+  "spyBull": {
+    "status": "OK",
+    "model": "grok-4.3",
+    "text": "SPY is the SPDR S&P 500 ETF Trust, an exchange-traded fund that tracks the S&P 500 Index and files regulatory disclosures via ETF-specific forms rather than a standard corporate 10-K.",
+    "tokens": 575
+  },
+  "spyBear": {
+    "status": "OK",
+    "model": "grok-4.3",
+    "text": "Investors should approach SPY with caution, as the absence of any promoted momentum baseline leaves the position vulnerable to sudden reversals without a clear trend tailwind.",
+    "tokens": 783
+  },
+  "btc": {
+    "instrument": "BTC-USD",
+    "quantOk": false,
+    "riskOk": true,
+    "strategyApproved": false,
+    "action": "NO_TRADE",
+    "reason": "Quant rejected.",
+    "quantRejects": true,
+    "riskRejects": false
+  },
+  "spy": {
+    "instrument": "SPY",
+    "quantOk": false,
+    "riskOk": true,
+    "strategyApproved": false,
+    "action": "NO_TRADE",
+    "reason": "Quant rejected.",
+    "quantRejects": true,
+    "riskRejects": false
+  },
+  "ranAt": "2026-11-13T01:57:54.072Z"
+}

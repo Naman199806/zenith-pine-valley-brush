@@ -1,0 +1,25 @@
+{
+  "ok": true,
+  "selfDeclaredSuccess": false,
+  "diagnosis": "Post-trade audit of 12-1 momentum (1-share sizing) confirms 78 trades, profit factor 5.32, ending equity 100561.92, CAGR 0.0002, independent equity 100562.04, Sharpe 0.471, B&H 14.5093%. Full-equity sensitivity excluded; holdout unused. No profit claims. Rules, code, risk, broker settings untouched. Self-declared success prohibited per post-trade-review and integration invariants.",
+  "experiments": [
+    {
+      "id": "exp-12-1-mom-1",
+      "change": "Test 12-1 momentum with strict 1-share sizing on independent replay",
+      "falsifier": "Equity diverges >0.1% from 100561.92 or PF drops below 5.0"
+    },
+    {
+      "id": "exp-sharpe-zero-var",
+      "change": "Verify Sharpe remains low with zero-variance control sessions",
+      "falsifier": "Sharpe exceeds 0.5 or control promotes without human approval"
+    },
+    {
+      "id": "exp-holdout-integrity",
+      "change": "Confirm holdout period remains unused in registry and backtest",
+      "falsifier": "Any strategy state changes to VALIDATED or holdout data leaks into paper ledger"
+    }
+  ],
+  "canApprove": false,
+  "code": 0,
+  "ranAt": "2026-11-12T21:13:40Z"
+}

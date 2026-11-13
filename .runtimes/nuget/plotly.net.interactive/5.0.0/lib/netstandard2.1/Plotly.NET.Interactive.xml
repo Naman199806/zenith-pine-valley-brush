@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<doc>
+<assembly><name>Plotly.NET.Interactive</name></assembly>
+<members>
+<member name="M:Plotly.NET.Interactive.Formatters.toInteractiveHTML(Plotly.NET.GenericChart)">
+<summary>
+ Converts a GenericChart to it&apos;s HTML representation and embeds it in a div element, together with the chart description for display in notebook environments.
+</summary>
+</member>
+</members>
+</doc>

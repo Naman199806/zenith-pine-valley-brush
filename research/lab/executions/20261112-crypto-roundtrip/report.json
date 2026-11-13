@@ -1,0 +1,29 @@
+{
+  "id": "20261112-crypto-roundtrip",
+  "host": "paper-api.alpaca.markets",
+  "live": false,
+  "paperAuto": false,
+  "buy": {
+    "orderId": "c9f6371e-7add-451f-b612-4b5358066509",
+    "clientOrderId": "apex-crypto-f0e7eaa9-5c78-4df7-9e81-3bccc6759ec2",
+    "filledQty": "0.001",
+    "avg": "71311.4",
+    "filledAt": "2026-11-12T23:33:06.102289212Z",
+    "positionAfter": "0.0009975",
+    "fee": "25 bps taker taken in kind. 0.0000025 BTC. No CFEE line."
+  },
+  "sell": {
+    "orderId": "9e3b834f-9ff0-46fb-ba11-344061d91e62",
+    "clientOrderId": "apex-crypto-sell-f703873b-7701-4c26-a24e-a185e21c27e9",
+    "filledQty": "0.0009975",
+    "avg": "71151.42",
+    "filledAt": "2026-11-12T23:40:08.225680026Z",
+    "fee": "About $0.18, consistent with 25 bps of proceeds. Commission field null."
+  },
+  "cashStart": "105442.8",
+  "cashEnd": "105442.28",
+  "realizedPnl": -0.52,
+  "remainingPosition": 0,
+  "openOrders": 0,
+  "promoted": false
+}

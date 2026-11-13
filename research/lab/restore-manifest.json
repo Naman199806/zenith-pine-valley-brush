@@ -1,0 +1,21 @@
+{
+  "archive": "see artifacts/apex-recovery.sha256",
+  "sha256": "external file only, not inside the archive",
+  "node": "v22.23.3",
+  "npm": "10.9.9",
+  "snapshot": "research/lab/state/dryrun-snapshot.sqlite",
+  "trades": 2,
+  "openTrades": 0,
+  "coinbase": {
+    "BTC-USD": {
+      "sha256": "d8aee6554118cb59d7de09977b7cf3d9995569bffc67af4cd7faf785c75a6953",
+      "incompleteFinalBar": "2026-11-13T00:00:00Z"
+    },
+    "ETH-USD": {
+      "sha256": "c1c7a05b8ca6fd1f69a8fd6af75065d2da4c35f2445d5cbe8024d578111b3457",
+      "incompleteFinalBar": "2026-11-13T00:00:00Z"
+    }
+  },
+  "credentialsExcluded": true,
+  "offHost": false
+}

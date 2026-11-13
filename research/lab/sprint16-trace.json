@@ -1,0 +1,11 @@
+{
+  "trip": {
+    "cash": -0.34956249999999045,
+    "position": 0,
+    "pnl": -0.34956249999999045
+  },
+  "blocked": "POLICY_BLOCKED",
+  "brokerOrders": 0,
+  "paperAuto": false,
+  "ranAt": "2026-11-13T03:02:59.982Z"
+}

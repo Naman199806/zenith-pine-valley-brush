@@ -1,0 +1,21 @@
+{
+  "schemaVersion": "apex.workflow.v1",
+  "generatedAt": "2026-11-13T19:31:46.349Z",
+  "executable": false,
+  "paperAutoEligible": false,
+  "liveEnabled": false,
+  "adapters": {
+    "lean": "invoked",
+    "backtrader": "invoked",
+    "freqtrade": "invoked",
+    "tradingagents": "invoked",
+    "dayTrader": "invoked",
+    "hermes": "invoked"
+  },
+  "proposalAccepted": false,
+  "proposalReasons": [
+    "A hypothesis is not an approved trade."
+  ],
+  "hermesCanApprove": false,
+  "alpacaIsSoleBroker": true
+}

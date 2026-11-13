@@ -1,0 +1,29 @@
+{
+  "schemaVersion": "apex.lab.v1",
+  "engine": "freqtrade-env",
+  "version": "2026.10",
+  "strategy": "sma-10-30",
+  "symbol": "BTC-USD",
+  "venue": "coinbase",
+  "dataSource": "Coinbase Exchange public candles",
+  "coverage": {
+    "bars": 350,
+    "first": 1764288000,
+    "last": 1794441600
+  },
+  "synthetic": false,
+  "validated": false,
+  "paperAutoEligible": false,
+  "placeOrders": false,
+  "metrics": {
+    "tradeCount": 6,
+    "winRate": 0.3333,
+    "netPnl": -698.19,
+    "profitFactor": 0.577,
+    "startValue": 10000,
+    "endValue": 9245.08,
+    "netReturn": -0.0755
+  },
+  "note": "Public daily candles only. 10 bps fee each side. Native exchange trading is disabled. Not a profitability claim. GPL distribution remains blocked.",
+  "ranAt": "2026-11-12T19:23:57Z"
+}

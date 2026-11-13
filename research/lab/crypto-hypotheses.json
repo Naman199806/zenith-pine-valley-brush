@@ -1,0 +1,43 @@
+{
+  "source": "Coinbase daily",
+  "hypotheses": [
+    {
+      "id": "trend-200",
+      "bars": 987,
+      "holdoutUsed": false,
+      "trades": 15,
+      "winRate": 0.333,
+      "profitFactor": 0.8,
+      "end": 9238.83,
+      "netReturn": -0.0761,
+      "buyAndHold": 0.1513,
+      "fee": 0.0025
+    },
+    {
+      "id": "mean-revert-20",
+      "bars": 987,
+      "holdoutUsed": false,
+      "trades": 9,
+      "winRate": 0.556,
+      "profitFactor": 0.75,
+      "end": 8231.68,
+      "netReturn": -0.1768,
+      "buyAndHold": 0.1513,
+      "fee": 0.0025
+    },
+    {
+      "id": "mom-20",
+      "bars": 987,
+      "holdoutUsed": false,
+      "trades": 19,
+      "winRate": 0.316,
+      "profitFactor": 0.8,
+      "end": 8178.08,
+      "netReturn": -0.1822,
+      "buyAndHold": 0.1513,
+      "fee": 0.0025
+    }
+  ],
+  "promoted": false,
+  "ranAt": "2026-11-12T23:43:50Z"
+}

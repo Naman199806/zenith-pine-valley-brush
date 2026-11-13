@@ -1,0 +1,10 @@
+{
+  "bot": "Leo",
+  "trigger": "bot_send_prompt",
+  "webhook": null,
+  "stance": "DEFER",
+  "evidenceId": "btc-daily-20261112",
+  "authenticatedBy": "bot-tool-transcript",
+  "selfDeclaredAuth": false,
+  "ranAt": "2026-11-13T19:13:43Z"
+}

@@ -1,0 +1,35 @@
+{
+  "orderId": "c9f6371e-7add-451f-b612-4b5358066509",
+  "clientOrderId": "apex-crypto-f0e7eaa9-5c78-4df7-9e81-3bccc6759ec2",
+  "status": "filled",
+  "qty": "0.001",
+  "filledQty": "0.001",
+  "filledAvg": "71311.4",
+  "submittedAt": "2026-11-12T23:33:06.10063581Z",
+  "filledAt": "2026-11-12T23:33:06.102289212Z",
+  "fees": null,
+  "positions": [
+    {
+      "asset_id": "64bbff51-59d6-4b3c-9351-13ad85e3c752",
+      "symbol": "BTCUSD",
+      "exchange": "CRYPTO",
+      "asset_class": "crypto",
+      "asset_marginable": false,
+      "qty": "0.0009975",
+      "qty_available": "0.0009975",
+      "avg_entry_price": "71311.4",
+      "side": "long",
+      "market_value": "71.085581",
+      "cost_basis": "71.133122",
+      "unrealized_pl": "-0.047541",
+      "unrealized_plpc": "-0.00067",
+      "unrealized_intraday_pl": "-0.047541",
+      "unrealized_intraday_plpc": "-0.00067",
+      "current_price": "71263.74",
+      "lastday_price": "73691.1",
+      "change_today": "-0.03294"
+    }
+  ],
+  "cash": "105371.49",
+  "equity": "105442.58"
+}

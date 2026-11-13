@@ -1,0 +1,17 @@
+{
+  "again": {
+    "clientId": "mock-unknown-1",
+    "state": "UNKNOWN",
+    "qty": 0.001,
+    "newEntries": false
+  },
+  "found": {
+    "clientId": "mock-unknown-1",
+    "state": "ACKNOWLEDGED",
+    "qty": 0.001,
+    "newEntries": true
+  },
+  "gate": "BLOCKED_EXPERIMENT_OFF",
+  "brokerWrites": 0,
+  "ranAt": "2026-11-13T17:52:18.100Z"
+}

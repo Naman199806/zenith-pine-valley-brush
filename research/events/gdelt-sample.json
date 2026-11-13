@@ -1,0 +1,10 @@
+{
+  "provider": "gdelt-v2-export",
+  "file": "20241112000000.export.CSV.zip",
+  "http": 200,
+  "bytes": 194505,
+  "rows": 3047,
+  "assetMatches": { "BTC": 0, "ETH": 0, "SPY": 0, "QQQ": 0 },
+  "firstObserved": null,
+  "note": "One 15-minute file. Event time is present. Provider first-observed time is not in this export."
+}

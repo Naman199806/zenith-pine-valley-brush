@@ -1,0 +1,24 @@
+{
+  "executed": false,
+  "holdoutUsed": false,
+  "hypotheses": [
+    {
+      "id": "btc-trend-filter",
+      "market": "BTC-USD",
+      "rationale": "Own BTC only when price is above a long average, to avoid prolonged downtrends.",
+      "falsify": "Reject if after-cost return does not beat buy-and-hold on the training window."
+    },
+    {
+      "id": "eth-mean-revert",
+      "market": "ETH-USD",
+      "rationale": "Buy sharp completed-bar drawdowns if they revert within a fixed horizon.",
+      "falsify": "Reject if expectancy after 25 bps fees is not positive on the validation window."
+    },
+    {
+      "id": "spy-momentum",
+      "market": "SPY",
+      "rationale": "Own SPY after a completed monthly gain, exit after a completed monthly loss.",
+      "falsify": "Reject if it does not beat a matched buy-and-hold after costs on the training window."
+    }
+  ]
+}

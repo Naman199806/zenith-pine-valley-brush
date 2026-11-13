@@ -1,0 +1,1 @@
+{ property: "og:type", content: "x:game" }

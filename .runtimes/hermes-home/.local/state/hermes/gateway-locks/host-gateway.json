@@ -1,0 +1,16 @@
+{
+  "role": "gateway",
+  "home": "/workspace/.runtimes/hermes-home",
+  "pid": 1301,
+  "createTime": 1794525217.33,
+  "startTime": 4733,
+  "bootEpoch": "42498c1c-fe26-44b7-bc45-2304f3e8c4c2:84",
+  "host": "",
+  "port": null,
+  "protocolVersion": 1,
+  "tokenFingerprint": "",
+  "profiles": [
+    "default"
+  ],
+  "updatedAt": "2026-11-12T23:13:40.780115+00:00"
+}

@@ -1,0 +1,33 @@
+{
+  "evidenceId": "btc-daily-20261112",
+  "closes": [
+    74754.08,
+    75259.28,
+    73697.87,
+    73927.63,
+    71369.9
+  ],
+  "bull": {
+    "status": "OK",
+    "model": "grok-4.3",
+    "text": "The closes in evidence id btc-daily-20261112 imply a downward direction.",
+    "tokens": 751
+  },
+  "bear": {
+    "status": "OK",
+    "model": "grok-4.3",
+    "text": "Evidence id btc-daily-20261112 shows the BTC-USD closes declining from a peak of 75259.28 to a low of 71369.9, indicating downside price risk.",
+    "tokens": 745
+  },
+  "decision": {
+    "instrument": "BTC-USD",
+    "quantOk": false,
+    "riskOk": true,
+    "strategyApproved": false,
+    "action": "NO_TRADE",
+    "reason": "Quant rejected.",
+    "quantRejects": true,
+    "riskRejects": false
+  },
+  "ranAt": "2026-11-13T02:06:07.424Z"
+}

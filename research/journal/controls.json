@@ -1,0 +1,9 @@
+{
+  "experiment": "OFF",
+  "paperAuto": false,
+  "live": false,
+  "start": "Set EXPERIMENT_ON true only after operator approval of a specific ticket.",
+  "stop": "Set EXPERIMENT_ON false. Cancel open paper orders from the Alpaca dashboard.",
+  "close": "Operator must approve a separate closing ticket. Do not auto-close.",
+  "maxNotional": 100
+}

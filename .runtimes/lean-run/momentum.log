@@ -1,0 +1,112 @@
+20261112 21:18:13.508 TRACE:: Using /workspace/.runtimes/src/Lean/Launcher/config.json as configuration file
+20261112 21:18:13.594 TRACE:: Composer(): Loading Assemblies from /workspace/.runtimes/src/Lean/Launcher/bin/Release/
+20261112 21:18:13.613 TRACE:: Python for .NET Assembly: Python.Runtime, Version=2.0.69.0, Culture=neutral, PublicKeyToken=5000fea6cba702dd
+20261112 21:18:15.577 TRACE:: Engine.Main(): LEAN ALGORITHMIC TRADING ENGINE v2.5.0.0 Mode: RELEASE (64bit) Host: hds-4qkceaqjg9r1
+20261112 21:18:15.579 TRACE:: Engine.Main(): Started 21:18
+20261112 21:18:15.597 TRACE:: JobQueue.NextJob(): Selected /workspace/.runtimes/lean-run/build/ApexFixtureAlgorithm.dll
+20261112 21:18:15.624 TRACE:: AlgorithmManager.CreateTokenBucket(): Initializing LeakyBucket: Capacity: 120 RefillAmount: 18 TimeInterval: 1440
+20261112 21:18:15.631 TRACE:: Engine.Run(): Resource limits '0' CPUs. 2147483647 MB RAM.
+20261112 21:18:15.632 TRACE:: TextSubscriptionDataSourceReader.SetCacheSize(): Setting cache size to 71582788 items
+20261112 21:18:16.214 TRACE:: Loader.TryCreateILAlgorithm(): Loading debug information with algorithm
+20261112 21:18:16.435 TRACE:: Loader.TryCreateILAlgorithm(): Loaded ApexMomentumAlgorithm
+20261112 21:18:16.437 TRACE:: LocalObjectStore.Initialize(): Storage Root: /workspace/.runtimes/lean-run/storage. StorageFileCount 10000. StorageLimit 10240MB. StoragePermissions Read=True Write=True Delete=True
+20261112 21:18:16.448 TRACE:: HistoryProviderManager.Initialize(): history providers [SubscriptionDataReaderHistoryProvider]
+20261112 21:18:16.451 TRACE:: BaseSetupHandler.Setup(LocalPlatform): UID: 0, PID: 0, Version: 2.5.0.0, Source: WebIDE
+20261112 21:18:16.608 TRACE:: WeightedWorkScheduler(): will use 2 workers and MaxWorkWeight is 400
+20261112 21:18:16.616 TRACE:: BaseSetupHandler.SetupCurrencyConversions():
+Account Type: Margin
+
+Symbol      Quantity    Conversion = Value in USD
+USD: $      100000.00 @       1.00 = $100000
+-------------------------------------------------
+CashBook Total Value:                $100000
+
+20261112 21:18:16.617 TRACE:: Total margin information: TotalMarginUsed: 0.00, MarginRemaining: 100000.00
+20261112 21:18:16.617 TRACE:: SetUp Backtesting: User: 0 ProjectId: 0 AlgoId: ApexMomentumAlgorithm
+20261112 21:18:16.618 TRACE:: Dates: Start: 02/01/1994 End: 11/10/2025 Cash: ¤100,000.00 MaximumRuntime: 100.00:00:00 MaxOrders: 2147483647
+20261112 21:18:16.621 TRACE:: BacktestingResultHandler(): Sample Period Set: 4178.16
+20261112 21:18:16.622 TRACE:: JOB HANDLERS:
+         DataFeed:             QuantConnect.Lean.Engine.DataFeeds.FileSystemDataFeed
+         Setup:                QuantConnect.Lean.Engine.Setup.BacktestingSetupHandler
+         RealTime:             QuantConnect.Lean.Engine.RealTime.BacktestingRealTimeHandler
+         Results:              QuantConnect.Lean.Engine.Results.BacktestingResultHandler
+         Transactions:         QuantConnect.Lean.Engine.TransactionHandlers.BacktestingTransactionHandler
+         Object Store:         QuantConnect.Lean.Engine.Storage.LocalObjectStore
+         History Provider:     QuantConnect.Lean.Engine.HistoricalData.HistoryProviderManager
+         Brokerage:            QuantConnect.Brokerages.Backtesting.BacktestingBrokerage
+         Data Provider:        QuantConnect.Lean.Engine.DataFeeds.DefaultDataProvider
+
+20261112 21:18:16.634 TRACE:: Event Name "Daily Sampling", scheduled to run.
+20261112 21:18:16.634 TRACE:: AlgorithmManager.Run(): Begin DataStream - Start: 02/01/1994 00:00:00 Stop: 11/10/2025 23:59:59 Time: 02/01/1994 00:00:00 Warmup: False
+20261112 21:18:16.663 TRACE:: Debug: 1994-02-01 00:00:00 Launching analysis for ApexMomentumAlgorithm with LEAN Engine v2.5.0.0
+20261112 21:18:16.765 TRACE:: UniverseSelection.AddPendingInternalDataFeeds(): Adding internal benchmark data feed SPY,#0,SPY,Hour,TradeBar,Trade,Adjusted,OpenInterest,Internal
+20261112 21:18:17.471 TRACE:: Debug: 1994-04-28 16:00:00 Warning: market orders submitted while the market is closed are automatically converted into MarketOnOpen orders to fill at the next market open.
+20261112 21:18:19.747 ERROR:: InterestRateProvider.FromCsvFile(): no interest rates were loaded, please make sure the file is present '/workspace/.runtimes/lean-run/Data/alternative/interest-rate/usa/interest-rate.csv'
+20261112 21:18:28.941 TRACE:: Synchronizer.GetEnumerator(): Exited thread.
+20261112 21:18:28.942 TRACE:: AlgorithmManager.Run(): Firing On End Of Algorithm...
+20261112 21:18:28.971 TRACE:: Engine.Run(): Exiting Algorithm Manager
+20261112 21:18:28.973 TRACE:: OrderRequestProcessingPool.Dispose(): completed
+20261112 21:18:28.974 TRACE:: Debug: 2025-11-10 16:00:00 Algorithm Id:(ApexMomentumAlgorithm) completed in 12.35 seconds at 165k data points per second. Processing total of 2,037,159 data points.
+20261112 21:18:28.975 TRACE:: StopSafely(): Waiting for 'Isolator Thread' thread to stop...
+20261112 21:18:28.975 TRACE:: FileSystemDataFeed.Exit(): Start. Setting cancellation token...
+20261112 21:18:28.977 TRACE:: FileSystemDataFeed.Exit(): Exit Finished.
+20261112 21:18:28.977 TRACE:: DataMonitor.Exit(): start...
+20261112 21:18:28.977 TRACE:: StopSafely(): Waiting for '' thread to stop...
+20261112 21:18:28.978 TRACE:: DataMonitor.GenerateReport():
+DATA USAGE:: Total data requests 3
+DATA USAGE:: Succeeded data requests 1
+DATA USAGE:: Failed data requests 2
+DATA USAGE:: Failed data requests percentage 67%
+DATA USAGE:: Total universe data requests 0
+DATA USAGE:: Succeeded universe data requests 0
+DATA USAGE:: Failed universe data requests 0
+DATA USAGE:: Failed universe data requests percentage 0%
+20261112 21:18:28.978 TRACE:: DataMonitor.Exit(): end
+20261112 21:18:28.978 TRACE:: BacktestingResultHandler.Exit(): starting...
+20261112 21:18:28.978 TRACE:: BacktestingResultHandler.Exit(): Saving logs...
+20261112 21:18:28.979 TRACE:: Debug: 2025-11-10 16:00:00 Your log was successfully created and can be retrieved from: /workspace/.runtimes/lean-run/results/ApexMomentumAlgorithm-log.txt
+20261112 21:18:28.979 TRACE:: BacktestingResultHandler.Run(): Ending Thread...
+20261112 21:18:28.979 TRACE:: StopSafely(): Waiting for 'Result Thread' thread to stop...
+20261112 21:18:30.143 TRACE:: 
+STATISTICS:: Total Orders 169
+STATISTICS:: Average Win 6.43%
+STATISTICS:: Average Loss -1.86%
+STATISTICS:: Compounding Annual Return 8.239%
+STATISTICS:: Drawdown 32.600%
+STATISTICS:: Expectancy 1.866
+STATISTICS:: Start Equity 100000
+STATISTICS:: End Equity 1239440.81
+STATISTICS:: Net Profit 1139.441%
+STATISTICS:: Sharpe Ratio 0.462
+STATISTICS:: Sortino Ratio 0.43
+STATISTICS:: Probabilistic Sharpe Ratio 0.009%
+STATISTICS:: Loss Rate 36%
+STATISTICS:: Win Rate 64%
+STATISTICS:: Profit-Loss Ratio 3.46
+STATISTICS:: Alpha 0
+STATISTICS:: Beta 0
+STATISTICS:: Annual Standard Deviation 0.115
+STATISTICS:: Annual Variance 0.013
+STATISTICS:: Information Ratio 0.548
+STATISTICS:: Tracking Error 0.115
+STATISTICS:: Treynor Ratio 0
+STATISTICS:: Total Fees $1882.18
+STATISTICS:: Estimated Strategy Capacity $2300000000.00
+STATISTICS:: Lowest Capacity Asset SPY PTVSIMGLA2JP
+STATISTICS:: Portfolio Turnover 1.38%
+STATISTICS:: Drawdown Recovery 1361
+STATISTICS:: OrderListHash 532621a882c5851480b9d94c4e16a03a
+20261112 21:18:30.143 TRACE:: BacktestingResultHandler.SendAnalysisResult(): Processed final packet
+20261112 21:18:30.144 TRACE:: Engine.Run(): Disconnecting from brokerage...
+20261112 21:18:30.144 TRACE:: Engine.Run(): Disposing of setup handler...
+20261112 21:18:30.144 TRACE:: Engine.Main(): Analysis Completed and Results Posted.
+Engine.Main(): Analysis Complete.
+20261112 21:18:30.144 TRACE:: Engine.Main(): Packet removed from queue: ApexMomentumAlgorithm
+20261112 21:18:30.144 TRACE:: LeanEngineSystemHandlers.Dispose(): start...
+20261112 21:18:30.145 TRACE:: LeanEngineSystemHandlers.Dispose(): Disposed of system handlers.
+20261112 21:18:30.145 TRACE:: LeanEngineAlgorithmHandlers.Dispose(): start...
+20261112 21:18:30.145 TRACE:: LocalObjectStore.Dispose(): start...
+20261112 21:18:30.145 TRACE:: LocalObjectStore.Dispose(): end
+20261112 21:18:30.145 TRACE:: LeanEngineAlgorithmHandlers.Dispose(): Disposed of algorithm handlers.
+20261112 21:18:30.145 TRACE:: StopSafely(): Waiting for 'CpuPerformance' thread to stop...
+20261112 21:18:30.146 TRACE:: Program.Main(): Exiting Lean...

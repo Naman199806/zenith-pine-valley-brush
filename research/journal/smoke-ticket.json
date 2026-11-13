@@ -1,0 +1,18 @@
+{
+  "id": "apex-smoke-20261113T1816Z",
+  "account": "PA***68",
+  "endpoint": "https://paper-api.alpaca.markets",
+  "symbol": "BTC/USD",
+  "side": "buy",
+  "type": "market",
+  "qty": "0.000363",
+  "maxNotional": 25,
+  "priceAtPrep": 68774.5,
+  "holdMinutes": 5,
+  "exit": "operator-supervised market sell of confirmed filled quantity only",
+  "emergency": "If the process dies, close manually in the Alpaca paper dashboard. Do not assume flat.",
+  "expires": "2026-11-13T19:16:22Z",
+  "exclude": ["NFLX", "TSLA", "VOO"],
+  "experimentOn": false,
+  "submitted": false
+}

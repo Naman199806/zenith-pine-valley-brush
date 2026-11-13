@@ -1,0 +1,14 @@
+{
+  "id": "mom-12-1",
+  "status": "RETIRED_FROM_PROMOTION",
+  "reason": "No edge versus buy-and-hold after costs. One-share baseline returned 0.56 percent. 95 percent variant lagged buy-and-hold on both Backtrader and LEAN.",
+  "baselinePreserved": true,
+  "oneShareEnd": 100561.92,
+  "portfolioVariantEnd": 1201369.42,
+  "leanEnd": 1239440.81,
+  "buyAndHoldReturn": 14.5093,
+  "holdoutFrom": "2025-11-11",
+  "holdoutUsed": false,
+  "promoted": false,
+  "retiredAt": "2026-11-12T22:47:00Z"
+}

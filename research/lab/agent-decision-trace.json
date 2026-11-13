@@ -1,0 +1,25 @@
+{
+  "bull": {
+    "status": "OK",
+    "tokens": 1177,
+    "text": "DEFER"
+  },
+  "stance": "DEFER",
+  "withAgent": {
+    "instrument": "BTC-USD",
+    "action": "NO_TRADE",
+    "reason": "Quant rejected.",
+    "quantRejects": true,
+    "riskRejects": false,
+    "agentChanged": false
+  },
+  "without": {
+    "instrument": "BTC-USD",
+    "action": "NO_TRADE",
+    "reason": "Quant rejected.",
+    "quantRejects": true,
+    "riskRejects": false,
+    "agentChanged": false
+  },
+  "ranAt": "2026-11-13T16:36:20.429Z"
+}

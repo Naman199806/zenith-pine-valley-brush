@@ -1,0 +1,10 @@
+{
+  "symbol": "BTC-USD",
+  "source": "Coinbase public candles",
+  "have": 1047,
+  "expectedThrough": "2026-11-12",
+  "expected": 1047,
+  "missingCompleted": [],
+  "missingCount": 0,
+  "invented": false
+}

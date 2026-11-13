@@ -1,0 +1,17 @@
+{
+  "id": "btc-trend-200",
+  "rulesFrozen": true,
+  "coverageBars": 350,
+  "note": "Coinbase public candles returned 350 daily bars. Longer pagination was blocked on some windows.",
+  "trades": 0,
+  "winRate": null,
+  "netPnl": 0,
+  "end": 9713.79,
+  "netReturn": -0.0286,
+  "buyAndHold": 0.0874,
+  "fee": 0.006,
+  "placeOrders": false,
+  "promoted": false,
+  "baselineUnchanged": true,
+  "ranAt": "2026-11-12T22:51:55Z"
+}

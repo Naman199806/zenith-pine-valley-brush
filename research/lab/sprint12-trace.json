@@ -1,0 +1,25 @@
+{
+  "sentiment": "INSUFFICIENT_EVIDENCE",
+  "btc": {
+    "instrument": "BTC-USD",
+    "quantOk": false,
+    "riskOk": true,
+    "strategyApproved": false,
+    "action": "NO_TRADE",
+    "reason": "Quant rejected.",
+    "quantRejects": true,
+    "riskRejects": false
+  },
+  "spy": {
+    "instrument": "SPY",
+    "quantOk": false,
+    "riskOk": true,
+    "strategyApproved": false,
+    "action": "NO_TRADE",
+    "reason": "Quant rejected.",
+    "quantRejects": true,
+    "riskRejects": false
+  },
+  "protocol": "NOT_EVALUABLE",
+  "ranAt": "2026-11-13T02:32:00.390Z"
+}

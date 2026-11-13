@@ -1,0 +1,28 @@
+{
+  "schemaVersion": "apex.readiness.v1",
+  "asOf": "2026-11-12T15:07:00-05:00",
+  "nextSession": "2026-11-13",
+  "paper": {
+    "connected": true,
+    "account": "ACTIVE",
+    "equity": "105442.8",
+    "mode": "MONITORING",
+    "positions": 0,
+    "orders": 0,
+    "nov12Ticket": "ax20261112150148SPYS",
+    "nov12Outcome": "Blocked by 3:00 PM ET entry cutoff. Not submitted. Do not reuse this id.",
+    "exitAfterCutoff": "Closing orders are not subject to the entry cutoff. Emergency stop remains available.",
+    "paperAuto": false,
+    "live": false
+  },
+  "research": {
+    "spySma2050": { "closedPnl": 226.09, "equityChange": 321.65, "buyAndHoldReturn": 14.5093, "promoted": false },
+    "spyMeanRev": { "closedPnl": 214.16, "promoted": false },
+    "btcSma": { "netPnl": -698.19, "netReturn": -0.0755, "promoted": false },
+    "holdout": "2025-11-11 onward, untouched",
+    "t1t2": "IDEA"
+  },
+  "november15": "Paper path is ready for a fresh ticket before 15:00 ET on a regular session, after operator approval. No strategy is validated.",
+  "november16Live": "NO-GO",
+  "liveReason": "Live is not implemented. No strategy has credible after-cost outperformance. Immigration, legal, and broker clearance are separate and unmet."
+}

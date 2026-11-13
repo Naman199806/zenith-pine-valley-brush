@@ -1,0 +1,19 @@
+{
+  "session": "2026-11-13",
+  "mode": "MONITORING",
+  "paperAuto": false,
+  "live": false,
+  "steps": [
+    "Confirm Alpaca paper account is ACTIVE and connected.",
+    "Confirm market clock is open and time is before 15:00 ET.",
+    "Refresh positions and open orders. Expect zero unless a prior ticket filled.",
+    "Fetch a fresh SPY quote. Reject if the feed is stale.",
+    "Generate a new client order id. Do not reuse November 12 ids.",
+    "Size one share. Apply the risk engine. Show the exact ticket.",
+    "Wait for explicit operator approval of that id.",
+    "Submit to the paper host only after approval.",
+    "Reconcile acknowledgment, fill, cash, and position.",
+    "A close after 15:00 ET is allowed. A new entry is not."
+  ],
+  "doNot": ["enable PAPER_AUTO", "enable LIVE", "submit without approval", "reuse a stale quote"]
+}

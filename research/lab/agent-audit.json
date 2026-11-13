@@ -1,0 +1,7 @@
+{
+  "conclusion": "AGENTS ARE ADVISORY ONLY",
+  "evidence": "decide() and cycle() accept only quantOk, riskOk, and strategyApproved. They do not read Bull or Bear text.",
+  "modelCalls": "infer() exists and was used in prior traces. It is not on the order path.",
+  "holdoutUsed": false,
+  "orders": 0
+}

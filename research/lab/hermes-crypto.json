@@ -1,0 +1,17 @@
+{
+  "ok": true,
+  "diagnosis": "BTC and ETH both underperformed buy-and-hold in 2026 YTD (BTC -15.6% to -18.4%, ETH -30.9% to -32%), with recent breakdowns below the 200-day MA around $73k for BTC and continued volatility. Baseline SMA 10/30 strategies lost 698 (BTC) and 247 (ETH). The new 200-day trend filter on 350 Coinbase daily bars produced 0 closed trades, ending at 9713 vs. initial 10000 (underperforming buy-and-hold +8.7%). Coverage remains short with no profitability observed.",
+  "experiments": [
+    {
+      "id": "trend_filter_extension",
+      "change": "Extend the frozen 200-day trend filter to use a dynamic 200-period MA on 500+ daily bars with volume confirmation for entry/exit, testing on both BTC and ETH datasets."
+    },
+    {
+      "id": "sma_crossover_refinement",
+      "change": "Refine SMA 10/30 baseline with an added volatility filter (e.g., ATR multiplier) to reduce whipsaw in sideways markets observed in recent monthly returns."
+    }
+  ],
+  "selfDeclaredSuccess": false,
+  "canApprove": false,
+  "ranAt": "2026-11-12T22:52:12Z"
+}

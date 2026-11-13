@@ -1,0 +1,30 @@
+services:
+  app:
+    build:
+      context: ../..
+      dockerfile: deploy/oracle/Dockerfile
+    environment:
+      PAPER_AUTO: "false"
+      LIVE: "false"
+      NODE_ENV: production
+    ports:
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - apex-state:/app/research/lab/state
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8080').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+  freqtrade:
+    image: freqtradeorg/freqtrade:stable
+    platform: linux/arm64
+    command: ["trade", "--config", "/freqtrade/config.json", "--dry-run"]
+    volumes:
+      - freqtrade-state:/freqtrade/user_data
+    restart: unless-stopped
+    ports: []
+volumes:
+  apex-state:
+  freqtrade-state:

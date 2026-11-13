@@ -1,0 +1,17 @@
+{
+  "ok": true,
+  "note": "Freqtrade dry-run confirmed active on Kraken BTC/USD (spot, dry_run=true, no API keys). Coinbase daily bars expanded to 987 for BTC/ETH. Prior SMA baselines lost money; 200-day trend filter remains unpromoted. No live orders or position changes.",
+  "hypotheses": [
+    {
+      "id": "h1-extend-coinbase",
+      "change": "Incorporate the additional 987 daily bars from Coinbase into next Freqtrade hyperopt/backtest cycles for BTC and ETH to test robustness beyond synthetic data."
+    },
+    {
+      "id": "h2-trend-filter-test",
+      "change": "Add a controlled 200-day SMA trend filter (long-only above, flat below) to one of the existing SMA strategies in the next isolated backtest run."
+    }
+  ],
+  "selfDeclaredSuccess": false,
+  "canApprove": false,
+  "ranAt": "2026-11-12T22:57:30Z"
+}

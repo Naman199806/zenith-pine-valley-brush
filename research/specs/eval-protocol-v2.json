@@ -1,0 +1,12 @@
+{
+  "amends": "eval-protocol.json",
+  "version": "v2",
+  "changes": [
+    "Keep the sealed holdout closed.",
+    "Require at least 30 trades before a PASS.",
+    "Compare to buy-and-hold on the same bars.",
+    "Report a higher-cost case at 50 bps per side.",
+    "Do not retune rejected hypotheses."
+  ],
+  "holdoutInspected": false
+}

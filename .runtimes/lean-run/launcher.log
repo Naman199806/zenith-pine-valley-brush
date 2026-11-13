@@ -1,0 +1,111 @@
+20261112 21:24:25.486 TRACE:: Using /workspace/.runtimes/src/Lean/Launcher/config.json as configuration file
+20261112 21:24:25.572 TRACE:: Composer(): Loading Assemblies from /workspace/.runtimes/src/Lean/Launcher/bin/Release/
+20261112 21:24:25.592 TRACE:: Python for .NET Assembly: Python.Runtime, Version=2.0.69.0, Culture=neutral, PublicKeyToken=5000fea6cba702dd
+20261112 21:24:27.833 TRACE:: Engine.Main(): LEAN ALGORITHMIC TRADING ENGINE v2.5.0.0 Mode: RELEASE (64bit) Host: hds-4qkceaqjg9r1
+20261112 21:24:27.835 TRACE:: Engine.Main(): Started 21:24
+20261112 21:24:27.855 TRACE:: JobQueue.NextJob(): Selected /workspace/.runtimes/lean-run/build/ApexFixtureAlgorithm.dll
+20261112 21:24:27.880 TRACE:: AlgorithmManager.CreateTokenBucket(): Initializing LeakyBucket: Capacity: 120 RefillAmount: 18 TimeInterval: 1440
+20261112 21:24:27.887 TRACE:: Engine.Run(): Resource limits '0' CPUs. 2147483647 MB RAM.
+20261112 21:24:27.888 TRACE:: TextSubscriptionDataSourceReader.SetCacheSize(): Setting cache size to 71582788 items
+20261112 21:24:28.514 TRACE:: Loader.TryCreateILAlgorithm(): Loading debug information with algorithm
+20261112 21:24:28.726 TRACE:: Loader.TryCreateILAlgorithm(): Loaded ApexFixtureAlgorithm
+20261112 21:24:28.727 TRACE:: LocalObjectStore.Initialize(): Storage Root: /workspace/.runtimes/lean-run/storage. StorageFileCount 10000. StorageLimit 10240MB. StoragePermissions Read=True Write=True Delete=True
+20261112 21:24:28.737 TRACE:: HistoryProviderManager.Initialize(): history providers [SubscriptionDataReaderHistoryProvider]
+20261112 21:24:28.740 TRACE:: BaseSetupHandler.Setup(LocalPlatform): UID: 0, PID: 0, Version: 2.5.0.0, Source: WebIDE
+20261112 21:24:28.825 TRACE:: WeightedWorkScheduler(): will use 2 workers and MaxWorkWeight is 400
+20261112 21:24:28.837 TRACE:: BaseSetupHandler.SetupCurrencyConversions():
+Account Type: Margin
+
+Symbol      Quantity    Conversion = Value in USD
+USD: $      100000.00 @       1.00 = $100000
+-------------------------------------------------
+CashBook Total Value:                $100000
+
+20261112 21:24:28.839 TRACE:: Total margin information: TotalMarginUsed: 0.00, MarginRemaining: 100000.00
+20261112 21:24:28.839 TRACE:: SetUp Backtesting: User: 0 ProjectId: 0 AlgoId: ApexFixtureAlgorithm
+20261112 21:24:28.839 TRACE:: Dates: Start: 01/02/2024 End: 01/02/2024 Cash: ¤100,000.00 MaximumRuntime: 100.00:00:00 MaxOrders: 2147483647
+20261112 21:24:28.843 TRACE:: BacktestingResultHandler(): Sample Period Set: 04.00
+20261112 21:24:28.843 TRACE:: JOB HANDLERS:
+         DataFeed:             QuantConnect.Lean.Engine.DataFeeds.FileSystemDataFeed
+         Setup:                QuantConnect.Lean.Engine.Setup.BacktestingSetupHandler
+         RealTime:             QuantConnect.Lean.Engine.RealTime.BacktestingRealTimeHandler
+         Results:              QuantConnect.Lean.Engine.Results.BacktestingResultHandler
+         Transactions:         QuantConnect.Lean.Engine.TransactionHandlers.BacktestingTransactionHandler
+         Object Store:         QuantConnect.Lean.Engine.Storage.LocalObjectStore
+         History Provider:     QuantConnect.Lean.Engine.HistoricalData.HistoryProviderManager
+         Brokerage:            QuantConnect.Brokerages.Backtesting.BacktestingBrokerage
+         Data Provider:        QuantConnect.Lean.Engine.DataFeeds.DefaultDataProvider
+
+20261112 21:24:28.855 TRACE:: Event Name "Daily Sampling", scheduled to run.
+20261112 21:24:28.855 TRACE:: AlgorithmManager.Run(): Begin DataStream - Start: 01/02/2024 00:00:00 Stop: 01/02/2024 23:59:59 Time: 01/02/2024 00:00:00 Warmup: False
+20261112 21:24:28.873 TRACE:: Debug: 2024-01-02 00:00:00 Launching analysis for ApexFixtureAlgorithm with LEAN Engine v2.5.0.0
+20261112 21:24:28.936 TRACE:: UniverseSelection.AddPendingInternalDataFeeds(): Adding internal benchmark data feed SPY,#0,SPY,Hour,TradeBar,Trade,Adjusted,OpenInterest,Internal
+20261112 21:24:29.082 TRACE:: Synchronizer.GetEnumerator(): Exited thread.
+20261112 21:24:29.082 TRACE:: AlgorithmManager.Run(): Firing On End Of Algorithm...
+20261112 21:24:29.115 TRACE:: Engine.Run(): Exiting Algorithm Manager
+20261112 21:24:29.116 TRACE:: OrderRequestProcessingPool.Dispose(): completed
+20261112 21:24:29.117 TRACE:: StopSafely(): Waiting for 'Isolator Thread' thread to stop...
+20261112 21:24:29.118 TRACE:: FileSystemDataFeed.Exit(): Start. Setting cancellation token...
+20261112 21:24:29.118 TRACE:: FileSystemDataFeed.Exit(): Exit Finished.
+20261112 21:24:29.119 TRACE:: DataMonitor.Exit(): start...
+20261112 21:24:29.119 TRACE:: StopSafely(): Waiting for '' thread to stop...
+20261112 21:24:29.119 TRACE:: DataMonitor.GenerateReport():
+DATA USAGE:: Total data requests 2
+DATA USAGE:: Succeeded data requests 1
+DATA USAGE:: Failed data requests 1
+DATA USAGE:: Failed data requests percentage 50%
+DATA USAGE:: Total universe data requests 0
+DATA USAGE:: Succeeded universe data requests 0
+DATA USAGE:: Failed universe data requests 0
+DATA USAGE:: Failed universe data requests percentage 0%
+20261112 21:24:29.120 TRACE:: DataMonitor.Exit(): end
+20261112 21:24:29.120 TRACE:: BacktestingResultHandler.Exit(): starting...
+20261112 21:24:29.120 TRACE:: BacktestingResultHandler.Exit(): Saving logs...
+20261112 21:24:29.121 TRACE:: StopSafely(): Waiting for 'Result Thread' thread to stop...
+20261112 21:24:29.121 TRACE:: Log: 2024-01-02 10:04:00 APEX_LEAN_SUMMARY bars=4 net=50.0 fills=2
+20261112 21:24:29.121 TRACE:: Debug: 2024-01-02 10:04:00 Algorithm Id:(ApexFixtureAlgorithm) completed in 0.27 seconds at 0k data points per second. Processing total of 5 data points.
+20261112 21:24:29.121 TRACE:: Debug: 2024-01-02 10:04:00 Your log was successfully created and can be retrieved from: /workspace/.runtimes/lean-run/results/ApexFixtureAlgorithm-log.txt
+20261112 21:24:29.121 TRACE:: BacktestingResultHandler.Run(): Ending Thread...
+20261112 21:24:29.400 TRACE:: 
+STATISTICS:: Total Orders 2
+STATISTICS:: Average Win 0%
+STATISTICS:: Average Loss 0%
+STATISTICS:: Compounding Annual Return 0%
+STATISTICS:: Drawdown 0%
+STATISTICS:: Expectancy 0
+STATISTICS:: Start Equity 100000
+STATISTICS:: End Equity 100050
+STATISTICS:: Net Profit 0%
+STATISTICS:: Sharpe Ratio 0
+STATISTICS:: Sortino Ratio 0
+STATISTICS:: Probabilistic Sharpe Ratio 0%
+STATISTICS:: Loss Rate 0%
+STATISTICS:: Win Rate 0%
+STATISTICS:: Profit-Loss Ratio 0
+STATISTICS:: Alpha 0
+STATISTICS:: Beta 0
+STATISTICS:: Annual Standard Deviation 0
+STATISTICS:: Annual Variance 0
+STATISTICS:: Information Ratio 0
+STATISTICS:: Tracking Error 0
+STATISTICS:: Treynor Ratio 0
+STATISTICS:: Total Fees $0.00
+STATISTICS:: Estimated Strategy Capacity $0
+STATISTICS:: Lowest Capacity Asset FIXTURE.ApexBar 2S
+STATISTICS:: Portfolio Turnover 20.14%
+STATISTICS:: Drawdown Recovery 0
+STATISTICS:: OrderListHash 00001decce88b89cff08d53bdd5a9a36
+20261112 21:24:29.400 TRACE:: BacktestingResultHandler.SendAnalysisResult(): Processed final packet
+20261112 21:24:29.400 TRACE:: Engine.Run(): Disconnecting from brokerage...
+20261112 21:24:29.400 TRACE:: Engine.Run(): Disposing of setup handler...
+20261112 21:24:29.400 TRACE:: Engine.Main(): Analysis Completed and Results Posted.
+Engine.Main(): Analysis Complete.
+20261112 21:24:29.401 TRACE:: Engine.Main(): Packet removed from queue: ApexFixtureAlgorithm
+20261112 21:24:29.401 TRACE:: LeanEngineSystemHandlers.Dispose(): start...
+20261112 21:24:29.401 TRACE:: LeanEngineSystemHandlers.Dispose(): Disposed of system handlers.
+20261112 21:24:29.401 TRACE:: LeanEngineAlgorithmHandlers.Dispose(): start...
+20261112 21:24:29.402 TRACE:: LocalObjectStore.Dispose(): start...
+20261112 21:24:29.402 TRACE:: LocalObjectStore.Dispose(): end
+20261112 21:24:29.402 TRACE:: LeanEngineAlgorithmHandlers.Dispose(): Disposed of algorithm handlers.
+20261112 21:24:29.402 TRACE:: StopSafely(): Waiting for 'CpuPerformance' thread to stop...
+20261112 21:24:29.403 TRACE:: Program.Main(): Exiting Lean...

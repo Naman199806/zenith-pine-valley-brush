@@ -1,0 +1,20 @@
+[
+  {
+    "pid": 10865,
+    "create_time": 1794527034.44,
+    "purpose": "cli",
+    "install": "0aab6087dde7",
+    "spawner_pid": null,
+    "spawner_create": null,
+    "registered_at": 1794527035.237498,
+    "argv": "/workspace/.runtimes/hermes314/bin/hermes --oneshot Review only. Do not promote. Do not change code. Reply with one JSON object: note, selfDeclaredSuccess false. Three frozen BTC daily hypotheses with 25 bps fees, holdout unused: trend-200 -7.6 percent, mean-revert-20 -17.7 percent, mom-20 -18.2 percent. Buy-and-hold on the same window +15.1 percent. All rejected. --provider xai --model grok-4.20-0309-non-reasoning",
+    "host": "",
+    "port": null,
+    "profile": "",
+    "hermes_home": "/workspace/.runtimes/hermes-home",
+    "isolated": false,
+    "boot_start": null,
+    "spawner_boot": null,
+    "boot_id": "42498c1c-fe26-44b7-bc45-2304f3e8c4c2"
+  }
+]

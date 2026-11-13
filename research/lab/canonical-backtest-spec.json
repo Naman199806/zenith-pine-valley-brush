@@ -1,0 +1,35 @@
+{
+  "schemaVersion": "apex.backtest-spec.v1",
+  "id": "canonical-equity-v1",
+  "appliesTo": ["backtrader", "lean"],
+  "window": {
+    "data": "Yahoo SPY daily, research/data/raw/yahoo/20261112/SPY.json",
+    "adjustment": "split-adjusted, dividend-unadjusted",
+    "dividends": "not reconstructed; not added as cash",
+    "holdoutFrom": "2025-11-11",
+    "holdoutAccessible": false
+  },
+  "signal": {
+    "timestamp": "completed daily bar close",
+    "lookahead": false
+  },
+  "fill": {
+    "timing": "next session open after the signal bar",
+    "leanEquivalent": "market-on-open of the next session"
+  },
+  "sizing": {
+    "baseline": "one share (mom-12-1, frozen)",
+    "portfolioVariant": "95 percent of equity, one position"
+  },
+  "costs": {
+    "commission": "5 bps per fill",
+    "slippage": "1 bp per fill",
+    "note": "LEAN default per-share fee is not this spec. A LEAN run that uses it must be labeled."
+  },
+  "accounting": {
+    "cash": "starting cash minus fills and fees",
+    "equity": "cash plus mark-to-market of open position",
+    "fractionalShares": "allowed in Backtrader; LEAN integer unless configured"
+  },
+  "promotion": "none. This spec does not approve a strategy."
+}

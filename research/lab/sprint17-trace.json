@@ -1,0 +1,17 @@
+{
+  "host": "BLOCKED_EXTERNAL_HOST",
+  "btc": {
+    "instrument": "BTC-USD",
+    "proposal": "NO_TRADE",
+    "reason": "No approved strategy.",
+    "paperAuto": false,
+    "orderSent": false
+  },
+  "counts": {
+    "PASS": 9,
+    "BLOCKED": 5
+  },
+  "brokerOrders": 0,
+  "paperAuto": false,
+  "ranAt": "2026-11-13T03:06:15.696Z"
+}

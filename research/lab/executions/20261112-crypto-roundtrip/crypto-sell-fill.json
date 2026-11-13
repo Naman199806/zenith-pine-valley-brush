@@ -1,0 +1,14 @@
+{
+  "orderId": "9e3b834f-9ff0-46fb-ba11-344061d91e62",
+  "clientOrderId": "apex-crypto-sell-f703873b-7701-4c26-a24e-a185e21c27e9",
+  "status": "filled",
+  "qty": "0.0009975",
+  "filledQty": "0.0009975",
+  "filledAvg": "71151.42",
+  "filledAt": "2026-11-12T23:40:08.225680026Z",
+  "commission": null,
+  "positions": [],
+  "openOrders": 0,
+  "cash": "105442.28",
+  "equity": "105442.28"
+}

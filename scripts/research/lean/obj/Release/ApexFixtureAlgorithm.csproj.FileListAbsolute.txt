@@ -1,0 +1,12 @@
+/workspace/scripts/research/lean/obj/Release/ApexFixtureAlgorithm.csproj.AssemblyReference.cache
+/workspace/scripts/research/lean/obj/Release/ApexFixtureAlgorithm.GeneratedMSBuildEditorConfig.editorconfig
+/workspace/scripts/research/lean/obj/Release/ApexFixtureAlgorithm.AssemblyInfoInputs.cache
+/workspace/scripts/research/lean/obj/Release/ApexFixtureAlgorithm.AssemblyInfo.cs
+/workspace/scripts/research/lean/obj/Release/ApexFixtureAlgorithm.csproj.CoreCompileInputs.cache
+/workspace/.runtimes/lean-run/build/ApexFixtureAlgorithm.deps.json
+/workspace/.runtimes/lean-run/build/ApexFixtureAlgorithm.dll
+/workspace/.runtimes/lean-run/build/ApexFixtureAlgorithm.pdb
+/workspace/scripts/research/lean/obj/Release/ApexFixtureAlgorithm.dll
+/workspace/scripts/research/lean/obj/Release/refint/ApexFixtureAlgorithm.dll
+/workspace/scripts/research/lean/obj/Release/ApexFixtureAlgorithm.pdb
+/workspace/scripts/research/lean/obj/Release/ref/ApexFixtureAlgorithm.dll

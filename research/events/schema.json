@@ -1,0 +1,20 @@
+{
+  "store": "append-only",
+  "persistent": false,
+  "fields": [
+    "provider",
+    "eventId",
+    "url",
+    "published",
+    "providerObserved",
+    "apexRetrieved",
+    "relevance",
+    "hash",
+    "sentiment",
+    "model",
+    "processed",
+    "revision"
+  ],
+  "reddit": "disabled",
+  "x": "disabled"
+}

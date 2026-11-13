@@ -1,0 +1,1 @@
+{"part":{"requested":0.001,"filled":0.0004,"remaining":0.0006000000000000001,"owned":0.0004},"before":{"clientId":"mock-exit-1","state":"SUBMITTING","owned":0.0004,"sellQty":0.0004},"lost":{"clientId":"mock-exit-1","state":"UNKNOWN","owned":0.0004,"sellQty":0.0004}}

@@ -1,0 +1,25 @@
+{
+  "ok": true,
+  "selfDeclaredSuccess": false,
+  "diagnosis": "SPY SMA(20/50) crossover produced closed PnL of 226.09 but equity change of only 321.65 versus buy-hold return of 14.5093 on 8253 bars, indicating substantial lag in capturing the dominant uptrend; BTC and ETH SMA(10/30) on short 350-bar samples generated net losses of -698.19 and -247.11 respectively with very low trade counts (6-7 trades), reflecting infrequent signals and poor timing amid high crypto volatility.",
+  "hypotheses": [
+    {
+      "id": 1,
+      "change": "Add a longer-term trend filter such as requiring price above 200-SMA before permitting any short-term SMA crossover entries",
+      "why": "A persistent equity bull market favors long-biased or trend-following rules that avoid counter-trend shorts; this economically aligns position direction with the dominant macro regime, reducing drag versus buy-hold."
+    },
+    {
+      "id": 2,
+      "change": "Replace fixed SMA lookbacks with volatility-adjusted periods (e.g. ATR-scaled or adaptive moving averages)",
+      "why": "Crypto exhibits extreme regime shifts in volatility; fixed short windows generate noisy, low-frequency signals on 350 bars while equity benefits from smoother adaptation that better matches realized price dynamics."
+    },
+    {
+      "id": 3,
+      "change": "Incorporate multi-timeframe confirmation (e.g. daily SMA cross validated by weekly trend) or volume-weighted signals",
+      "why": "Single-daily-bar rules ignore higher-timeframe structure and participation; adding confirmation economically improves signal quality by filtering against noise and aligning with broader market participation."
+    }
+  ],
+  "canApprove": false,
+  "code": 0,
+  "ranAt": "2026-11-12T20:28:24Z"
+}

@@ -1,0 +1,32 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
+  <metadata>
+    <id>QuantConnect.pythonnet</id>
+    <version>2.0.69</version>
+    <authors>Python.Runtime</authors>
+    <license type="file">LICENSE</license>
+    <licenseUrl>https://aka.ms/deprecateLicenseUrl</licenseUrl>
+    <icon>python-clear.png</icon>
+    <readme>README.md</readme>
+    <projectUrl>https://pythonnet.github.io/</projectUrl>
+    <iconUrl>https://raw.githubusercontent.com/pythonnet/pythonnet/master/src/console/python-clear.ico</iconUrl>
+    <description>Python and CLR (.NET and Mono) cross-platform language interop</description>
+    <tags>python interop dynamic dlr Mono pinvoke</tags>
+    <repository type="git" url="https://github.com/pythonnet/pythonnet" branch="refs/heads/master" commit="4fb1f195cc9681767f2be49dbae4cbdd93190f2e" />
+    <dependencies>
+      <group targetFramework="net10.0">
+        <dependency id="fasterflect" version="3.0.0" exclude="Build,Analyzers" />
+      </group>
+    </dependencies>
+    <contentFiles>
+      <files include="any/any/clr.py" buildAction="None" copyToOutput="true" />
+      <files include="any/any/pythonnet/__init__.py" buildAction="None" copyToOutput="true" />
+      <files include="any/any/pythonnet/find_libpython/__init__.py" buildAction="None" copyToOutput="true" />
+      <files include="any/any/pythonnet/find_libpython/__main__.py" buildAction="None" copyToOutput="true" />
+      <files include="any/any/pythonnet/runtime/Python.Runtime.deps.json" buildAction="None" copyToOutput="true" />
+      <files include="any/any/pythonnet/runtime/Python.Runtime.dll" buildAction="None" copyToOutput="true" />
+      <files include="any/any/pythonnet/runtime/Python.Runtime.pdb" buildAction="None" copyToOutput="true" />
+      <files include="any/any/pythonnet/util/__init__.py" buildAction="None" copyToOutput="true" />
+    </contentFiles>
+  </metadata>
+</package>

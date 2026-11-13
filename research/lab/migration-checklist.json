@@ -1,0 +1,15 @@
+{
+  "title": "Migrate Apex research and dry-run off this sandbox",
+  "doNot": ["enable PAPER_AUTO", "enable LIVE", "copy credentials into the repo"],
+  "steps": [
+    "Download backups/apex-recovery-20261112T234603Z.tar.gz",
+    "Verify SHA-256 8fc3db39ef1f9993b09f1de51bcbb3181934e8fb4338cd89bacafe27d8b334f3",
+    "Extract on the persistent host",
+    "Install Node dependencies from package-lock.json",
+    "Restore the Freqtrade sqlite and config",
+    "Place Alpaca paper keys in the host secret store, not in the archive",
+    "Start Freqtrade with dry_run true and confirm a heartbeat",
+    "Confirm the Command Center shows DRY-RUN separately from Alpaca PAPER"
+  ],
+  "missingFromArchive": ["node_modules", "LEAN runtime", "Freqtrade virtualenv", "Alpaca credentials"]
+}

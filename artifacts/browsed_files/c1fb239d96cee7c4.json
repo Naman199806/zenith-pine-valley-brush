@@ -1,0 +1,274 @@
+[
+  {
+    "name": ".dockerignore",
+    "path": ".dockerignore",
+    "sha": "b3c7de12465b74428517bf116b55e088ff10639b",
+    "size": 137,
+    "url": "https://api.github.com/repos/TauricResearch/TradingAgents/contents/.dockerignore?ref=main",
+    "html_url": "https://github.com/TauricResearch/TradingAgents/blob/main/.dockerignore",
+    "git_url": "https://api.github.com/repos/TauricResearch/TradingAgents/git/blobs/b3c7de12465b74428517bf116b55e088ff10639b",
+    "download_url": "https://raw.githubusercontent.com/TauricResearch/TradingAgents/main/.dockerignore",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/TauricResearch/TradingAgents/contents/.dockerignore?ref=main",
+      "git": "https://api.github.com/repos/TauricResearch/TradingAgents/git/blobs/b3c7de12465b74428517bf116b55e088ff10639b",
+      "html": "https://github.com/TauricResearch/TradingAgents/blob/main/.dockerignore"
+    }
+  },
+  {
+    "name": ".env.enterprise.example",
+    "path": ".env.enterprise.example",
+    "sha": "4f7bda3ddb7275ffa753b60e5aa25ce89f08bb08",
+    "size": 203,
+    "url": "https://api.github.com/repos/TauricResearch/TradingAgents/contents/.env.enterprise.example?ref=main",
+    "html_url": "https://github.com/TauricResearch/TradingAgents/blob/main/.env.enterprise.example",
+    "git_url": "https://api.github.com/repos/TauricResearch/TradingAgents/git/blobs/4f7bda3ddb7275ffa753b60e5aa25ce89f08bb08",
+    "download_url": "https://raw.githubusercontent.com/TauricResearch/TradingAgents/main/.env.enterprise.example",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/TauricResearch/TradingAgents/contents/.env.enterprise.example?ref=main",
+      "git": "https://api.github.com/repos/TauricResearch/TradingAgents/git/blobs/4f7bda3ddb7275ffa753b60e5aa25ce89f08bb08",
+      "html": "https://github.com/TauricResearch/TradingAgents/blob/main/.env.enterprise.example"
+    }
+  },
+  {
+    "name": ".env.example",
+    "path": ".env.example",
+    "sha": "eaa51ca6578f2c7d78a44432f1fe60888487f13f",
+    "size": 3015,
+    "url": "https://api.github.com/repos/TauricResearch/TradingAgents/contents/.env.example?ref=main",
+    "html_url": "https://github.com/TauricResearch/TradingAgents/blob/main/.env.example",
+    "git_url": "https://api.github.com/repos/TauricResearch/TradingAgents/git/blobs/eaa51ca6578f2c7d78a44432f1fe60888487f13f",
+    "download_url": "https://raw.githubusercontent.com/TauricResearch/TradingAgents/main/.env.example",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/TauricResearch/TradingAgents/contents/.env.example?ref=main",
+      "git": "https://api.github.com/repos/TauricResearch/TradingAgents/git/blobs/eaa51ca6578f2c7d78a44432f1fe60888487f13f",
+      "html": "https://github.com/TauricResearch/TradingAgents/blob/main/.env.example"
+    }
+  },
+  {
+    "name": ".github",
+    "path": ".github",
+    "sha": "a752aaf39129c73f2c8c28127876b0d89fc2f6bc",
+    "size": 0,
+    "url": "https://api.github.com/repos/TauricResearch/TradingAgents/contents/.github?ref=main",
+    "html_url": "https://github.com/TauricResearch/TradingAgents/tree/main/.github",
+    "git_url": "https://api.github.com/repos/TauricResearch/TradingAgents/git/trees/a752aaf39129c73f2c8c28127876b0d89fc2f6bc",
+    "download_url": null,
+    "type": "dir",
+    "_links": {
+      "self": "https://api.github.com/repos/TauricResearch/TradingAgents/contents/.github?ref=main",
+      "git": "https://api.github.com/repos/TauricResearch/TradingAgents/git/trees/a752aaf39129c73f2c8c28127876b0d89fc2f6bc",
+      "html": "https://github.com/TauricResearch/TradingAgents/tree/main/.github"
+    }
+  },
+  {
+    "name": ".gitignore",
+    "path": ".gitignore",
+    "sha": "9eddc67200407c5cd739fa78e994b3c21f632a04",
+    "size": 4670,
+    "url": "https://api.github.com/repos/TauricResearch/TradingAgents/contents/.gitignore?ref=main",
+    "html_url": "https://github.com/TauricResearch/TradingAgents/blob/main/.gitignore",
+    "git_url": "https://api.github.com/repos/TauricResearch/TradingAgents/git/blobs/9eddc67200407c5cd739fa78e994b3c21f632a04",
+    "download_url": "https://raw.githubusercontent.com/TauricResearch/TradingAgents/main/.gitignore",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/TauricResearch/TradingAgents/contents/.gitignore?ref=main",
+      "git": "https://api.github.com/repos/TauricResearch/TradingAgents/git/blobs/9eddc67200407c5cd739fa78e994b3c21f632a04",
+      "html": "https://github.com/TauricResearch/TradingAgents/blob/main/.gitignore"
+    }
+  },
+  {
+    "name": "CHANGELOG.md",
+    "path": "CHANGELOG.md",
+    "sha": "291769b301565f91d86b2035275a1e58bceab02c",
+    "size": 53618,
+    "url": "https://api.github.com/repos/TauricResearch/TradingAgents/contents/CHANGELOG.md?ref=main",
+    "html_url": "https://github.com/TauricResearch/TradingAgents/blob/main/CHANGELOG.md",
+    "git_url": "https://api.github.com/repos/TauricResearch/TradingAgents/git/blobs/291769b301565f91d86b2035275a1e58bceab02c",
+    "download_url": "https://raw.githubusercontent.com/TauricResearch/TradingAgents/main/CHANGELOG.md",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/TauricResearch/TradingAgents/contents/CHANGELOG.md?ref=main",
+      "git": "https://api.github.com/repos/TauricResearch/TradingAgents/git/blobs/291769b301565f91d86b2035275a1e58bceab02c",
+      "html": "https://github.com/TauricResearch/TradingAgents/blob/main/CHANGELOG.md"
+    }
+  },
+  {
+    "name": "Dockerfile",
+    "path": "Dockerfile",
+    "sha": "7d00068762c302381eb1b2717e932c7a8b085bfa",
+    "size": 712,
+    "url": "https://api.github.com/repos/TauricResearch/TradingAgents/contents/Dockerfile?ref=main",
+    "html_url": "https://github.com/TauricResearch/TradingAgents/blob/main/Dockerfile",
+    "git_url": "https://api.github.com/repos/TauricResearch/TradingAgents/git/blobs/7d00068762c302381eb1b2717e932c7a8b085bfa",
+    "download_url": "https://raw.githubusercontent.com/TauricResearch/TradingAgents/main/Dockerfile",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/TauricResearch/TradingAgents/contents/Dockerfile?ref=main",
+      "git": "https://api.github.com/repos/TauricResearch/TradingAgents/git/blobs/7d00068762c302381eb1b2717e932c7a8b085bfa",
+      "html": "https://github.com/TauricResearch/TradingAgents/blob/main/Dockerfile"
+    }
+  },
+  {
+    "name": "LICENSE",
+    "path": "LICENSE",
+    "sha": "261eeb9e9f8b2b4b0d119366dda99c6fd7d35c64",
+    "size": 11357,
+    "url": "https://api.github.com/repos/TauricResearch/TradingAgents/contents/LICENSE?ref=main",
+    "html_url": "https://github.com/TauricResearch/TradingAgents/blob/main/LICENSE",
+    "git_url": "https://api.github.com/repos/TauricResearch/TradingAgents/git/blobs/261eeb9e9f8b2b4b0d119366dda99c6fd7d35c64",
+    "download_url": "https://raw.githubusercontent.com/TauricResearch/TradingAgents/main/LICENSE",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/TauricResearch/TradingAgents/contents/LICENSE?ref=main",
+      "git": "https://api.github.com/repos/TauricResearch/TradingAgents/git/blobs/261eeb9e9f8b2b4b0d119366dda99c6fd7d35c64",
+      "html": "https://github.com/TauricResearch/TradingAgents/blob/main/LICENSE"
+    }
+  },
+  {
+    "name": "README.md",
+    "path": "README.md",
+    "sha": "9567a73615a9f73825038055dc6bb5dc298f43f3",
+    "size": 27379,
+    "url": "https://api.github.com/repos/TauricResearch/TradingAgents/contents/README.md?ref=main",
+    "html_url": "https://github.com/TauricResearch/TradingAgents/blob/main/README.md",
+    "git_url": "https://api.github.com/repos/TauricResearch/TradingAgents/git/blobs/9567a73615a9f73825038055dc6bb5dc298f43f3",
+    "download_url": "https://raw.githubusercontent.com/TauricResearch/TradingAgents/main/README.md",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/TauricResearch/TradingAgents/contents/README.md?ref=main",
+      "git": "https://api.github.com/repos/TauricResearch/TradingAgents/git/blobs/9567a73615a9f73825038055dc6bb5dc298f43f3",
+      "html": "https://github.com/TauricResearch/TradingAgents/blob/main/README.md"
+    }
+  },
+  {
+    "name": "assets",
+    "path": "assets",
+    "sha": "c86c568ffeb06a2e8cd74b7adde5fb87a91da594",
+    "size": 0,
+    "url": "https://api.github.com/repos/TauricResearch/TradingAgents/contents/assets?ref=main",
+    "html_url": "https://github.com/TauricResearch/TradingAgents/tree/main/assets",
+    "git_url": "https://api.github.com/repos/TauricResearch/TradingAgents/git/trees/c86c568ffeb06a2e8cd74b7adde5fb87a91da594",
+    "download_url": null,
+    "type": "dir",
+    "_links": {
+      "self": "https://api.github.com/repos/TauricResearch/TradingAgents/contents/assets?ref=main",
+      "git": "https://api.github.com/repos/TauricResearch/TradingAgents/git/trees/c86c568ffeb06a2e8cd74b7adde5fb87a91da594",
+      "html": "https://github.com/TauricResearch/TradingAgents/tree/main/assets"
+    }
+  },
+  {
+    "name": "cli",
+    "path": "cli",
+    "sha": "4526509fba403361c412a7206d05ad50efdfea6c",
+    "size": 0,
+    "url": "https://api.github.com/repos/TauricResearch/TradingAgents/contents/cli?ref=main",
+    "html_url": "https://github.com/TauricResearch/TradingAgents/tree/main/cli",
+    "git_url": "https://api.github.com/repos/TauricResearch/TradingAgents/git/trees/4526509fba403361c412a7206d05ad50efdfea6c",
+    "download_url": null,
+    "type": "dir",
+    "_links": {
+      "self": "https://api.github.com/repos/TauricResearch/TradingAgents/contents/cli?ref=main",
+      "git": "https://api.github.com/repos/TauricResearch/TradingAgents/git/trees/4526509fba403361c412a7206d05ad50efdfea6c",
+      "html": "https://github.com/TauricResearch/TradingAgents/tree/main/cli"
+    }
+  },
+  {
+    "name": "docker-compose.yml",
+    "path": "docker-compose.yml",
+    "sha": "76cf0fe20d1ab79f0670edd739bc104edf437fa1",
+    "size": 726,
+    "url": "https://api.github.com/repos/TauricResearch/TradingAgents/contents/docker-compose.yml?ref=main",
+    "html_url": "https://github.com/TauricResearch/TradingAgents/blob/main/docker-compose.yml",
+    "git_url": "https://api.github.com/repos/TauricResearch/TradingAgents/git/blobs/76cf0fe20d1ab79f0670edd739bc104edf437fa1",
+    "download_url": "https://raw.githubusercontent.com/TauricResearch/TradingAgents/main/docker-compose.yml",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/TauricResearch/TradingAgents/contents/docker-compose.yml?ref=main",
+      "git": "https://api.github.com/repos/TauricResearch/TradingAgents/git/blobs/76cf0fe20d1ab79f0670edd739bc104edf437fa1",
+      "html": "https://github.com/TauricResearch/TradingAgents/blob/main/docker-compose.yml"
+    }
+  },
+  {
+    "name": "main.py",
+    "path": "main.py",
+    "sha": "105e24f0e0427cde690f8e2853ebf2c368535609",
+    "size": 655,
+    "url": "https://api.github.com/repos/TauricResearch/TradingAgents/contents/main.py?ref=main",
+    "html_url": "https://github.com/TauricResearch/TradingAgents/blob/main/main.py",
+    "git_url": "https://api.github.com/repos/TauricResearch/TradingAgents/git/blobs/105e24f0e0427cde690f8e2853ebf2c368535609",
+    "download_url": "https://raw.githubusercontent.com/TauricResearch/TradingAgents/main/main.py",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/TauricResearch/TradingAgents/contents/main.py?ref=main",
+      "git": "https://api.github.com/repos/TauricResearch/TradingAgents/git/blobs/105e24f0e0427cde690f8e2853ebf2c368535609",
+      "html": "https://github.com/TauricResearch/TradingAgents/blob/main/main.py"
+    }
+  },
+  {
+    "name": "pyproject.toml",
+    "path": "pyproject.toml",
+    "sha": "70dcce013d178be8fea4af7e5755a367438f398c",
+    "size": 2477,
+    "url": "https://api.github.com/repos/TauricResearch/TradingAgents/contents/pyproject.toml?ref=main",
+    "html_url": "https://github.com/TauricResearch/TradingAgents/blob/main/pyproject.toml",
+    "git_url": "https://api.github.com/repos/TauricResearch/TradingAgents/git/blobs/70dcce013d178be8fea4af7e5755a367438f398c",
+    "download_url": "https://raw.githubusercontent.com/TauricResearch/TradingAgents/main/pyproject.toml",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/TauricResearch/TradingAgents/contents/pyproject.toml?ref=main",
+      "git": "https://api.github.com/repos/TauricResearch/TradingAgents/git/blobs/70dcce013d178be8fea4af7e5755a367438f398c",
+      "html": "https://github.com/TauricResearch/TradingAgents/blob/main/pyproject.toml"
+    }
+  },
+  {
+    "name": "requirements.txt",
+    "path": "requirements.txt",
+    "sha": "2f10e6147f0754aae3814435d873d29cd9506313",
+    "size": 147,
+    "url": "https://api.github.com/repos/TauricResearch/TradingAgents/contents/requirements.txt?ref=main",
+    "html_url": "https://github.com/TauricResearch/TradingAgents/blob/main/requirements.txt",
+    "git_url": "https://api.github.com/repos/TauricResearch/TradingAgents/git/blobs/2f10e6147f0754aae3814435d873d29cd9506313",
+    "download_url": "https://raw.githubusercontent.com/TauricResearch/TradingAgents/main/requirements.txt",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/TauricResearch/TradingAgents/contents/requirements.txt?ref=main",
+      "git": "https://api.github.com/repos/TauricResearch/TradingAgents/git/blobs/2f10e6147f0754aae3814435d873d29cd9506313",
+      "html": "https://github.com/TauricResearch/TradingAgents/blob/main/requirements.txt"
+    }
+  },
+  {
+    "name": "tests",
+    "path": "tests",
+    "sha": "772adf8a0dadbff2d920aa653dfd06aabe2d59f4",
+    "size": 0,
+    "url": "https://api.github.com/repos/TauricResearch/TradingAgents/contents/tests?ref=main",
+    "html_url": "https://github.com/TauricResearch/TradingAgents/tree/main/tests",
+    "git_url": "https://api.github.com/repos/TauricResearch/TradingAgents/git/trees/772adf8a0dadbff2d920aa653dfd06aabe2d59f4",
+    "download_url": null,
+    "type": "dir",
+    "_links": {
+      "self": "https://api.github.com/repos/TauricResearch/TradingAgents/contents/tests?ref=main",
+      "git": "https://api.github.com/repos/TauricResearch/TradingAgents/git/trees/772adf8a0dadbff2d920aa653dfd06aabe2d59f4",
+      "html": "https://github.com/TauricResearch/TradingAgents/tree/main/tests"
+    }
+  },
+  {
+    "name": "tradingagents",
+    "path": "tradingagents",
+    "sha": "5da82eaef4a33c1bc3b400d676c5702758fae258",
+    "size": 0,
+    "url": "https://api.github.com/repos/TauricResearch/TradingAgents/contents/tradingagents?ref=main",
+    "html_url": "https://github.com/TauricResearch/TradingAgents/tree/main/tradingagents",
+    "git_url": "https://api.github.com/repos/TauricResearch/TradingAgents/git/trees/5da82eaef4a33c1bc3b400d676c5702758fae258",
+    "download_url": null,
+    "type": "dir",
+    "_links": {
+      "self": "https://api.github.com/repos/TauricResearch/TradingAgents/contents/tradingagents?ref=main",
+      "git": "https://api.github.com/repos/TauricResearch/TradingAgents/git/trees/5da82eaef4a33c1bc3b400d676c5702758fae258",
+      "html": "https://github.com/TauricResearch/TradingAgents/tree/main/tradingagents"
+    }
+  }
+]

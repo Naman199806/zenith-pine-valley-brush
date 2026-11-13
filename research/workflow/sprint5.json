@@ -1,0 +1,82 @@
+{
+  "schemaVersion": "apex.workflow.v1",
+  "generatedAt": "2026-11-12T21:24:29.692Z",
+  "executable": false,
+  "paperAutoEligible": false,
+  "liveEnabled": false,
+  "licensingClearance": false,
+  "steps": [
+    {
+      "step": "market-data",
+      "status": "TESTED",
+      "note": "Yahoo daily coverage is documented. No second provider. Intraday IEX is used only when the paper clock is open."
+    },
+    {
+      "step": "day-trader-scanner",
+      "status": "TESTED",
+      "output": {
+        "risk": null,
+        "executable": false
+      },
+      "note": "Scanner output is research only. Native broker tool is not invoked."
+    },
+    {
+      "step": "tradingagents-research",
+      "status": "TESTED",
+      "output": {
+        "signal": "Hold"
+      },
+      "note": "Research report only. No order permission."
+    },
+    {
+      "step": "apex-proposal",
+      "status": "TESTED",
+      "note": "Proposal is a hypothesis. executable is false. Paper auto stays ineligible."
+    },
+    {
+      "step": "lean-backtest",
+      "status": "TESTED",
+      "output": {
+        "net": null,
+        "pin": "655ac6d475ad8539ff54583a26327e63b59c5703"
+      },
+      "note": "Fixture algorithm. Not a validated strategy."
+    },
+    {
+      "step": "backtrader-verify",
+      "status": "TESTED",
+      "output": {
+        "netPnl": -30.21
+      },
+      "note": "Independent SMA check. GPL review still required before INTEGRATED."
+    },
+    {
+      "step": "apex-risk",
+      "status": "TESTED",
+      "note": "Risk engine rejects executable proposals from research adapters. Kill switch remains available."
+    },
+    {
+      "step": "alpaca-paper",
+      "status": "CONFIGURED",
+      "note": "Paper account is authenticated in MONITORING. No order is sent without operator confirmation. LIVE is not selectable."
+    },
+    {
+      "step": "hermes-review",
+      "status": "TESTED",
+      "output": {
+        "selfDeclaredSuccess": false
+      },
+      "note": "Post-trade hypothesis only. Does not promote a strategy."
+    },
+    {
+      "step": "freqtrade-crypto",
+      "status": "TESTED",
+      "note": "Crypto research only. Native exchange trading disabled. GPL review pending."
+    }
+  ],
+  "blockers": [
+    "Freqtrade and Backtrader remain TESTED pending GPL review.",
+    "No framework is INTEGRATED. Research output cannot become an order.",
+    "Market is closed or no operator has authorized a paper order."
+  ]
+}

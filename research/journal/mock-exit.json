@@ -1,0 +1,10 @@
+{
+  "timer": true,
+  "exit": {
+    "qty": 0.00029,
+    "flat": false
+  },
+  "gate": "BLOCKED_EXPERIMENT_OFF",
+  "brokerWrites": 0,
+  "ranAt": "2026-11-13T18:26:41.681Z"
+}

@@ -1,0 +1,17 @@
+{
+  "again": {
+    "clientId": "mock-exit-1",
+    "state": "UNKNOWN",
+    "owned": 0.0004,
+    "sellQty": 0.0004
+  },
+  "done": {
+    "clientId": "mock-exit-1",
+    "state": "FILLED",
+    "owned": 0,
+    "sellQty": 0.0004
+  },
+  "gate": "BLOCKED_EXPERIMENT_OFF",
+  "brokerWrites": 0,
+  "ranAt": "2026-11-13T18:02:32.994Z"
+}

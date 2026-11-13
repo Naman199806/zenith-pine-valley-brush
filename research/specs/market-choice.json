@@ -1,0 +1,8 @@
+{
+  "primaryMarket": "BTC-USD",
+  "timeframe": "1d",
+  "reason": "Coinbase daily has open, high, low, close, and volume from 2024-01-01. SPY is longer but dividends are not reconstructed. No order book or funding series exists.",
+  "costs": "25 bps per side. No funding. Spread not separately modeled.",
+  "missing": ["order book", "funding", "point-in-time news archive"],
+  "holdout": "last 60 completed bars sealed"
+}

@@ -1,0 +1,58 @@
+{
+  "schemaVersion": "apex.lab.v1",
+  "engine": "backtrader",
+  "version": "1.9.78.123",
+  "strategy": "sma-20-50",
+  "symbol": "SPY",
+  "venue": "equity",
+  "dataSource": "Yahoo Finance chart API v8",
+  "adjustment": "OHLC and volume are the vendor's split-adjusted, dividend-unadjusted prints. yahooAdjClose is a side field only. It is revised when later dividends are paid and is not a point-in-time price.",
+  "coverage": {
+    "first": "1993-01-29",
+    "last": "2025-11-10",
+    "bars": 8253
+  },
+  "holdout": {
+    "from": "2025-11-11",
+    "bars": 252,
+    "reason": "Last 252 sessions reserved. Not used to tune."
+  },
+  "rawLast": "2026-11-11",
+  "checksum": "b7d2529962e3d433",
+  "synthetic": false,
+  "validated": false,
+  "paperAutoEligible": false,
+  "metrics": {
+    "tradeCount": 87,
+    "winRate": 0.5057,
+    "avgWinner": 12.49,
+    "avgLoser": -7.52,
+    "netPnl": 226.09,
+    "profitFactor": 1.699,
+    "startValue": 100000,
+    "endValue": 100321.65,
+    "netReturn": 0.0032,
+    "closedTradePnl": 226.09,
+    "endingEquity": 100321.65,
+    "equityChange": 321.65,
+    "openPositionValue": 95.56,
+    "netReturnOnEquity": 0.003217,
+    "buyAndHoldEnd": 1550930.3,
+    "buyAndHoldReturn": 14.5093,
+    "cashBenchmark": 100000
+  },
+  "meanReversion": {
+    "tradeCount": 197,
+    "winRate": 0.7462,
+    "avgWinner": 3.63,
+    "avgLoser": -6.38,
+    "netPnl": 214.16,
+    "profitFactor": 1.671,
+    "startValue": 100000,
+    "endValue": 100214.16,
+    "netReturn": 0.0021
+  },
+  "accounting": "closedTradePnl sums closed trade.pnlcomm. equityChange includes any open position. Dividends are not in the price. Commission is 5 bps. Holdout was not used.",
+  "note": "Not a profitability claim. Opening-range cost study is unchanged. T1 and T2 stay IDEA.",
+  "ranAt": "2026-11-12T20:03:07Z"
+}

@@ -1,0 +1,37 @@
+{
+  "baselineUnchanged": "mom-12-1 one-share",
+  "holdoutFrom": "2025-11-11",
+  "holdoutUsed": false,
+  "backtrader": {
+    "fills": 157,
+    "endingEquity": 1201369.42,
+    "fees": 34288.9,
+    "sizing": "95 percent, fractional shares allowed",
+    "costs": "5 bps commission, 1 bp slippage"
+  },
+  "lean": {
+    "fills": 169,
+    "endingEquity": 1239440.81,
+    "fees": 1882.18,
+    "sizing": "SetHoldings 95 percent, integer shares",
+    "costs": "LEAN default equity fee, about $0.005 per share, no slippage model",
+    "firstFill": {
+      "time": 760222800.0,
+      "price": 48.125,
+      "qty": 1975.0,
+      "fee": 9.875,
+      "side": "buy"
+    }
+  },
+  "difference": 38071.39,
+  "causes": [
+    "Fee model: LEAN charged a per-share fee; Backtrader charged 5 bps plus 1 bp slippage.",
+    "Share rounding: LEAN used integer shares; Backtrader allowed fractions.",
+    "Fill timing: LEAN market-on-open versus Backtrader next-bar open after the signal bar.",
+    "Signal window: LEAN History(253) versus Backtrader close[-252]/close[-21]."
+  ],
+  "dividends": "Neither engine added cash dividends. Yahoo OHLC is split-adjusted and dividend-unadjusted. LEAN factor file is identity.",
+  "buyAndHoldReturn": 14.5093,
+  "promoted": false,
+  "ranAt": "2026-11-12T21:23:54Z"
+}

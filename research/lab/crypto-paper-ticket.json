@@ -1,0 +1,32 @@
+{
+  "host": "paper-api.alpaca.markets",
+  "accountStatus": "ACTIVE",
+  "cash": "105442.8",
+  "equity": "105442.8",
+  "positions": 0,
+  "openOrders": 0,
+  "symbol": "BTC/USD",
+  "side": "buy",
+  "qty": "0.001",
+  "orderType": "market",
+  "timeInForce": "gtc",
+  "clientOrderId": "apex-crypto-f0e7eaa9-5c78-4df7-9e81-3bccc6759ec2",
+  "bid": 71265.3,
+  "ask": 71285.899,
+  "spread": 20.59900000000198,
+  "notional": 71.285899,
+  "tradable": true,
+  "fractionable": true,
+  "feeModel": "Alpaca crypto paper. Not Kraken. Not the 0.16/0.26 Freqtrade schedule.",
+  "exit": "Operator-supervised market sell of the filled quantity. Not an automatic stop.",
+  "risk": {
+    "qty": "0.0739",
+    "notionalCents": 526803,
+    "riskCents": 5268,
+    "binding": "notional",
+    "reasons": [],
+    "approved": true
+  },
+  "submitted": false,
+  "quoteTs": "2026-11-12T23:29:18.729632433Z"
+}

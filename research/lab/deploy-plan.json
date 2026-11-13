@@ -1,0 +1,12 @@
+{
+  "status": "NOT_DEPLOYED",
+  "sandbox": "Grok runtime is disposable. Do not treat it as a 24/7 host.",
+  "required": [
+    "A persistent host with a durable disk for the Freqtrade sqlite and Apex state",
+    "Secrets outside the repo, not in the source tree",
+    "Process supervisor with restart and heartbeat alerts",
+    "Backup of state and the execution journal off the host",
+    "PAPER_AUTO remains off until unattended exit and failure handling are tested"
+  ],
+  "live": false
+}

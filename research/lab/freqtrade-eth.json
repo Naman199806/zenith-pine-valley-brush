@@ -1,0 +1,12 @@
+{
+  "worker": "C",
+  "symbol": "ETH-USD",
+  "strategy": "sma-10-30",
+  "placeOrders": false,
+  "bars": 350,
+  "trades": 7,
+  "netPnl": -247.11,
+  "end": 9692.44,
+  "ret": -0.0308,
+  "ranAt": "2026-11-12T20:25:18Z"
+}

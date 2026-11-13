@@ -1,0 +1,8 @@
+{
+  "ok": true,
+  "verdict": "retire",
+  "reason": "12-1 momentum, 95 percent sizing: Backtrader end 1201369 (+1101 percent) versus buy-and-hold +1450.9 percent. LEAN end 1239441, CAGR 8.24 percent, max drawdown 32.6 percent, Sharpe 0.46. One-share baseline was 0.56 percent because sizing was 1 share. Holdout from 2025-11-11 unused. No edge versus buy-and-hold after costs. No profit claim.",
+  "selfDeclaredSuccess": false,
+  "canApprove": false,
+  "ranAt": "2026-11-12T21:24:01Z"
+}

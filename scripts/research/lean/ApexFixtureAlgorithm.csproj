@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <OutputPath>/workspace/.runtimes/lean-run/build/</OutputPath>
+    <AssemblyName>ApexFixtureAlgorithm</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="NodaTime">
+      <HintPath>/workspace/.runtimes/src/Lean/Launcher/bin/Release/NodaTime.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Python.Runtime">
+      <HintPath>/workspace/.runtimes/src/Lean/Launcher/bin/Release/Python.Runtime.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="QuantConnect.Common">
+      <HintPath>/workspace/.runtimes/src/Lean/Launcher/bin/Release/QuantConnect.Common.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="QuantConnect.Algorithm">
+      <HintPath>/workspace/.runtimes/src/Lean/Launcher/bin/Release/QuantConnect.Algorithm.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+</Project>

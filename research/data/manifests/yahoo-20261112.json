@@ -1,0 +1,102 @@
+{
+  "provider": "yahoo-chart-v8",
+  "fetchedUtc": "2026-11-12T04:05:31Z",
+  "adjustedCloseIsPointInTime": false,
+  "sessionDateRule": "date is the America/New_York calendar date of the vendor timestamp",
+  "utcVersusNewYorkDateMismatches": 0,
+  "files": [
+    {
+      "symbol": "SPY",
+      "path": "research/data/raw/yahoo/20261112/SPY.json",
+      "sha256": "b7d2529962e3d4339fb0fe1e11bbc75bfba8df20d1b7e951b5a155497951a28b",
+      "bytes": 1715188,
+      "bars": 8505,
+      "first": "1993-01-29",
+      "last": "2026-11-11",
+      "dividends": 136,
+      "splits": 0,
+      "nullBarsDropped": 0
+    },
+    {
+      "symbol": "QQQ",
+      "path": "research/data/raw/yahoo/20261112/QQQ.json",
+      "sha256": "bfd2870cb767de364fcaf18e770dab3718582152899ea0837b3d2be23aa6940c",
+      "bytes": 1444673,
+      "bars": 6963,
+      "first": "1999-03-10",
+      "last": "2026-11-11",
+      "dividends": 90,
+      "splits": 1,
+      "nullBarsDropped": 0
+    },
+    {
+      "symbol": "IWM",
+      "path": "research/data/raw/yahoo/20261112/IWM.json",
+      "sha256": "0ef7a4ccbb5b989cfccb72aea8c81f1f99e4c9a3a77149e4a231df27990354ce",
+      "bytes": 1389778,
+      "bars": 6655,
+      "first": "2000-05-26",
+      "last": "2026-11-11",
+      "dividends": 107,
+      "splits": 1,
+      "nullBarsDropped": 0
+    },
+    {
+      "symbol": "GLD",
+      "path": "research/data/raw/yahoo/20261112/GLD.json",
+      "sha256": "1d10160ff7036ba8d36c77062a9d5fe0b5d5ac5bbcfa152a3f6c26318bcdc5d7",
+      "bytes": 1156584,
+      "bars": 5530,
+      "first": "2004-11-18",
+      "last": "2026-11-11",
+      "dividends": 0,
+      "splits": 0,
+      "nullBarsDropped": 0
+    },
+    {
+      "symbol": "TLT",
+      "path": "research/data/raw/yahoo/20261112/TLT.json",
+      "sha256": "70de432580987764f7629985471621a052270846a1eaf904cab695a80cd4c45e",
+      "bytes": 1292819,
+      "bars": 6112,
+      "first": "2002-07-30",
+      "last": "2026-11-11",
+      "dividends": 290,
+      "splits": 0,
+      "nullBarsDropped": 0
+    },
+    {
+      "symbol": "BIL",
+      "path": "research/data/raw/yahoo/20261112/BIL.json",
+      "sha256": "a06e2f0c96745b32495fd5f43df3183c6226769e948403fe842e324c498441ef",
+      "bytes": 1015319,
+      "bars": 4896,
+      "first": "2007-05-30",
+      "last": "2026-11-11",
+      "dividends": 129,
+      "splits": 1,
+      "nullBarsDropped": 0
+    }
+  ],
+  "secondSource": {
+    "status": "BLOCKED",
+    "reason": "No second provider returned an OHLCV tape. Stooq returned a browser challenge. Nasdaq historical returned zero price rows.",
+    "attempts": [
+      {
+        "name": "stooq",
+        "url": "https://stooq.com/q/d/l/?s=spy.us&i=d",
+        "error": "<urlopen error timed out>"
+      },
+      {
+        "name": "nasdaq-historical-spy",
+        "url": "https://api.nasdaq.com/api/quote/SPY/historical?assetclass=etf&fromdate=2024-01-02&todate=2024-02-02&limit=20",
+        "error": "HTTP Error 403: Forbidden"
+      },
+      {
+        "name": "nasdaq-historical-qqq",
+        "url": "https://api.nasdaq.com/api/quote/QQQ/historical?assetclass=etf&fromdate=2024-01-02&todate=2024-02-02&limit=20",
+        "error": "HTTP Error 403: Forbidden"
+      }
+    ]
+  }
+}
