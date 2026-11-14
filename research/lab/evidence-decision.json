@@ -1,0 +1,187 @@
+{
+  "asOfUtc": "2026-11-14T00:10:00Z",
+  "accepted": [
+    {
+      "agent": "vector",
+      "runId": "vector-xai-smoke-001",
+      "providerRequestId": "1985e31c-6c77-98e5-aeea-2bcc43fe0539",
+      "provenance": "XAI_API",
+      "status": "ACCEPTED",
+      "asOfUtc": "2026-11-12T23:59:59Z",
+      "historical": true,
+      "current": false,
+      "text": "Last completed daily bar (2026-11-12) closed at 71369.9, down from prior close of 73927.63."
+    },
+    {
+      "agent": "vector",
+      "runId": "vector-xai-smoke-001",
+      "providerRequestId": "1985e31c-6c77-98e5-aeea-2bcc43fe0539",
+      "provenance": "XAI_API",
+      "status": "ACCEPTED",
+      "asOfUtc": "2026-11-12T23:59:59Z",
+      "historical": true,
+      "current": false,
+      "text": "Volume on 2026-11-12 was 10490.8253, above the recent average."
+    },
+    {
+      "agent": "vector",
+      "runId": "vector-xai-smoke-001",
+      "providerRequestId": "1985e31c-6c77-98e5-aeea-2bcc43fe0539",
+      "provenance": "XAI_API",
+      "status": "ACCEPTED",
+      "asOfUtc": "2026-11-12T23:59:59Z",
+      "historical": true,
+      "current": false,
+      "text": "Range on 2026-11-12 was 74123.71 - 71008 = 3115.71, larger than the preceding bar's range."
+    },
+    {
+      "agent": "vector",
+      "runId": "vector-xai-smoke-001",
+      "providerRequestId": "1985e31c-6c77-98e5-aeea-2bcc43fe0539",
+      "provenance": "XAI_API",
+      "status": "ACCEPTED",
+      "asOfUtc": "2026-11-12T23:59:59Z",
+      "historical": true,
+      "current": false,
+      "text": "All 30 bars supplied are completed; none marked incomplete."
+    },
+    {
+      "agent": "vector",
+      "runId": "vector-xai-smoke-001",
+      "providerRequestId": "1985e31c-6c77-98e5-aeea-2bcc43fe0539",
+      "provenance": "XAI_API",
+      "status": "ACCEPTED",
+      "asOfUtc": "2026-11-12T23:59:59Z",
+      "historical": true,
+      "current": false,
+      "text": "Source: Coinbase public candles."
+    },
+    {
+      "agent": "bear",
+      "runId": "bear-xai-live-smoke-001",
+      "providerRequestId": "90dac055-c4ec-9a61-9183-58c97efb4f16",
+      "provenance": "XAI_API",
+      "status": "ACCEPTED",
+      "asOfUtc": "2026-11-12T23:59:59Z",
+      "historical": true,
+      "current": false,
+      "text": "Bar 2026-10-29: close 77780.33 vs prior close 81249.31 (-4.3 % single-day drop)"
+    },
+    {
+      "agent": "bear",
+      "runId": "bear-xai-live-smoke-001",
+      "providerRequestId": "90dac055-c4ec-9a61-9183-58c97efb4f16",
+      "provenance": "XAI_API",
+      "status": "ACCEPTED",
+      "asOfUtc": "2026-11-12T23:59:59Z",
+      "historical": true,
+      "current": false,
+      "text": "Bar 2026-10-30: close 77180.42, low 76141.02 (lowest low since 2026-10-14)"
+    },
+    {
+      "agent": "bear",
+      "runId": "bear-xai-live-smoke-001",
+      "providerRequestId": "90dac055-c4ec-9a61-9183-58c97efb4f16",
+      "provenance": "XAI_API",
+      "status": "ACCEPTED",
+      "asOfUtc": "2026-11-12T23:59:59Z",
+      "historical": true,
+      "current": false,
+      "text": "Bar 2026-11-05: close 75969.06, low 75035.10 (new low)"
+    },
+    {
+      "agent": "bear",
+      "runId": "bear-xai-live-smoke-001",
+      "providerRequestId": "90dac055-c4ec-9a61-9183-58c97efb4f16",
+      "provenance": "XAI_API",
+      "status": "ACCEPTED",
+      "asOfUtc": "2026-11-12T23:59:59Z",
+      "historical": true,
+      "current": false,
+      "text": "Bar 2026-11-10: close 73697.87, low 72643.48 (new low)"
+    },
+    {
+      "agent": "bear",
+      "runId": "bear-xai-live-smoke-001",
+      "providerRequestId": "90dac055-c4ec-9a61-9183-58c97efb4f16",
+      "provenance": "XAI_API",
+      "status": "ACCEPTED",
+      "asOfUtc": "2026-11-12T23:59:59Z",
+      "historical": true,
+      "current": false,
+      "text": "Bar 2026-11-12: close 71369.9, low 71008 (lowest close and low in the series)"
+    },
+    {
+      "agent": "bear",
+      "runId": "bear-xai-live-smoke-001",
+      "providerRequestId": "90dac055-c4ec-9a61-9183-58c97efb4f16",
+      "provenance": "XAI_API",
+      "status": "ACCEPTED",
+      "asOfUtc": "2026-11-12T23:59:59Z",
+      "historical": true,
+      "current": false,
+      "text": "Sequence of lower highs: 84856.07 (2026-10-21) → 81890 (2026-10-29) → 81130.79 (2026-11-04) → 75500 (2026-11-09) → 74123.71 (2026-11-12)"
+    },
+    {
+      "agent": "bear",
+      "runId": "bear-xai-live-smoke-001",
+      "providerRequestId": "90dac055-c4ec-9a61-9183-58c97efb4f16",
+      "provenance": "XAI_API",
+      "status": "ACCEPTED",
+      "asOfUtc": "2026-11-12T23:59:59Z",
+      "historical": true,
+      "current": false,
+      "text": "Sequence of lower lows: 82535 (2026-10-21) → 77699 (2026-10-29) → 75035.10 (2026-11-05) → 72643.48 (2026-11-10) → 71008 (2026-11-12)"
+    },
+    {
+      "agent": "bear",
+      "runId": "bear-xai-live-smoke-001",
+      "providerRequestId": "90dac055-c4ec-9a61-9183-58c97efb4f16",
+      "provenance": "XAI_API",
+      "status": "ACCEPTED",
+      "asOfUtc": "2026-11-12T23:59:59Z",
+      "historical": true,
+      "current": false,
+      "text": "Volume spike on 2026-10-30 (13656.046) and 2026-11-05 (15496.6687) accompanied downside moves"
+    }
+  ],
+  "rejected": [
+    {
+      "agent": "vector",
+      "runId": "vector-xai-smoke-001",
+      "providerRequestId": "1985e31c-6c77-98e5-aeea-2bcc43fe0539",
+      "provenance": "XAI_API",
+      "status": "REJECTED",
+      "asOfUtc": "2026-11-12T23:59:59Z",
+      "historical": true,
+      "current": false,
+      "text": "Prior three completed bars show successive lower closes: 73927.63 → 73697.87 → 71369.9.",
+      "reason": "The claimed sequence is not chronological. 2026-11-11 closed higher than 2026-11-10."
+    }
+  ],
+  "unavailable": [
+    {
+      "agent": "bull",
+      "runId": "bull-xai-live-smoke-001",
+      "providerRequestId": null,
+      "provenance": "XAI_API",
+      "status": "PROVIDER_BILLING_BLOCKED",
+      "asOfUtc": null,
+      "historical": false,
+      "current": false,
+      "text": "No research result.",
+      "reason": "personal-team-blocked:spending-limit"
+    }
+  ],
+  "decision": {
+    "instrument": "BTC/USD",
+    "action": "NO_TRADE",
+    "reason": "No approved strategy.",
+    "quantRejects": false,
+    "riskRejects": false,
+    "agentChanged": false
+  },
+  "billingLocked": true,
+  "paidCalls": 0,
+  "brokerWrites": 0
+}

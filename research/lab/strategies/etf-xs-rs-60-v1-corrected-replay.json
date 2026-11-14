@@ -1,0 +1,36 @@
+{
+  "label": "CORRECTED_ENGINE_REPLAY",
+  "strategy": "etf-xs-rs-60-v1",
+  "originalDecision": "REJECTED",
+  "decisionUnchanged": true,
+  "strategyApproved": false,
+  "dividendTiming": "PAYABLE_DATE_MISSING",
+  "dividendCashCredited": 0,
+  "costConvention": "slippage in execution price; commission once as cash",
+  "baseline": {
+    "netReturn": 4.3691,
+    "feesPaid": 29071.8,
+    "trades": 114,
+    "profitFactor": 1.848,
+    "maxDrawdown": 0.3009,
+    "spyBuyAndHold": 4.7389,
+    "equalWeightBuyAndHold": 6.0144,
+    "periods": {
+      "development": {
+        "trades": 78,
+        "net": 178505.32,
+        "winRate": 0.628
+      },
+      "validation": {
+        "trades": 36,
+        "net": 258408.62,
+        "winRate": 0.583
+      }
+    }
+  },
+  "stress2x": {
+    "netReturn": 3.7144,
+    "feesPaid": 53653.03
+  },
+  "tradeNetEqualsEquity": true
+}

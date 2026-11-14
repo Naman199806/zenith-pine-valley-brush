@@ -1,0 +1,16 @@
+{
+  "order": {
+    "id": "bde5dc0e-54b1-4428-9a6b-395f572bae1b",
+    "status": "filled",
+    "filled_qty": "0.0003",
+    "filled_avg_price": "68254.196",
+    "filled_at": "2026-11-14T02:05:37.224205877Z"
+  },
+  "positions": [
+    {
+      "symbol": "BTCUSD",
+      "qty": "0.00029925",
+      "avg": "68254.196"
+    }
+  ]
+}

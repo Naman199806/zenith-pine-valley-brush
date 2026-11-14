@@ -1,0 +1,24 @@
+{
+  "submittedAt": "2026-11-14T02:05:37.169Z",
+  "httpStatus": 200,
+  "request": {
+    "symbol": "BTC/USD",
+    "qty": "0.0003",
+    "side": "buy",
+    "type": "market",
+    "time_in_force": "gtc",
+    "client_order_id": "apex-smoke-1b558f3e-970a-4468-88fa-b939dafa20a2"
+  },
+  "broker": {
+    "id": "bde5dc0e-54b1-4428-9a6b-395f572bae1b",
+    "client_order_id": "apex-smoke-1b558f3e-970a-4468-88fa-b939dafa20a2",
+    "status": "pending_new",
+    "symbol": "BTC/USD",
+    "side": "buy",
+    "qty": "0.0003",
+    "type": "market",
+    "submitted_at": "2026-11-14T02:05:37.222157595Z",
+    "filled_qty": "0",
+    "filled_avg_price": null
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "event": {
+    "event_id": "warden-98842043-5b86-4d26-a94b-97c9397cc7e1",
+    "timestamp": "2026-11-14T04:38:54.560Z",
+    "event_type": "ACCOUNT_RECONCILIATION_REQUEST",
+    "strategy_id": "fmz-bollinger-rsi-long-v1",
+    "metadata": {
+      "account_masked": "dc***dd",
+      "pilot_status": "BLOCKED",
+      "authorization_expires_utc": "2026-11-15T03:05:00.000Z",
+      "entries": 0,
+      "max_entries_total": 5,
+      "max_position_usd": 25,
+      "daily_loss_limit_usd": 5,
+      "strategy_hash": "e68c0a76f04a73ac2ec856e8bf1c4552e7ded96ef27bfb133ce70d95b0fd4cd6",
+      "live": false,
+      "paper_auto": false,
+      "broker_writes": 0
+    }
+  },
+  "rules": {
+    "instrument": "BTC/USD",
+    "timeframe": "15Min",
+    "rsiLength": 6,
+    "bbLength": 200,
+    "bbDev": 2,
+    "entry": "same completed candle: RSI crosses above 50 and close crosses above lower band",
+    "exit": "same completed candle: RSI crosses below 50 and close crosses below upper band",
+    "stop": "1.5 x ATR14 Wilder below entry",
+    "maxHold": "4h"
+  },
+  "strategyHash": "e68c0a76f04a73ac2ec856e8bf1c4552e7ded96ef27bfb133ce70d95b0fd4cd6",
+  "result": {
+    "event_id": "warden-98842043-5b86-4d26-a94b-97c9397cc7e1",
+    "httpStatus": 200,
+    "acknowledged": true,
+    "processed": true,
+  "processedEvidence": "Warden review of warden-98842043-5b86-4d26-a94b-97c9397cc7e1 completed. Account ACTIVE, BTC 0, no open orders. Strategy hash saved.",
+    "strategyHash": "e68c0a76f04a73ac2ec856e8bf1c4552e7ded96ef27bfb133ce70d95b0fd4cd6",
+    "expires": "2026-11-15T03:05:00.000Z",
+    "body": {
+      "success": true,
+      "runUuid": "6145c48f-7579-48fd-8149-6dca67f8cd7d"
+    },
+    "error": null
+  }
+}

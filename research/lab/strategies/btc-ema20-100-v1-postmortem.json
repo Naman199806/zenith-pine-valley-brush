@@ -1,0 +1,44 @@
+{
+  "experimentId": "btc-ema20-100-v1",
+  "status": "REJECTED",
+  "rulesUnchanged": true,
+  "parametersOptimized": false,
+  "label": "HISTORICAL BACKTEST",
+  "window": "2024-01-01/2026-09-13",
+  "holdoutSealedFrom": "2026-09-14",
+  "holdoutAccessed": false,
+  "checks": {
+    "emaWarmup": "Signals begin only after 100 completed bars. First entry is 2024-04-11, after the EMA100 seed.",
+    "nextBarFills": "Every fill date is later than its signal bar. No same-bar close fills.",
+    "sizing": "1 percent equity risk over 2x ATR14 Wilder, capped at 95 percent of cash. No leverage.",
+    "costAccounting": "Report feesPaid is entry plus exit. Trade-level fees field stores the exit leg only."
+  },
+  "attribution": {
+    "trades": 15,
+    "wins": 2,
+    "losses": 13,
+    "averageHoldingDays": 28.9,
+    "medianHoldingDays": 12,
+    "grossPnl": 1919.43,
+    "exitLegFees": 763.88,
+    "totalFeesPaid": 1522.01,
+    "netPnl": 1155.55,
+    "largestWin": 6401.46,
+    "largestLoss": -1444.75,
+    "exposure": 0.491,
+    "exposureMatchedOpenToOpen": 0.1394,
+    "buyAndHold": 0.7367,
+    "cash": 0,
+    "netReturn": 0.004,
+    "stress2xReturn": -0.0258
+  },
+  "primaryCause": "Participation and whipsaw, not a single catastrophic loss.",
+  "factors": [
+    "The strategy was long about half the time and captured only 13.9 percent open-to-open versus 73.7 percent buy-and-hold. Most of the BTC appreciation occurred while it was in cash.",
+    "Thirteen of fifteen trades lost. The entire positive result depends on two long holds (136 and 121 days).",
+    "Median hold was 12 days, with several 2-day whipsaws in 2025 and 2026.",
+    "Costs were large relative to the small gross. Doubling them turned the sample negative."
+  ],
+  "decision": "REJECTED",
+  "strategyApproved": false
+}

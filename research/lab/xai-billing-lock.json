@@ -1,0 +1,8 @@
+{
+  "status": "PROVIDER_BILLING_BLOCKED",
+  "reason": "spending-limit",
+  "providerCode": "personal-team-blocked:spending-limit",
+  "lockedAt": "2026-11-14T00:00:00Z",
+  "agentId": "bull",
+  "runId": "bull-xai-live-smoke-001"
+}

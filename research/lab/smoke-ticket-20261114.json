@@ -1,0 +1,50 @@
+{
+  "ticketId": "apex-smoke-20261114T0200Z",
+  "clientOrderId": "apex-smoke-1b558f3e-970a-4468-88fa-b939dafa20a2",
+  "status": "READY_FOR_APPROVAL",
+  "purpose": "OPERATIONAL_CONNECTIVITY_TEST",
+  "notAStrategy": true,
+  "strategyApproved": false,
+  "nativeDecision": "NO_TRADE",
+  "flags": {
+    "EXPERIMENT_ON": false,
+    "PAPER_AUTO": false,
+    "LIVE": false
+  },
+  "endpoint": "https://paper-api.alpaca.markets",
+  "account": {
+    "maskedId": "dc***dd",
+    "status": "ACTIVE",
+    "equity": "105663.71",
+    "cash": "105663.71",
+    "cryptoStatus": "ACTIVE",
+    "positions": 0,
+    "openOrders": 0
+  },
+  "marketClock": {
+    "equityOpen": false,
+    "cryptoTradable": true,
+    "nextEquityOpen": "2026-11-16T09:30:00-05:00"
+  },
+  "instrument": "BTC/USD",
+  "side": "buy",
+  "type": "market",
+  "timeInForce": "gtc",
+  "quantity": "0.0003",
+  "quote": {
+    "bid": 68241.55,
+    "ask": 68251.4,
+    "mid": 68246.48,
+    "timestamp": "2026-11-14T02:00:29.836566303Z",
+    "source": "Alpaca crypto latest quote"
+  },
+  "estimatedNotionalUsd": 20.47,
+  "maxNotionalUsd": 25,
+  "withinCeiling": true,
+  "minOrderSize": "0.000014236",
+  "exitPlan": "Operator-supervised market sell of the exact filled quantity after fill confirmation. No automatic protective stop is assumed.",
+  "isolation": "No existing positions or open orders. Nothing else will be touched.",
+  "brokerWrites": 0,
+  "authorization": "NOT_GRANTED",
+  "generatedAt": "2026-11-14T02:00:30.218Z"
+}

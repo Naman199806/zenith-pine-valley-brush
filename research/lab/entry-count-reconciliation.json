@@ -1,0 +1,43 @@
+{
+  "activation": "2026-11-14T03:05:00.000Z",
+  "totalApexOrders": 4,
+  "ordersAfterActivation": 0,
+  "filledBuysAfterActivation": 0,
+  "correctPilotEntries": 0,
+  "wardenReported": "2/5",
+  "reason": "Warden counted historical Apex fills from before activation, not pilot entries.",
+  "orders": [
+    {
+      "client_order_id": "apex-smoke-sell-5c217bdf-356c-4686-89e5-44e1310f5422",
+      "side": "sell",
+      "status": "filled",
+      "filled_qty": "0.00029925",
+      "submitted_at": "2026-11-14T02:06:01.318333Z",
+      "afterActivation": false
+    },
+    {
+      "client_order_id": "apex-smoke-1b558f3e-970a-4468-88fa-b939dafa20a2",
+      "side": "buy",
+      "status": "filled",
+      "filled_qty": "0.0003",
+      "submitted_at": "2026-11-14T02:05:37.222158Z",
+      "afterActivation": false
+    },
+    {
+      "client_order_id": "apex-crypto-sell-f703873b-7701-4c26-a24e-a185e21c27e9",
+      "side": "sell",
+      "status": "filled",
+      "filled_qty": "0.0009975",
+      "submitted_at": "2026-11-12T23:40:08.223352Z",
+      "afterActivation": false
+    },
+    {
+      "client_order_id": "apex-crypto-f0e7eaa9-5c78-4df7-9e81-3bccc6759ec2",
+      "side": "buy",
+      "status": "filled",
+      "filled_qty": "0.001",
+      "submitted_at": "2026-11-12T23:33:06.100636Z",
+      "afterActivation": false
+    }
+  ]
+}

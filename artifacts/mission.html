@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Apex Mission Control</title>
+  <style>
+    :root { color-scheme: dark; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #050814; color: #d7e4ff; font: 13px/1.4 ui-sans-serif, system-ui; }
+    nav, section { background: #0b1220; border: 1px solid #1c2b48; border-radius: 16px; }
+    nav { margin: 10px; padding: 10px 14px; display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+    nav b { color: #7dd3fc; }
+    .status { margin-left: auto; color: #fbbf24; }
+    .layout { display: grid; grid-template-columns: 250px 1fr 270px; gap: 10px; padding: 0 10px; }
+    .panel { padding: 12px; }
+    h2, h3 { margin: 0 0 8px; }
+    .row { background: #09101b; border: 1px solid #243352; border-radius: 10px; padding: 8px; margin-bottom: 8px; }
+    .bad { color: #f87171; } .warn { color: #fbbf24; } .ok { color: #86efac; }
+    .stage { position: relative; height: 560px; }
+    svg { width: 100%; height: 100%; }
+    .agent { cursor: pointer; }
+    .agent text { font-size: 10px; }
+    .edge { cursor: pointer; }
+    .preview { color: #93a4c3; font-size: 12px; }
+    .drawer { position: fixed; top: 0; right: 0; width: 360px; height: 100%; background: #0c1424; border-left: 1px solid #2a3d62; padding: 16px; transform: translateX(100%); transition: transform .2s; overflow: auto; z-index: 5; }
+    .drawer.open { transform: translateX(0); }
+    footer { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin: 10px; }
+    button { color: inherit; background: #12203a; border: 1px solid #2a3d62; border-radius: 8px; padding: 6px 8px; cursor: pointer; }
+    @media (max-width: 1100px) { .layout, footer { grid-template-columns: 1fr; } .stage { height: 420px; } .drawer { width: 100%; } }
+    @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+  </style>
+</head>
+<body>
+  <nav>
+    <b>Mission Control</b><span>Markets</span><span>AI Agents</span><span>Strategies</span><span>Orders</span>
+    <span class="status">Paper: DISABLED · XAI: MOCK · Data: REPLAY</span>
+  </nav>
+  <div class="layout">
+    <section class="panel">
+      <h3>Stocks</h3>
+      <div id="stocks"></div>
+    </section>
+    <section class="panel">
+      <h2>AI Agent Network</h2>
+      <div class="stage"><svg id="net" viewBox="0 0 800 560"></svg></div>
+      <p id="trail"></p>
+      <p class="preview" id="previews"></p>
+    </section>
+    <section class="panel">
+      <h3>BTC/USD REPLAY</h3>
+      <svg id="chart" viewBox="0 0 260 160" width="100%" height="160"></svg>
+      <div class="row" id="btcMeta"></div>
+      <div id="crypto"></div>
+      <div class="row">Order book<br><span class="bad">UNAVAILABLE</span></div>
+      <div class="row">Sentiment<br><span class="bad">UNAVAILABLE</span></div>
+    </section>
+  </div>
+  <footer>
+    <section class="panel">Decision<br><b id="decision"></b></section>
+    <section class="panel">Rationale<br><span id="reason"></span></section>
+    <section class="panel">Quant / Risk<br><span id="risk"></span></section>
+    <section class="panel">Lifecycle<br><span id="life"></span></section>
+    <section class="panel">Health<br><span id="health"></span></section>
+  </footer>
+  <aside class="drawer" id="drawer">
+    <button id="close">Close</button>
+    <h3 id="dTitle"></h3>
+    <pre id="dBody"></pre>
+  </aside>
+  <script>
+    const roles = ["scout","vector","atlas","oracle","pulse","volta","bull","bear","sigma","sentinel","allocator","pilot","hermes"];
+    const colors = { research: "#22d3ee", synthesis: "#a78bfa", risk: "#f87171", debate: "#f472b6" };
+    let lastFp = "";
+    let lastMarket = "";
+    function text(el, value) { document.getElementById(el).textContent = value == null ? "" : String(value); }
+    function edgeColor(edge) {
+      if (edge.type === "conversation" && (edge.source === "bull" || edge.source === "bear" || edge.destination === "bull" || edge.destination === "bear")) return colors.debate;
+      if (edge.source === "sentinel") return colors.risk;
+      if (edge.source === "hermes") return colors.synthesis;
+      return colors.research;
+    }
+    function fingerprint(state) {
+      return JSON.stringify({
+        edges: (state.edges || []).map((e) => [e.event_id, e.source, e.destination, e.type, e.provenance, e.message]),
+        conversations: (state.conversations || []).map((e) => [e.event_id, e.source, e.destination]),
+        action: state.noTrade?.action,
+        reason: state.noTrade?.reason,
+        roles: (state.roles || []).map((r) => [r.role, r.stance, r.reason]),
+      });
+    }
+    function pos(name) {
+      if (name === "decision") return { x: 400, y: 280 };
+      const i = roles.indexOf(name);
+      const a = (Math.PI * 2 * i) / roles.length - Math.PI / 2;
+      const long = name.length > 7;
+      const r = long ? 228 : 210;
+      return { x: 400 + Math.cos(a) * r, y: 280 + Math.sin(a) * r };
+    }
+    function openDrawer(title, payload) {
+      document.getElementById("dTitle").textContent = title;
+      document.getElementById("dBody").textContent = JSON.stringify(payload, null, 2);
+      document.getElementById("drawer").classList.add("open");
+    }
+    function draw(state) {
+      const svg = document.getElementById("net");
+      svg.replaceChildren();
+      const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+      Object.entries(colors).forEach(([name, color]) => {
+        const marker = document.createElementNS("http://www.w3.org/2000/svg", "marker");
+        marker.setAttribute("id", "m-" + name);
+        marker.setAttribute("markerWidth", "8");
+        marker.setAttribute("markerHeight", "8");
+        marker.setAttribute("refX", "6");
+        marker.setAttribute("refY", "3");
+        marker.setAttribute("orient", "auto");
+        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        path.setAttribute("d", "M0,0 L6,3 L0,6");
+        path.setAttribute("fill", color);
+        marker.appendChild(path);
+        defs.appendChild(marker);
+      });
+      svg.appendChild(defs);
+      const submissions = (state.edges || []).filter((e) => e.type !== "conversation" && e.source && e.destination);
+      const conversations = (state.conversations || []).filter((e) => e.source && e.destination);
+      [...submissions, ...conversations].forEach((edge) => {
+        const a = pos(edge.source), b = pos(edge.destination);
+        const color = edgeColor(edge);
+        const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+        line.setAttribute("class", "edge");
+        line.setAttribute("data-type", edge.type || "submission");
+        line.setAttribute("x1", a.x); line.setAttribute("y1", a.y); line.setAttribute("x2", b.x); line.setAttribute("y2", b.y);
+        line.setAttribute("stroke", color);
+        line.setAttribute("stroke-width", edge.type === "conversation" ? "3" : "1.5");
+        if (edge.type !== "conversation") line.setAttribute("stroke-dasharray", "4 3");
+        line.setAttribute("marker-end", "url(#m-" + (color === colors.risk ? "risk" : color === colors.synthesis ? "synthesis" : color === colors.debate ? "debate" : "research") + ")");
+        line.addEventListener("click", () => openDrawer((edge.type || "submission") + ": " + edge.source + " → " + edge.destination, {
+          event_id: edge.event_id,
+          type: edge.type || "submission",
+          source: edge.source,
+          destination: edge.destination,
+          timestamp: edge.timestamp,
+          message: edge.message || null,
+          payload: edge.payload || null,
+        }));
+        svg.appendChild(line);
+      });
+      roles.forEach((role) => {
+        const p = pos(role);
+        const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        g.classList.add("agent");
+        g.addEventListener("click", () => openDrawer(role, (state.roles || []).find((r) => r.role === role) || { stance: "UNAVAILABLE" }));
+        const c = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        c.setAttribute("cx", p.x); c.setAttribute("cy", p.y); c.setAttribute("r", role.length > 7 ? "28" : "32");
+        c.setAttribute("fill", "#0b1220"); c.setAttribute("stroke", edgeColor({ source: role, type: "submission" })); c.setAttribute("stroke-width", "2");
+        const t = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        t.setAttribute("x", p.x); t.setAttribute("y", p.y + 40); t.setAttribute("text-anchor", "middle"); t.setAttribute("fill", "#d7e4ff");
+        t.textContent = role;
+        g.append(c, t); svg.appendChild(g);
+      });
+      const core = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+      core.setAttribute("cx", 400); core.setAttribute("cy", 280); core.setAttribute("r", "62");
+      core.setAttribute("fill", "#10203a"); core.setAttribute("stroke", "#60a5fa"); core.setAttribute("stroke-width", "4");
+      const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      label.setAttribute("x", 400); label.setAttribute("y", 276); label.setAttribute("text-anchor", "middle"); label.setAttribute("fill", "#fff");
+      label.textContent = state.noTrade?.action || "NO_TRADE";
+      const sub = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      sub.setAttribute("x", 400); sub.setAttribute("y", 294); sub.setAttribute("text-anchor", "middle"); sub.setAttribute("fill", "#93a4c3"); sub.setAttribute("font-size", "10");
+      sub.textContent = "Decision Engine";
+      svg.append(core, label, sub);
+      const previews = submissions.map((e) => e.message).filter(Boolean).slice(0, 4);
+      text("trail", "MOCK submissions: " + submissions.length + " · Direct conversations: " + conversations.length + (conversations.length ? "" : " (none recorded)"));
+      text("previews", "Provenance MOCK. No durable agent-to-agent conversation history.");
+      text("decision", state.noTrade?.action || "NO_TRADE");
+      text("reason", state.noTrade?.reason || "No approved strategy.");
+      text("risk", "Quant and Risk authoritative. Broker writes: 0.");
+      text("life", (state.synthetic?.final || "FLAT") + " · TEST_ONLY");
+    }
+    function updatePanels(state) {
+      text("health", `PID ${state.pid} · heartbeat ${state.heartbeat || "n/a"} · paid ${state.paidCalls}`);
+      renderQuotes(state.quotes || []);
+      renderCrypto(state.quotes || []);
+      const marketKey = JSON.stringify((state.bars || []).map((b) => [b.date, b.c]));
+      if (marketKey !== lastMarket) {
+        lastMarket = marketKey;
+        drawBars(state.bars || []);
+      }
+      const last = state.bars?.at(-1);
+      text("btcMeta", `Historical replay ${last?.date || "n/a"} · ${last?.c || "n/a"} · Coinbase · REPLAY`);
+    }
+    function quoteRow(q, symbol) {
+      const row = document.createElement("div");
+      row.className = "row";
+      const status = q?.status || "UNAVAILABLE";
+      const cls = status === "FRESH" ? "ok" : status === "DELAYED" ? "warn" : "bad";
+      const title = document.createElement("div");
+      title.textContent = symbol;
+      const state = document.createElement("span");
+      state.className = cls;
+      state.textContent = `${status} ${q?.price ?? ""}`.trim();
+      const meta = document.createElement("div");
+      meta.className = "preview";
+      meta.textContent = `${q?.source || "none"} · ${q?.observedAt || "n/a"} · ${q?.reason || "no observation"}`;
+      row.append(title, state, meta);
+      return row;
+    }
+    function renderQuotes(quotes) {
+      const box = document.getElementById("stocks");
+      box.replaceChildren();
+      ["SPY", "QQQ", "TSLA", "NFLX", "VOO"].forEach((symbol) => box.appendChild(quoteRow(quotes.find((row) => row.symbol === symbol), symbol)));
+    }
+    function renderCrypto(quotes) {
+      const box = document.getElementById("crypto");
+      box.replaceChildren();
+      ["BTC/USD", "ETH/USD", "SOL/USD"].forEach((symbol) => box.appendChild(quoteRow(quotes.find((row) => row.symbol === symbol), symbol)));
+    }
+    function drawBars(bars) {
+      const svg = document.getElementById("chart");
+      svg.replaceChildren();
+      if (!bars.length) return;
+      const highs = bars.map((b) => b.h), lows = bars.map((b) => b.l);
+      const max = Math.max(...highs), min = Math.min(...lows);
+      const mid = (max + min) / 2;
+      const y = (v) => 128 - ((v - min) / (max - min || 1)) * 100;
+      [max, mid, min].forEach((v, i) => {
+        const t = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        t.setAttribute("x", 2); t.setAttribute("y", 14 + i * 52); t.setAttribute("fill", "#93a4c3"); t.setAttribute("font-size", "9");
+        t.textContent = Math.round(v).toLocaleString();
+        svg.appendChild(t);
+      });
+      bars.forEach((bar, i) => {
+        const x = 36 + i * 7;
+        const up = bar.c >= bar.o;
+        const wick = document.createElementNS("http://www.w3.org/2000/svg", "line");
+        wick.setAttribute("x1", x); wick.setAttribute("x2", x); wick.setAttribute("y1", y(bar.h)); wick.setAttribute("y2", y(bar.l));
+        wick.setAttribute("stroke", up ? "#22c55e" : "#ef4444");
+        const body = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+        body.setAttribute("x", x - 2); body.setAttribute("y", y(Math.max(bar.o, bar.c)));
+        body.setAttribute("width", 4); body.setAttribute("height", Math.max(1, Math.abs(y(bar.o) - y(bar.c))));
+        body.setAttribute("fill", up ? "#22c55e" : "#ef4444");
+        svg.append(wick, body);
+      });
+      [0, Math.floor(bars.length / 2), bars.length - 1].forEach((i, n) => {
+        const t = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        t.setAttribute("x", 36 + i * 7); t.setAttribute("y", 154); t.setAttribute("fill", "#93a4c3"); t.setAttribute("font-size", "9");
+        t.textContent = String(bars[i].date || "").slice(5);
+        svg.appendChild(t);
+      });
+    }
+    document.getElementById("close").onclick = () => document.getElementById("drawer").classList.remove("open");
+    async function poll() {
+      try {
+        const state = await fetch("/state").then((r) => r.json());
+        const fp = fingerprint(state);
+        if (fp !== lastFp) {
+          lastFp = fp;
+          draw(state);
+        }
+        updatePanels(state);
+      } catch { text("health", "STALE · runtime disconnected"); }
+    }
+    poll(); setInterval(poll, 3000);
+  </script>
+</body>
+</html>

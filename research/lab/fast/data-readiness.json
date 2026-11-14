@@ -1,0 +1,34 @@
+{
+  "generatedAt": "2026-11-14T01:55:00Z",
+  "intradayDatasets": [],
+  "available": [
+    {
+      "source": "Coinbase public candles",
+      "symbols": ["BTC-USD", "ETH-USD"],
+      "granularitySeconds": 86400,
+      "executableBidAsk": false,
+      "orderBook": false
+    },
+    {
+      "source": "Yahoo chart v8",
+      "symbols": ["SPY", "QQQ", "IWM", "GLD", "TLT", "BIL"],
+      "granularitySeconds": 86400,
+      "executableBidAsk": false,
+      "orderBook": false
+    }
+  ],
+  "liveQuotes": {
+    "path": "scripts/mission.mjs market refresh",
+    "minimumBackoffMs": 20000,
+    "kind": "snapshot",
+    "usableAsTickHistory": false
+  },
+  "missingForRealisticExecutionResearch": [
+    "Timestamped trades",
+    "Executable bid/ask quotes",
+    "Order-book depth",
+    "Intraday bars for equities, ETFs, BTC, ETH, or SOL",
+    "Venue-specific maker/taker fee schedule snapshots"
+  ],
+  "verdict": "DATA_INSUFFICIENT_FOR_REALISTIC_HFT_RESEARCH"
+}

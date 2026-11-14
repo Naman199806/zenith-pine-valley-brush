@@ -1,0 +1,69 @@
+{
+  "provenance": "XAI_API",
+  "status": 200,
+  "providerRequestId": "90dac055-c4ec-9a61-9183-58c97efb4f16",
+  "model": "grok-4.3",
+  "inputHash": "aa3f7648f5ea14e466dab0bc6361e405a6efdeb640f40a64d458da2f205e8694",
+  "usage": {
+    "input_tokens": 2053,
+    "input_tokens_details": {
+      "cached_tokens": 128
+    },
+    "output_tokens": 615,
+    "output_tokens_details": {
+      "reasoning_tokens": 0
+    },
+    "total_tokens": 2668,
+    "num_sources_used": 0,
+    "num_server_side_tools_used": 0,
+    "cost_in_usd_ticks": 39693500,
+    "context_details": {
+      "input_tokens": 2053,
+      "output_tokens": 621
+    }
+  },
+  "chargeUsd": 0.00396935,
+  "parsed": {
+    "schema_version": "apex-bot-research-v1",
+    "provenance": "XAI_API",
+    "run_id": "bear-xai-live-smoke-001",
+    "agent_id": "Bear",
+    "symbol": "BTC/USD",
+    "as_of_utc": "2026-11-12T23:59:59Z",
+    "thesis": "The supplied BTC/USD daily bars indicate a bearish short-term trend regime.",
+    "stance": "SUPPORT",
+    "broker_action": "NONE",
+    "findings": [
+      "Bar 2026-10-29: close 77780.33 vs prior close 81249.31 (-4.3 % single-day drop)",
+      "Bar 2026-10-30: close 77180.42, low 76141.02 (lowest low since 2026-10-14)",
+      "Bar 2026-11-05: close 75969.06, low 75035.10 (new low)",
+      "Bar 2026-11-10: close 73697.87, low 72643.48 (new low)",
+      "Bar 2026-11-12: close 71369.9, low 71008 (lowest close and low in the series)",
+      "Sequence of lower highs: 84856.07 (2026-10-21) → 81890 (2026-10-29) → 81130.79 (2026-11-04) → 75500 (2026-11-09) → 74123.71 (2026-11-12)",
+      "Sequence of lower lows: 82535 (2026-10-21) → 77699 (2026-10-29) → 75035.10 (2026-11-05) → 72643.48 (2026-11-10) → 71008 (2026-11-12)",
+      "Volume spike on 2026-10-30 (13656.046) and 2026-11-05 (15496.6687) accompanied downside moves"
+    ],
+    "counterarguments": [
+      "Bar 2026-11-04: close 80428.31 (+4.0 % from prior close) shows intraday recovery capacity",
+      "Bar 2026-10-21: close 84024.67 (highest close in series) indicates prior bullish momentum",
+      "Bar 2026-11-01: close 78230.55 (+1.0 % from prior close) shows minor bounce"
+    ],
+    "uncertainties": [
+      "No data after 2026-11-12 close; trend continuation unconfirmed",
+      "Missing fields: no explicit funding rates, open-interest, or on-chain metrics",
+      "Single-exchange (Coinbase) volume may not reflect global liquidity"
+    ]
+  },
+  "checks": {
+    "schema": true,
+    "runId": true,
+    "agent": true,
+    "asOf": true,
+    "thesis": true,
+    "symbol": true,
+    "broker": true,
+    "toolsUsed": true,
+    "sourcesUsed": true
+  },
+  "accepted": true
+}

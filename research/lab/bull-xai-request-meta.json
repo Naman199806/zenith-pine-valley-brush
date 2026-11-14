@@ -1,0 +1,11 @@
+{
+  "url": "https://api.x.ai/v1/responses",
+  "model": "grok-4.3",
+  "max_output_tokens": 1600,
+  "estimatedInputTokens": 1729,
+  "conservativeWorstCaseUsd": 0.013058,
+  "run_id": "bull-xai-live-smoke-001",
+  "as_of_utc": "2026-11-12T23:59:59Z",
+  "bars": 30,
+  "priorAgentConclusionsExcluded": true
+}

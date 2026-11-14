@@ -1,0 +1,14 @@
+{
+  "report": "bull-rejection-20261113",
+  "run_id": "bull-xai-live-smoke-001",
+  "status": 402,
+  "providerCode": "personal-team-blocked:spending-limit",
+  "providerError": "You have run out of credits or need a Grok subscription.",
+  "requestsMade": 1,
+  "retries": 0,
+  "researchProduced": false,
+  "originalUnchanged": true,
+  "finalStatus": "PROVIDER_BILLING_BLOCKED",
+  "researchFailure": false,
+  "nextAction": "Do not retry. Add credits or wait for a new explicit authorization after the spending limit is cleared."
+}

@@ -1,0 +1,8 @@
+{
+  "url": "https://api.x.ai/v1/responses",
+  "estimatedInputTokens": 1097,
+  "worstCaseUsd": 0.005371,
+  "sma10": 75422.788,
+  "sma20": 77219.8865,
+  "lastClose": 71369.9
+}

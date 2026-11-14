@@ -2,130 +2,130 @@
   "launchMode": "MONITORING",
   "emergency": false,
   "autoApproved": false,
-  "reconciliationClean": false,
+  "reconciliationClean": true,
   "orders": [],
   "strategyQty": [],
   "events": [
     {
-      "ts": "2026-11-13T19:14:00.453Z",
+      "ts": "2026-11-14T04:39:02.819Z",
       "text": "Authenticated paper account read."
     },
     {
-      "ts": "2026-11-13T19:14:08.567Z",
+      "ts": "2026-11-14T04:40:01.016Z",
       "text": "Authenticated paper account read."
     },
     {
-      "ts": "2026-11-13T19:15:17.710Z",
+      "ts": "2026-11-14T04:40:33.989Z",
       "text": "Authenticated paper account read."
     },
     {
-      "ts": "2026-11-13T19:15:27.592Z",
+      "ts": "2026-11-14T04:43:55.148Z",
       "text": "Authenticated paper account read."
     },
     {
-      "ts": "2026-11-13T19:15:40.987Z",
+      "ts": "2026-11-14T04:45:09.761Z",
       "text": "Authenticated paper account read."
     },
     {
-      "ts": "2026-11-13T19:16:34.840Z",
+      "ts": "2026-11-14T05:11:24.902Z",
       "text": "Authenticated paper account read."
     },
     {
-      "ts": "2026-11-13T19:17:36.428Z",
+      "ts": "2026-11-14T05:11:55.485Z",
       "text": "Authenticated paper account read."
     },
     {
-      "ts": "2026-11-13T19:18:04.240Z",
+      "ts": "2026-11-14T05:33:59.311Z",
       "text": "Authenticated paper account read."
     },
     {
-      "ts": "2026-11-13T19:19:52.682Z",
+      "ts": "2026-11-14T05:38:12.834Z",
       "text": "Authenticated paper account read."
     },
     {
-      "ts": "2026-11-13T19:20:43.611Z",
+      "ts": "2026-11-14T17:26:09.133Z",
       "text": "Authenticated paper account read."
     },
     {
-      "ts": "2026-11-13T19:20:51.940Z",
+      "ts": "2026-11-14T17:50:37.164Z",
       "text": "Authenticated paper account read."
     },
     {
-      "ts": "2026-11-13T19:26:40.576Z",
+      "ts": "2026-11-14T17:50:40.414Z",
       "text": "Authenticated paper account read."
     },
     {
-      "ts": "2026-11-13T19:30:43.800Z",
+      "ts": "2026-11-14T17:54:42.372Z",
       "text": "Authenticated paper account read."
     },
     {
-      "ts": "2026-11-13T19:30:59.325Z",
+      "ts": "2026-11-14T17:58:44.044Z",
       "text": "Authenticated paper account read."
     },
     {
-      "ts": "2026-11-13T19:31:54.115Z",
+      "ts": "2026-11-14T18:04:02.613Z",
       "text": "Authenticated paper account read."
     },
     {
-      "ts": "2026-11-13T19:32:04.811Z",
+      "ts": "2026-11-14T18:04:29.504Z",
       "text": "Authenticated paper account read."
     },
     {
-      "ts": "2026-11-13T19:40:48.602Z",
+      "ts": "2026-11-14T18:04:30.241Z",
       "text": "Authenticated paper account read."
     },
     {
-      "ts": "2026-11-13T19:52:04.499Z",
+      "ts": "2026-11-14T18:09:31.132Z",
       "text": "Authenticated paper account read."
     },
     {
-      "ts": "2026-11-13T19:54:25.464Z",
+      "ts": "2026-11-14T18:13:33.156Z",
       "text": "Authenticated paper account read."
     },
     {
-      "ts": "2026-11-13T19:55:23.255Z",
+      "ts": "2026-11-14T18:17:34.907Z",
       "text": "Authenticated paper account read."
     },
     {
-      "ts": "2026-11-13T19:55:31.692Z",
+      "ts": "2026-11-14T18:21:36.961Z",
       "text": "Authenticated paper account read."
     },
     {
-      "ts": "2026-11-13T20:13:39.493Z",
+      "ts": "2026-11-14T18:25:39.390Z",
       "text": "Authenticated paper account read."
     },
     {
-      "ts": "2026-11-13T20:23:48.391Z",
+      "ts": "2026-11-14T18:29:41.460Z",
       "text": "Authenticated paper account read."
     },
     {
-      "ts": "2026-11-13T20:34:21.364Z",
+      "ts": "2026-11-14T18:33:43.197Z",
       "text": "Authenticated paper account read."
     },
     {
-      "ts": "2026-11-13T20:34:29.202Z",
+      "ts": "2026-11-14T18:37:45.302Z",
       "text": "Authenticated paper account read."
     },
     {
-      "ts": "2026-11-13T20:43:58.852Z",
+      "ts": "2026-11-14T18:41:47.484Z",
       "text": "Authenticated paper account read."
     },
     {
-      "ts": "2026-11-13T20:44:21.073Z",
+      "ts": "2026-11-14T18:45:48.874Z",
       "text": "Authenticated paper account read."
     },
     {
-      "ts": "2026-11-13T20:44:37.687Z",
+      "ts": "2026-11-14T18:49:51.255Z",
       "text": "Authenticated paper account read."
     },
     {
-      "ts": "2026-11-13T20:45:14.902Z",
+      "ts": "2026-11-14T18:53:53.383Z",
       "text": "Authenticated paper account read."
     },
     {
-      "ts": "2026-11-13T20:45:16.242Z",
+      "ts": "2026-11-14T18:59:09.797Z",
       "text": "Authenticated paper account read."
     }
   ],
-  "lastAuthenticatedAt": "2026-11-13T20:45:16.242Z"
+  "lastAuthenticatedAt": "2026-11-14T18:59:09.797Z"
 }

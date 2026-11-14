@@ -1,0 +1,46 @@
+{
+  "strategy": "etf-xs-rs-60-v1",
+  "manifestHash": "05104115363c6bc2653f33b2de3ba541c74fed8e3a47f4418f8e34163da28310",
+  "label": "HISTORICAL BACKTEST",
+  "window": "2004-11-18/2025-11-10",
+  "holdoutSealedFrom": "2025-11-11",
+  "holdoutAccessed": false,
+  "bars": 5278,
+  "splitAt": 3694,
+  "baseline": {
+    "netReturn": 3.7182,
+    "maxDrawdown": 0.3035,
+    "profitFactor": 1.809,
+    "expectancy": 3401.83,
+    "winRate": 0.605,
+    "sharpe": 0.615,
+    "exposure": 0.958,
+    "trades": 114,
+    "feesPaid": 32227.41,
+    "spyBuyAndHold": 4.7389,
+    "equalWeightBuyAndHold": 6.0144,
+    "periods": {
+      "development": {
+        "trades": 78,
+        "net": 163384.82,
+        "winRate": 0.615
+      },
+      "validation": {
+        "trades": 36,
+        "net": 224423.24,
+        "winRate": 0.583
+      }
+    }
+  },
+  "stress2x": {
+    "netReturn": 2.6395,
+    "profitFactor": 1.692,
+    "trades": 114,
+    "feesPaid": 55140.03
+  },
+  "decision": "REJECTED",
+  "reason": "After-cost return does not beat the SPY benchmark, or fails the frozen risk and cost gates.",
+  "strategyApproved": false,
+  "paidCalls": 0,
+  "brokerWrites": 0
+}

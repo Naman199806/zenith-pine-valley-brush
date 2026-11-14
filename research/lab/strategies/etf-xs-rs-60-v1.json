@@ -1,0 +1,30 @@
+{
+  "id": "etf-xs-rs-60-v1",
+  "version": "1.0.0",
+  "frozenAt": "2026-11-14T01:40:00Z",
+  "family": "cross-sectional relative strength",
+  "distinctFrom": "btc-ema20-100-v1",
+  "rationale": "Among liquid US-listed ETFs, the asset with the strongest medium-horizon relative return tends to continue outperforming over the next rebalance window because capital reallocates with a lag. This is a cross-sectional rotation hypothesis, not an absolute trend filter on one crypto asset.",
+  "universe": ["SPY", "QQQ", "IWM", "GLD", "TLT"],
+  "eligibility": "Asset must have a completed bar on the signal date and a positive 60-session split-adjusted close-to-close return.",
+  "rules": {
+    "signal": "Every 20 completed sessions after a 60-session warmup, rank the universe by 60-session return.",
+    "entry": "Hold the single highest-ranked eligible asset. Cash if none are eligible.",
+    "exit": "Replace or exit at the next rebalance.",
+    "execution": "Next completed session open. Never the signal close.",
+    "sizing": "95 percent of equity. One position. No leverage. Long only.",
+    "aiEntries": false
+  },
+  "costs": {
+    "commissionBpsPerSide": 5,
+    "slippageBpsPerSide": 1,
+    "stressMultiplier": 2
+  },
+  "validation": {
+    "design": "chronological 70/30 split of the aligned research window",
+    "holdoutFrom": "2025-11-11",
+    "holdoutAccessible": false,
+    "parametersOptimized": false
+  },
+  "dataLimitations": "OHLC is split-adjusted and dividend-unadjusted. yahooAdjClose is not used because it is revised and not point-in-time. TLT and SPY total returns are therefore understated."
+}

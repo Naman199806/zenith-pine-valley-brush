@@ -1,0 +1,34 @@
+{
+  "report": "vector-reconciliation-20261113",
+  "originalResponse": "research/lab/vector-xai-raw.json",
+  "validatedResponse": "research/lab/vector-xai-validated.json",
+  "originalUnchanged": true,
+  "numericValidation": {
+    "rsi14Wilder": 29.24,
+    "rsi14Simple": 31.72,
+    "atr14Wilder": 2302.5,
+    "atr14Simple": 2400.69,
+    "atrDifference": "Methodology only. Wilder smooths the prior average. Simple averages the last 14 true ranges.",
+    "lastClose": 71369.9,
+    "priorClose": 73927.63
+  },
+  "narrativeConsistency": {
+    "claimedLowerCloses": "73927.63 → 73697.87 → 71369.9",
+    "actualLastFour": [
+      { "date": "2026-11-09", "close": 75259.28 },
+      { "date": "2026-11-10", "close": 73697.87 },
+      { "date": "2026-11-11", "close": 73927.63 },
+      { "date": "2026-11-12", "close": 71369.9 }
+    ],
+    "lastThreeSuccessiveLower": false,
+    "contradiction": "The claimed sequence is not chronological. 2026-11-11 closed higher than 2026-11-10.",
+    "selfCorrection": "Vector's own counterargument correctly notes the 2026-11-11 higher close."
+  },
+  "overall": {
+    "schemaAccepted": true,
+    "descriptiveThesisSupported": true,
+    "findingTwoRejected": true,
+    "researchAcceptance": "ACCEPTED WITH CORRECTION",
+    "tradeAuthorization": false
+  }
+}

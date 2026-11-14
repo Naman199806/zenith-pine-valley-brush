@@ -1,0 +1,18 @@
+{
+  "option": "existing Windows Node watchdog",
+  "cost": "no additional paid infrastructure",
+  "uses": [
+    "C:\\Users\\sharm\\apex-quant-x",
+    "existing Node.js",
+    "Windows Task Scheduler scripts already in scripts/windows",
+    "Alpaca PAPER credentials already on the machine"
+  ],
+  "does_not_use": "Grok Bot usage, Warden routine, paid xAI, new VPS",
+  "required_before_activation": [
+    "Confirm Windows host is awake and Task Scheduler task is running",
+    "Confirm paper account permissions on that host",
+    "Approve stop-limit offset policy",
+    "Verify durable order ledger and kill switch on that host"
+  ],
+  "status": "NOT DEPLOYED. Automated entries remain disabled."
+}

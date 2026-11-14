@@ -1,0 +1,49 @@
+{
+  "found": [
+    {
+      "lookup": "apex-smoke-sell-5c217bdf-356c-4686-89e5-44e1310f5422",
+      "status": 200,
+      "client_order_id": "apex-smoke-sell-5c217bdf-356c-4686-89e5-44e1310f5422",
+      "broker_id": "5556d168-0111-41c6-9301-2821532aebf3",
+      "side": "sell",
+      "order_status": "filled",
+      "filled_qty": "0.00029925",
+      "filled_avg_price": "68160.103",
+      "filled_at": "2026-11-14T02:06:01.320844Z"
+    },
+    {
+      "lookup": "apex-smoke-1b558f3e-970a-4468-88fa-b939dafa20a2",
+      "status": 200,
+      "client_order_id": "apex-smoke-1b558f3e-970a-4468-88fa-b939dafa20a2",
+      "broker_id": "bde5dc0e-54b1-4428-9a6b-395f572bae1b",
+      "side": "buy",
+      "order_status": "filled",
+      "filled_qty": "0.0003",
+      "filled_avg_price": "68254.196",
+      "filled_at": "2026-11-14T02:05:37.224206Z"
+    },
+    {
+      "lookup": "apex-crypto-f0e7eaa9-5c78-4df7-9e81-3bccc6759ec2",
+      "status": 200,
+      "client_order_id": "apex-crypto-f0e7eaa9-5c78-4df7-9e81-3bccc6759ec2",
+      "broker_id": "c9f6371e-7add-451f-b612-4b5358066509",
+      "side": "buy",
+      "order_status": "filled",
+      "filled_qty": "0.001",
+      "filled_avg_price": "71311.4",
+      "filled_at": "2026-11-12T23:33:06.102289Z"
+    },
+    {
+      "lookup": "apex-crypto-sell-f703873b-7701-4c26-a24e-a185e21c27e9",
+      "status": 200,
+      "client_order_id": "apex-crypto-sell-f703873b-7701-4c26-a24e-a185e21c27e9",
+      "broker_id": "9e3b834f-9ff0-46fb-ba11-344061d91e62",
+      "side": "sell",
+      "order_status": "filled",
+      "filled_qty": "0.0009975",
+      "filled_avg_price": "71151.42",
+      "filled_at": "2026-11-12T23:40:08.22568Z"
+    }
+  ],
+  "allFound": true
+}

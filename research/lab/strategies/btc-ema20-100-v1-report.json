@@ -1,0 +1,43 @@
+{
+  "strategy": "btc-ema20-100-v1",
+  "label": "HISTORICAL BACKTEST",
+  "window": "2024-01-01/2026-09-13",
+  "holdoutSealedFrom": "2026-09-14",
+  "bars": 987,
+  "splitAt": 690,
+  "baseline": {
+    "netReturn": 0.004,
+    "maxDrawdown": 0.0609,
+    "profitFactor": 1.152,
+    "expectancy": 77.04,
+    "winRate": 0.133,
+    "sharpe": 0.081,
+    "exposure": 0.491,
+    "trades": 15,
+    "feesPaid": 1522.01,
+    "buyAndHold": 0.7367,
+    "periods": {
+      "development": {
+        "trades": 11,
+        "net": 3001.12,
+        "winRate": 0.182
+      },
+      "validation": {
+        "trades": 4,
+        "net": -1845.57,
+        "winRate": 0
+      }
+    }
+  },
+  "stress2x": {
+    "netReturn": -0.0258,
+    "profitFactor": 0.886,
+    "trades": 15,
+    "feesPaid": 3001.55
+  },
+  "decision": "REJECTED",
+  "reason": "After-cost return does not beat buy-and-hold or fails risk gates.",
+  "strategyApproved": false,
+  "paidCalls": 0,
+  "brokerWrites": 0
+}

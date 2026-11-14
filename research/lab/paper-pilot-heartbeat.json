@@ -1,0 +1,18 @@
+{
+  "pid": 1396,
+  "heartbeat": "2026-11-14T03:18:44.630Z",
+  "status": "BLOCKED",
+  "activated_at_utc": "2026-11-14T03:05:00.000Z",
+  "expires_at_utc": "2026-11-15T03:05:00.000Z",
+  "signal": "WAIT",
+  "rsi": 22.94819283062212,
+  "lower": 66523.01179189034,
+  "upper": 74580.66587810958,
+  "atr14": 308.0128847207187,
+  "lastBar": "2026-11-14T03:15:00Z",
+  "entries": 0,
+  "cash": "105663.57",
+  "btcQty": "0",
+  "automatedEntries": false,
+  "reason": "Sandbox cannot guarantee a 24-hour exit watchdog. Automated entries are not enabled."
+}

@@ -1,0 +1,111 @@
+{
+  "startedAt": "2026-11-13T22:35:04.399Z",
+  "roles": [
+    {
+      "provenance": "XAI_API",
+      "role": "scout",
+      "stance": "DEFER",
+      "reason": "mock",
+      "broker_action": "NONE"
+    },
+    {
+      "provenance": "XAI_API",
+      "role": "vector",
+      "stance": "DEFER",
+      "reason": "mock",
+      "broker_action": "NONE"
+    },
+    {
+      "provenance": "XAI_API",
+      "role": "atlas",
+      "stance": "UNAVAILABLE",
+      "reason": "out of scope",
+      "broker_action": "NONE"
+    },
+    {
+      "provenance": "XAI_API",
+      "role": "oracle",
+      "stance": "DEFER",
+      "reason": "mock",
+      "broker_action": "NONE"
+    },
+    {
+      "provenance": "XAI_API",
+      "role": "pulse",
+      "stance": "DEFER",
+      "reason": "mock",
+      "broker_action": "NONE"
+    },
+    {
+      "provenance": "XAI_API",
+      "role": "volta",
+      "stance": "UNAVAILABLE",
+      "reason": "out of scope",
+      "broker_action": "NONE"
+    },
+    {
+      "provenance": "XAI_API",
+      "role": "bull",
+      "stance": "DEFER",
+      "reason": "mock",
+      "broker_action": "NONE"
+    },
+    {
+      "provenance": "XAI_API",
+      "role": "bear",
+      "stance": "DEFER",
+      "reason": "mock",
+      "broker_action": "NONE"
+    },
+    {
+      "provenance": "XAI_API",
+      "role": "sigma",
+      "stance": "DEFER",
+      "reason": "mock",
+      "broker_action": "NONE"
+    },
+    {
+      "provenance": "XAI_API",
+      "role": "sentinel",
+      "stance": "DEFER",
+      "reason": "mock",
+      "broker_action": "NONE"
+    },
+    {
+      "provenance": "XAI_API",
+      "role": "allocator",
+      "stance": "DEFER",
+      "reason": "mock",
+      "broker_action": "NONE"
+    },
+    {
+      "provenance": "XAI_API",
+      "role": "pilot",
+      "stance": "DEFER",
+      "reason": "mock",
+      "broker_action": "NONE"
+    },
+    {
+      "provenance": "XAI_API",
+      "role": "hermes",
+      "stance": "DEFER",
+      "reason": "mock",
+      "broker_action": "NONE"
+    }
+  ],
+  "decision": {
+    "instrument": "BTC/USD",
+    "action": "NO_TRADE",
+    "reason": "No approved strategy.",
+    "quantRejects": false,
+    "riskRejects": false,
+    "agentChanged": false
+  },
+  "paidCalls": 0,
+  "brokerWrites": 0,
+  "flags": {
+    "EXPERIMENT_ON": false,
+    "PAPER_AUTO": false,
+    "LIVE": false
+  }
+}

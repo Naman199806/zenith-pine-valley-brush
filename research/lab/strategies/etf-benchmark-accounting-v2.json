@@ -1,0 +1,113 @@
+{
+  "artifact": "etf-benchmark-accounting-v2",
+  "label": "HISTORICAL BACKTEST",
+  "window": "2004-11-18/2025-11-10",
+  "holdoutAccessed": false,
+  "costConvention": "6 bps counted once in the fill. Original engine remains unchanged.",
+  "totalReturnStatus": "CASH_DISTRIBUTIONS_MODELED",
+  "totalReturnCaveat": "Dated Yahoo ex-dividend amounts are applied as cash when held. GLD has no distributions. QQQ split is before the window. IWM split is 2005-06-09 and BIL split is 2017-11-30, so some historical amounts may be split-adjusted by the vendor. Not a point-in-time total-return database.",
+  "originalDecision": "REJECTED",
+  "decisionUnchanged": true,
+  "strategyApproved": false,
+  "priceOnly": {
+    "strategy": {
+      "netReturn": 4.3722,
+      "cagr": 0.0846,
+      "maxDrawdown": 0.3479,
+      "volatility": 0.1693,
+      "sharpe": 0.5645,
+      "sortino": 0.7925,
+      "fees": 34886.19,
+      "dividends": 0,
+      "trades": 114,
+      "exposure": 0.958,
+      "worstYear": {
+        "year": "2008",
+        "return": -0.1548
+      },
+      "end": 537219.39
+    },
+    "spyBuyAndHold": {
+      "netReturn": 4.5051,
+      "cagr": 0.0849,
+      "maxDrawdown": 0.5431,
+      "volatility": 0.1835,
+      "sharpe": 0.5359,
+      "sortino": 0.7529,
+      "fees": 384.47,
+      "dividends": 0,
+      "trades": 1,
+      "exposure": 1,
+      "end": 550508.84
+    },
+    "equalWeightNoRebalance": {
+      "netReturn": 5.7294,
+      "cagr": 0.0953,
+      "maxDrawdown": 0.2938,
+      "volatility": 0.1303,
+      "sharpe": 0.7642,
+      "sortino": 1.0819,
+      "dividends": 0,
+      "trades": 5,
+      "exposure": 1,
+      "end": 672935.07
+    }
+  },
+  "withDatedDistributions": {
+    "strategy": {
+      "netReturn": 5.5715,
+      "cagr": 0.0952,
+      "maxDrawdown": 0.3447,
+      "volatility": 0.169,
+      "sharpe": 0.6227,
+      "sortino": 0.8763,
+      "fees": 40264.19,
+      "dividends": 55940.81,
+      "trades": 114,
+      "exposure": 0.958,
+      "worstYear": {
+        "year": "2022",
+        "return": -0.1507
+      },
+      "end": 657149.36
+    },
+    "spyBuyAndHold": {
+      "netReturn": 5.217,
+      "cagr": 0.0912,
+      "maxDrawdown": 0.4998,
+      "volatility": 0.1621,
+      "sharpe": 0.6196,
+      "sortino": 0.871,
+      "fees": 384.47,
+      "dividends": 71188.45,
+      "trades": 1,
+      "exposure": 1,
+      "end": 621697.3
+    },
+    "equalWeightNoRebalance": {
+      "netReturn": 6.2484,
+      "cagr": 0.0992,
+      "maxDrawdown": 0.2717,
+      "volatility": 0.1201,
+      "sharpe": 0.8481,
+      "sortino": 1.2035,
+      "dividends": 51900.97,
+      "trades": 5,
+      "exposure": 1,
+      "end": 724836.04
+    },
+    "bilBuyAndHold": {
+      "netReturn": 0.2228,
+      "cagr": 0.011,
+      "maxDrawdown": 0.0071,
+      "volatility": 0.0045,
+      "sharpe": 2.4224,
+      "sortino": 3.7103,
+      "dividends": 22426.38,
+      "end": 122281.36,
+      "from": "2007-05-30",
+      "through": "2025-11-10",
+      "note": "Cash proxy. Window starts later than the ETF comparison."
+    }
+  }
+}

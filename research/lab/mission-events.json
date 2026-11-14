@@ -1,0 +1,325 @@
+{
+  "events": [
+    {
+      "event_id": "mock-sub-scout",
+      "cycle_id": "cycle-20261113-replay",
+      "provenance": "MOCK",
+      "type": "submission",
+      "source": "scout",
+      "destination": "decision",
+      "timestamp": "2026-11-13T23:00:00.000Z",
+      "message": "mock",
+      "payload": {
+        "provenance": "XAI_API",
+        "role": "scout",
+        "stance": "DEFER",
+        "reason": "mock",
+        "broker_action": "NONE"
+      }
+    },
+    {
+      "event_id": "mock-sub-vector",
+      "cycle_id": "cycle-20261113-replay",
+      "provenance": "MOCK",
+      "type": "submission",
+      "source": "vector",
+      "destination": "decision",
+      "timestamp": "2026-11-13T23:00:00.000Z",
+      "message": "mock",
+      "payload": {
+        "provenance": "XAI_API",
+        "role": "vector",
+        "stance": "DEFER",
+        "reason": "mock",
+        "broker_action": "NONE"
+      }
+    },
+    {
+      "event_id": "mock-sub-atlas",
+      "cycle_id": "cycle-20261113-replay",
+      "provenance": "MOCK",
+      "type": "submission",
+      "source": "atlas",
+      "destination": "decision",
+      "timestamp": "2026-11-13T23:00:00.000Z",
+      "message": "out of scope",
+      "payload": {
+        "provenance": "XAI_API",
+        "role": "atlas",
+        "stance": "UNAVAILABLE",
+        "reason": "out of scope",
+        "broker_action": "NONE"
+      }
+    },
+    {
+      "event_id": "mock-sub-oracle",
+      "cycle_id": "cycle-20261113-replay",
+      "provenance": "MOCK",
+      "type": "submission",
+      "source": "oracle",
+      "destination": "decision",
+      "timestamp": "2026-11-13T23:00:00.000Z",
+      "message": "mock",
+      "payload": {
+        "provenance": "XAI_API",
+        "role": "oracle",
+        "stance": "DEFER",
+        "reason": "mock",
+        "broker_action": "NONE"
+      }
+    },
+    {
+      "event_id": "mock-sub-pulse",
+      "cycle_id": "cycle-20261113-replay",
+      "provenance": "MOCK",
+      "type": "submission",
+      "source": "pulse",
+      "destination": "decision",
+      "timestamp": "2026-11-13T23:00:00.000Z",
+      "message": "mock",
+      "payload": {
+        "provenance": "XAI_API",
+        "role": "pulse",
+        "stance": "DEFER",
+        "reason": "mock",
+        "broker_action": "NONE"
+      }
+    },
+    {
+      "event_id": "mock-sub-volta",
+      "cycle_id": "cycle-20261113-replay",
+      "provenance": "MOCK",
+      "type": "submission",
+      "source": "volta",
+      "destination": "decision",
+      "timestamp": "2026-11-13T23:00:00.000Z",
+      "message": "out of scope",
+      "payload": {
+        "provenance": "XAI_API",
+        "role": "volta",
+        "stance": "UNAVAILABLE",
+        "reason": "out of scope",
+        "broker_action": "NONE"
+      }
+    },
+    {
+      "event_id": "mock-sub-bull",
+      "cycle_id": "cycle-20261113-replay",
+      "provenance": "MOCK",
+      "type": "submission",
+      "source": "bull",
+      "destination": "decision",
+      "timestamp": "2026-11-13T23:00:00.000Z",
+      "message": "mock",
+      "payload": {
+        "provenance": "XAI_API",
+        "role": "bull",
+        "stance": "DEFER",
+        "reason": "mock",
+        "broker_action": "NONE"
+      }
+    },
+    {
+      "event_id": "mock-sub-bear",
+      "cycle_id": "cycle-20261113-replay",
+      "provenance": "MOCK",
+      "type": "submission",
+      "source": "bear",
+      "destination": "decision",
+      "timestamp": "2026-11-13T23:00:00.000Z",
+      "message": "mock",
+      "payload": {
+        "provenance": "XAI_API",
+        "role": "bear",
+        "stance": "DEFER",
+        "reason": "mock",
+        "broker_action": "NONE"
+      }
+    },
+    {
+      "event_id": "mock-sub-sigma",
+      "cycle_id": "cycle-20261113-replay",
+      "provenance": "MOCK",
+      "type": "submission",
+      "source": "sigma",
+      "destination": "decision",
+      "timestamp": "2026-11-13T23:00:00.000Z",
+      "message": "mock",
+      "payload": {
+        "provenance": "XAI_API",
+        "role": "sigma",
+        "stance": "DEFER",
+        "reason": "mock",
+        "broker_action": "NONE"
+      }
+    },
+    {
+      "event_id": "mock-sub-sentinel",
+      "cycle_id": "cycle-20261113-replay",
+      "provenance": "MOCK",
+      "type": "submission",
+      "source": "sentinel",
+      "destination": "decision",
+      "timestamp": "2026-11-13T23:00:00.000Z",
+      "message": "mock",
+      "payload": {
+        "provenance": "XAI_API",
+        "role": "sentinel",
+        "stance": "DEFER",
+        "reason": "mock",
+        "broker_action": "NONE"
+      }
+    },
+    {
+      "event_id": "mock-sub-allocator",
+      "cycle_id": "cycle-20261113-replay",
+      "provenance": "MOCK",
+      "type": "submission",
+      "source": "allocator",
+      "destination": "decision",
+      "timestamp": "2026-11-13T23:00:00.000Z",
+      "message": "mock",
+      "payload": {
+        "provenance": "XAI_API",
+        "role": "allocator",
+        "stance": "DEFER",
+        "reason": "mock",
+        "broker_action": "NONE"
+      }
+    },
+    {
+      "event_id": "mock-sub-pilot",
+      "cycle_id": "cycle-20261113-replay",
+      "provenance": "MOCK",
+      "type": "submission",
+      "source": "pilot",
+      "destination": "decision",
+      "timestamp": "2026-11-13T23:00:00.000Z",
+      "message": "mock",
+      "payload": {
+        "provenance": "XAI_API",
+        "role": "pilot",
+        "stance": "DEFER",
+        "reason": "mock",
+        "broker_action": "NONE"
+      }
+    },
+    {
+      "event_id": "mock-sub-hermes",
+      "cycle_id": "cycle-20261113-replay",
+      "provenance": "MOCK",
+      "type": "submission",
+      "source": "hermes",
+      "destination": "decision",
+      "timestamp": "2026-11-13T23:00:00.000Z",
+      "message": "mock",
+      "payload": {
+        "provenance": "XAI_API",
+        "role": "hermes",
+        "stance": "DEFER",
+        "reason": "mock",
+        "broker_action": "NONE"
+      }
+    },
+    {
+      "event_id": "synthetic-research",
+      "cycle_id": "synthetic-flat",
+      "provenance": "SYNTHETIC",
+      "type": "RESEARCH",
+      "source": "runtime",
+      "destination": "journal",
+      "timestamp": "2026-11-14T00:20:53.036Z",
+      "message": "13 mock roles"
+    },
+    {
+      "event_id": "synthetic-signal",
+      "cycle_id": "synthetic-flat",
+      "provenance": "SYNTHETIC",
+      "type": "SIGNAL",
+      "source": "runtime",
+      "destination": "journal",
+      "timestamp": "2026-11-14T00:20:53.036Z",
+      "message": "TEST_ONLY candidate"
+    },
+    {
+      "event_id": "synthetic-risk",
+      "cycle_id": "synthetic-flat",
+      "provenance": "SYNTHETIC",
+      "type": "RISK",
+      "source": "runtime",
+      "destination": "journal",
+      "timestamp": "2026-11-14T00:20:53.036Z",
+      "message": "approved for simulation only"
+    },
+    {
+      "event_id": "synthetic-entry",
+      "cycle_id": "synthetic-flat",
+      "provenance": "SYNTHETIC",
+      "type": "ENTRY",
+      "source": "runtime",
+      "destination": "journal",
+      "timestamp": "2026-11-14T00:20:53.036Z",
+      "message": "submitted"
+    },
+    {
+      "event_id": "synthetic-fill",
+      "cycle_id": "synthetic-flat",
+      "provenance": "SYNTHETIC",
+      "type": "FILL",
+      "source": "runtime",
+      "destination": "journal",
+      "timestamp": "2026-11-14T00:20:53.036Z",
+      "message": "partial then full"
+    },
+    {
+      "event_id": "synthetic-monitor",
+      "cycle_id": "synthetic-flat",
+      "provenance": "SYNTHETIC",
+      "type": "MONITOR",
+      "source": "runtime",
+      "destination": "journal",
+      "timestamp": "2026-11-14T00:20:53.036Z",
+      "message": "open"
+    },
+    {
+      "event_id": "synthetic-exit",
+      "cycle_id": "synthetic-flat",
+      "provenance": "SYNTHETIC",
+      "type": "EXIT",
+      "source": "runtime",
+      "destination": "journal",
+      "timestamp": "2026-11-14T00:20:53.036Z",
+      "message": "submitted"
+    },
+    {
+      "event_id": "synthetic-flat",
+      "cycle_id": "synthetic-flat",
+      "provenance": "SYNTHETIC",
+      "type": "FLAT",
+      "source": "runtime",
+      "destination": "journal",
+      "timestamp": "2026-11-14T00:20:53.036Z",
+      "message": "position zero"
+    },
+    {
+      "event_id": "synthetic-journal",
+      "cycle_id": "synthetic-flat",
+      "provenance": "SYNTHETIC",
+      "type": "JOURNAL",
+      "source": "runtime",
+      "destination": "journal",
+      "timestamp": "2026-11-14T00:20:53.036Z",
+      "message": "recorded"
+    },
+    {
+      "event_id": "synthetic-hermes",
+      "cycle_id": "synthetic-flat",
+      "provenance": "SYNTHETIC",
+      "type": "HERMES",
+      "source": "runtime",
+      "destination": "journal",
+      "timestamp": "2026-11-14T00:20:53.036Z",
+      "message": "proposal only, no promotion"
+    }
+  ]
+}

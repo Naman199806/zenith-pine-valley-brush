@@ -1,0 +1,27 @@
+{
+  "report": "bear-validation-20261113",
+  "originalResponse": "research/lab/bear-xai-raw.json",
+  "validatedResponse": "research/lab/bear-xai-validated.json",
+  "originalUnchanged": true,
+  "numericValidation": {
+    "mismatches": 0,
+    "lowestClose": { "date": "2026-11-12", "value": 71369.9 },
+    "lowestLow": { "date": "2026-11-12", "value": 71008 },
+    "highestClose": { "date": "2026-10-21", "value": 84024.67 },
+    "oct29DropPct": -4.27,
+    "nov4BouncePct": 4.0,
+    "nov1BouncePct": 1.04
+  },
+  "narrativeConsistency": {
+    "lowerHighsChronological": true,
+    "lowerLowsChronological": true,
+    "unsupportedSources": false,
+    "contradictions": []
+  },
+  "overall": {
+    "schemaAccepted": true,
+    "descriptiveThesisSupported": true,
+    "researchAcceptance": "ACCEPTED",
+    "tradeAuthorization": false
+  }
+}

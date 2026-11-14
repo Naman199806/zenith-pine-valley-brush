@@ -1,0 +1,33 @@
+{
+  "event": {
+    "event_id": "warden-2b8993d4-ab81-4026-940c-7892fbd58b37",
+    "timestamp": "2026-11-14T04:33:50.095Z",
+    "event_type": "ACCOUNT_RECONCILIATION_REQUEST",
+    "strategy_id": "fmz-bollinger-rsi-long-v1",
+    "metadata": {
+      "account_masked": "dc***dd",
+      "account_status": "ACTIVE",
+      "btc_qty": 0,
+      "open_orders": 0,
+      "pilot_status": "BLOCKED",
+      "authorization_expires_utc": "2026-11-15T03:05:00.000Z",
+      "entries": 0,
+      "max_entries_total": 5,
+      "max_position_usd": 25,
+      "daily_loss_limit_usd": 5,
+      "live": false,
+      "paper_auto": false,
+      "broker_writes": 0
+    }
+  },
+  "httpStatus": 200,
+  "acknowledged": true,
+  "processed": true,
+  "processedEvidence": "Warden accepted event warden-2b8993d4-ab81-4026-940c-7892fbd58b37 at 11:33 PM ET. Read-only review. No orders.",
+  "blocker": null,
+  "error": null,
+  "body": {
+    "success": true,
+    "runUuid": "bdfe8bae-bffa-49d1-ba6d-fb59ab6a9be7"
+  }
+}

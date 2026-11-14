@@ -1,0 +1,57 @@
+{
+  "source": {
+    "repo": "https://github.com/fmzquant/strategies",
+    "file": "BollingerRSI双重策略仅多头v12Bollinger-RSI-Double-Strategy-Long-Only-v12.md",
+    "commit": "87a415edf7b08065fbcbfbfefb7351cd929e4dbd",
+    "commitDate": "2024-03-03T14:27:55Z",
+    "license": "UNDECLARED. No LICENSE file in repository. Logic ported; source not redistributed."
+  },
+  "adaptations": [
+    "Original Pine entry uses stop=BBlower and cancels the resting order if the condition fails. Apex uses a completed-bar signal and a market order only after operator authorization.",
+    "Added independent protective stop at 1.5 x ATR14 Wilder below entry.",
+    "Added 4-hour maximum hold, $25 notional, one position, five entries/day, $5 daily loss cutoff.",
+    "No shorting, no leverage, no averaging down.",
+    "No parameter optimization."
+  ],
+  "frozenRules": {
+    "instrument": "BTC/USD",
+    "timeframe": "15Min",
+    "rsiLength": 6,
+    "bbLength": 200,
+    "bbDev": 2,
+    "entry": "same completed candle: RSI crosses above 50 and close crosses above lower band",
+    "exit": "same completed candle: RSI crosses below 50 and close crosses below upper band",
+    "stop": "1.5 x ATR14 Wilder below entry",
+    "maxHold": "4h"
+  },
+  "paper": {
+    "status": "ACTIVE",
+    "cash": "105663.57",
+    "positions": 0
+  },
+  "data": {
+    "bars": 667,
+    "first": "2026-11-06T02:30:00Z",
+    "last": "2026-11-13T01:00:00Z",
+    "fresh": true
+  },
+  "signal": {
+    "strategy": "fmz-bb-rsi-long-v1.2-adapted",
+    "rsi": 32.364811780941224,
+    "prevRsi": 35.736263830531556,
+    "basis": 73210.8913675,
+    "upper": 75214.97096827634,
+    "lower": 71206.81176672365,
+    "atr14": 259.2640745315629,
+    "close": 70839.76,
+    "barTime": "2026-11-13T01:00:00Z",
+    "barsUsed": 667,
+    "signal": "WAIT",
+    "reason": "no simultaneous cross"
+  },
+  "experimentalAuthorization": "NOT_GRANTED_FOR_RECURRING_ORDERS",
+  "strategyApproved": false,
+  "paperAuto": false,
+  "live": false,
+  "brokerWritesThisTask": 0
+}

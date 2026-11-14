@@ -1,0 +1,29 @@
+{
+  "id": "btc-ema20-100-v1",
+  "version": "1.0.0",
+  "frozenAt": "2026-11-14T00:20:00Z",
+  "instrument": "BTC/USD",
+  "direction": "long-or-cash",
+  "timeframe": "1D",
+  "rules": {
+    "entry": "EMA20 > EMA100 and completed close > EMA100",
+    "exit": "EMA20 <= EMA100 or completed close <= EMA100",
+    "execution": "next completed bar open",
+    "sizing": "risk 1% of equity using 2x ATR14 Wilder, capped at 95% of cash",
+    "leverage": 0,
+    "short": false,
+    "aiEntries": false
+  },
+  "costs": {
+    "commissionBpsPerSide": 25,
+    "slippageBpsPerSide": 5,
+    "stressMultiplier": 2
+  },
+  "data": {
+    "source": "research/data/raw/coinbase/20261112/BTC-USD.json",
+    "completedThrough": "2026-09-13",
+    "holdoutSealedFrom": "2026-09-14",
+    "barsUsed": 987,
+    "parametersOptimized": false
+  }
+}

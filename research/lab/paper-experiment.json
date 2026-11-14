@@ -1,0 +1,36 @@
+{
+  "manifest": {
+    "id": "btc-ema8-21-5m-paper-v1",
+    "status": "TEST_RULES_NOT_APPROVED",
+    "strategyApproved": false,
+    "frozenAt": "2026-11-14T02:06:35.668Z",
+    "rules": {
+      "timeframe": "5Min",
+      "entry": "EMA8 > EMA21 and completed close > prior 12 completed bars high",
+      "execution": "next available executable quote after completed bar",
+      "exit": "ATR stop, 1.5x initial risk, opposing trend, or 60-minute max hold",
+      "maxNotionalUsd": 25,
+      "maxPositions": 1,
+      "maxEntriesPerDay": 10,
+      "dailyLossCutoffUsd": 5,
+      "noLeverage": true,
+      "noShort": true,
+      "noIncompleteCandles": true
+    }
+  },
+  "evalResult": {
+    "bars": 72,
+    "lastBar": {
+      "t": "2026-11-14T02:05:00Z",
+      "c": 68183.775
+    },
+    "ema8": 68228.18951907962,
+    "ema21": 68229.89016353163,
+    "high12": 68339.003,
+    "signal": false,
+    "action": "WAITING",
+    "reason": "entry condition false"
+  },
+  "live": false,
+  "paperAuto": false
+}

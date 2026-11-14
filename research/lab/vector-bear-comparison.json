@@ -1,0 +1,11 @@
+{
+  "comparison": "local-after-bear-completed",
+  "vectorStance": "SUPPORT",
+  "bearStance": "SUPPORT",
+  "agreement": "Both independently support a descriptive bearish short-term regime on the same 30 completed bars.",
+  "vectorDefect": "Vector finding 2 listed a non-chronological lower-close sequence and contradicted its own counterargument.",
+  "bearQuality": "Bear's lower-high and lower-low sequences match the frozen bars in chronological order. No numeric mismatches.",
+  "discussion": "Not triggered. Independent Bull first-pass does not exist yet.",
+  "nativeDecision": "NO_TRADE",
+  "reason": "Descriptive research only. No approved strategy. Quant and Risk remain authoritative."
+}

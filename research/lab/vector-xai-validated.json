@@ -1,0 +1,69 @@
+{
+  "provenance": "XAI_API",
+  "status": 200,
+  "providerRequestId": "1985e31c-6c77-98e5-aeea-2bcc43fe0539",
+  "model": "grok-4.3",
+  "inputHash": "b45f8c8c4cc231c4943547cea65a4036e8b8ee4b312e8559b6f83f19ad889a7f",
+  "usage": {
+    "input_tokens": 1991,
+    "input_tokens_details": {
+      "cached_tokens": 128
+    },
+    "output_tokens": 303,
+    "output_tokens_details": {
+      "reasoning_tokens": 0
+    },
+    "total_tokens": 2294,
+    "num_sources_used": 0,
+    "num_server_side_tools_used": 0,
+    "cost_in_usd_ticks": 31118500,
+    "context_details": {
+      "input_tokens": 1991,
+      "output_tokens": 307
+    }
+  },
+  "chargeUsd": 0.00311185,
+  "parsed": {
+    "schema_version": "apex-bot-research-v1",
+    "provenance": "XAI_API",
+    "run_id": "vector-xai-smoke-001",
+    "agent_id": "Vector",
+    "symbol": "BTC/USD",
+    "as_of_utc": "2026-11-12T23:59:59Z",
+    "thesis": "BTC/USD was in a bearish short-term trend over the supplied completed daily window.",
+    "stance": "SUPPORT",
+    "broker_action": "NONE",
+    "findings": [
+      "Last completed daily bar (2026-11-12) closed at 71369.9, down from prior close of 73927.63.",
+      "Prior three completed bars show successive lower closes: 73927.63 → 73697.87 → 71369.9.",
+      "Volume on 2026-11-12 was 10490.8253, above the recent average.",
+      "Range on 2026-11-12 was 74123.71 - 71008 = 3115.71, larger than the preceding bar's range.",
+      "All 30 bars supplied are completed; none marked incomplete.",
+      "Source: Coinbase public candles."
+    ],
+    "counterarguments": [
+      "A single bar is not a trend; the user supplied a full series.",
+      "The 2026-11-11 bar closed higher than 2026-11-10, interrupting the sequence of lower closes."
+    ],
+    "uncertainties": [
+      "Only the supplied daily bars are used; no intraday data or external context is considered.",
+      "Future price action is not forecasted."
+    ]
+  },
+  "checks": {
+    "schema": true,
+    "runId": true,
+    "agent": true,
+    "asOf": true,
+    "thesis": true,
+    "symbol": true,
+    "broker": true
+  },
+  "indicators": {
+    "sma10": 75422.79,
+    "sma20": 77219.89,
+    "lastClose": 71369.9,
+    "firstClose": 81566.29
+  },
+  "accepted": true
+}

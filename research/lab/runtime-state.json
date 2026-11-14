@@ -1,0 +1,75 @@
+{
+  "pid": 1163,
+  "startedAt": "2026-11-13T23:06:12.914Z",
+  "flags": {
+    "EXPERIMENT_ON": false,
+    "PAPER_AUTO": false,
+    "LIVE": false
+  },
+  "synthetic": {
+    "events": [
+      {
+        "t": "2026-11-13T23:06:12.913Z",
+        "type": "RESEARCH",
+        "detail": "13 mock roles"
+      },
+      {
+        "t": "2026-11-13T23:06:12.913Z",
+        "type": "SIGNAL",
+        "detail": "TEST_ONLY candidate"
+      },
+      {
+        "t": "2026-11-13T23:06:12.913Z",
+        "type": "RISK",
+        "detail": "approved for simulation only"
+      },
+      {
+        "t": "2026-11-13T23:06:12.913Z",
+        "type": "ENTRY",
+        "detail": "submitted"
+      },
+      {
+        "t": "2026-11-13T23:06:12.913Z",
+        "type": "FILL",
+        "detail": "partial then full"
+      },
+      {
+        "t": "2026-11-13T23:06:12.913Z",
+        "type": "MONITOR",
+        "detail": "open"
+      },
+      {
+        "t": "2026-11-13T23:06:12.913Z",
+        "type": "EXIT",
+        "detail": "submitted"
+      },
+      {
+        "t": "2026-11-13T23:06:12.913Z",
+        "type": "FLAT",
+        "detail": "position zero"
+      },
+      {
+        "t": "2026-11-13T23:06:12.913Z",
+        "type": "JOURNAL",
+        "detail": "recorded"
+      },
+      {
+        "t": "2026-11-13T23:06:12.913Z",
+        "type": "HERMES",
+        "detail": "proposal only, no promotion"
+      }
+    ],
+    "final": "FLAT",
+    "journal": "TEST_ONLY synthetic trade closed"
+  },
+  "noTrade": {
+    "instrument": "BTC/USD",
+    "action": "NO_TRADE",
+    "reason": "No approved strategy.",
+    "quantRejects": false,
+    "riskRejects": false,
+    "agentChanged": false
+  },
+  "paidCalls": 0,
+  "brokerWrites": 0
+}

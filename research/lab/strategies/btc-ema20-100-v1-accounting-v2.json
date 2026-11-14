@@ -1,0 +1,36 @@
+{
+  "artifact": "btc-ema20-100-v1-accounting-v2",
+  "originalReportUnchanged": true,
+  "originalDecision": "REJECTED",
+  "decisionUnchanged": true,
+  "strategyApproved": false,
+  "hashes": {
+    "manifest": "5e96f81e38beeaa42780e9c3a882ce8209ec314a4d4077366bdffbc6a903344b",
+    "trades": "5999d255a31c62cd28cafd70097e4965772e56a14698e95cf27b52def99ec328",
+    "data": "d8aee6554118cb59d7de09977b7cf3d9995569bffc67af4cd7faf785c75a6953"
+  },
+  "reconciliation": {
+    "trades": 15,
+    "costEmbeddedGross": 1919.4329,
+    "exitFees": 763.8836,
+    "entryFees": 758.1264,
+    "explicitFees": 1522.01,
+    "tradeLevelNet": 1155.5493,
+    "portfolioEquityChange": 397.4229,
+    "identityHolds": true,
+    "rootCause": "Trade-level net subtracts the exit fee only. Portfolio equity also subtracts the entry fee. The fill prices already embed the same cost, so the original engine double-counts transaction costs.",
+    "originalEngineEndEquity": 100397.4229,
+    "correctedSingleCountEndEquity": 101919.4329,
+    "correctedSingleCountReturn": 0.0192
+  },
+  "interpretation": {
+    "reportedTradeLevelNet": 1155.55,
+    "reportedPortfolioChange": 397.42,
+    "gap": 758.13,
+    "gapEqualsEntryFees": true,
+    "correctedSingleCountReturn": 0.0192,
+    "buyAndHold": 0.7367,
+    "stillRejected": true,
+    "reason": "Corrected single-count return is +1.92 percent versus buy-and-hold +73.67 percent."
+  }
+}

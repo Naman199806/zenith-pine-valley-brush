@@ -1,0 +1,33 @@
+{
+  "label": "CORRECTED_ENGINE_REPLAY",
+  "strategy": "btc-ema20-100-v1",
+  "originalDecision": "REJECTED",
+  "decisionUnchanged": true,
+  "strategyApproved": false,
+  "costConvention": "slippage in execution price; commission once as cash",
+  "baseline": {
+    "netReturn": 0.0192,
+    "feesPaid": 1277.31,
+    "trades": 15,
+    "profitFactor": 1.274,
+    "maxDrawdown": 0.0516,
+    "buyAndHold": 0.7367,
+    "periods": {
+      "development": {
+        "trades": 11,
+        "net": 3562.86,
+        "winRate": 0.273
+      },
+      "validation": {
+        "trades": 4,
+        "net": -1646.86,
+        "winRate": 0
+      }
+    }
+  },
+  "stress2x": {
+    "netReturn": 0.004,
+    "feesPaid": 2536.72
+  },
+  "tradeNetEqualsEquity": true
+}

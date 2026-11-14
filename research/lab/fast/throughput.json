@@ -1,0 +1,95 @@
+{
+  "label": "SYNTHETIC PERFORMANCE TEST",
+  "notBrokerCapacity": true,
+  "dataReadiness": "DATA_INSUFFICIENT_FOR_REALISTIC_HFT_RESEARCH",
+  "runs": [
+    {
+      "label": "SYNTHETIC PERFORMANCE TEST",
+      "targetRoundTripsPerHour": 100,
+      "completedRoundTrips": 91,
+      "ordersSubmitted": 191,
+      "ordersCanceled": 9,
+      "ordersRejected": 9,
+      "fills": 182,
+      "eventsProcessed": 591,
+      "wallClockMs": 4.651,
+      "eventsPerSecond": 127059.1,
+      "simulatedRoundTripsPerHour": 70430726,
+      "latencyMs": {
+        "p50": 0.0007,
+        "p95": 0.0159,
+        "p99": 0.0195
+      },
+      "maxBacklog": 1,
+      "endEquity": 99945.92,
+      "feesPaid": 45.72
+    },
+    {
+      "label": "SYNTHETIC PERFORMANCE TEST",
+      "targetRoundTripsPerHour": 500,
+      "completedRoundTrips": 463,
+      "ordersSubmitted": 963,
+      "ordersCanceled": 43,
+      "ordersRejected": 37,
+      "fills": 926,
+      "eventsProcessed": 2975,
+      "wallClockMs": 6.299,
+      "eventsPerSecond": 472261.1,
+      "simulatedRoundTripsPerHour": 264593184,
+      "latencyMs": {
+        "p50": 0.0003,
+        "p95": 0.0006,
+        "p99": 0.0008
+      },
+      "maxBacklog": 1,
+      "endEquity": 99723.61,
+      "feesPaid": 232.62
+    },
+    {
+      "label": "SYNTHETIC PERFORMANCE TEST",
+      "targetRoundTripsPerHour": 1000,
+      "completedRoundTrips": 938,
+      "ordersSubmitted": 1938,
+      "ordersCanceled": 88,
+      "ordersRejected": 62,
+      "fills": 1876,
+      "eventsProcessed": 5990,
+      "wallClockMs": 16.213,
+      "eventsPerSecond": 369464.6,
+      "simulatedRoundTripsPerHour": 208281817,
+      "latencyMs": {
+        "p50": 0.0003,
+        "p95": 0.0016,
+        "p99": 0.0241
+      },
+      "maxBacklog": 1,
+      "endEquity": 99441.02,
+      "feesPaid": 471.32
+    }
+  ],
+  "breakEven": {
+    "btc": {
+      "roundTripBps": 60,
+      "dollars": 60
+    },
+    "etf": {
+      "roundTripBps": 12,
+      "dollars": 12
+    },
+    "makerOnly": {
+      "roundTripBps": 2,
+      "dollars": 2
+    },
+    "doubledBtc": {
+      "roundTripBps": 120,
+      "dollars": 120
+    }
+  },
+  "canProcess1000SyntheticRoundTripsPerHour": true,
+  "limitations": [
+    "Synthetic mid prices, not executable quotes",
+    "No queue position, no market impact, no adverse selection model",
+    "Latency is local processing time, not venue round trip",
+    "No real intraday dataset"
+  ]
+}

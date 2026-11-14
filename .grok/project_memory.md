@@ -1,0 +1,7 @@
+- BTC EMA20/100 v1 frozen and REJECTED: +0.40% after costs vs +73.67% buy-and-hold; 2x costs negative; validation 4 trades 0 wins. Holdout from 2026-09-14 sealed. [2026-11-14]
+- ETF cross-sectional relative strength etf-xs-rs-60-v1 frozen and REJECTED: +371.8% after costs vs SPY +473.9% and equal-weight +601.4%. Survives 2x costs but fails the pre-registered benchmark gate. Equity holdout from 2025-11-11 sealed. [2026-11-14]
+- strategyApproved remains false. Native decision remains NO_TRADE. No strategy promoted. [2026-11-14]
+- BTC accounting v2: trade-level net $1,155.55 excludes $758.13 entry fees. Portfolio change is $397.42. Original engine double-counts costs. Corrected single-count return +1.92%. Decision remains REJECTED. [2026-11-14]
+- ETF benchmark accounting v2: dated Yahoo distributions modeled as cash. Strategy +557% vs SPY +522% vs equal-weight +625% with dividends. Original REJECTED decision unchanged. Holdouts sealed. [2026-11-14]
+- Canonical engine fix: slippage is in the execution price; commission is one cash charge. Corrected BTC replay +1.92%; corrected ETF replay +436.9% vs SPY +473.9%. Dividend cash not credited because payable dates are missing. Both original decisions remain REJECTED. [2026-11-14]
+- Fast research: no local intraday data. Synthetic engine processed 1000-target round trips in 16ms. This is not broker capacity. Break-even is 60 bps BTC and 12 bps ETF per round trip. No HFT strategy created. [2026-11-14]
