@@ -1,3 +1,0 @@
-2024-01-02 00:00:00 Launching analysis for ApexFixtureAlgorithm with LEAN Engine v2.5.0.0
-2024-01-02 10:04:00 APEX_LEAN_SUMMARY bars=4 net=50.0 fills=2
-2024-01-02 10:04:00 Algorithm Id:(ApexFixtureAlgorithm) completed in 0.27 seconds at 0k data points per second. Processing total of 5 data points.
