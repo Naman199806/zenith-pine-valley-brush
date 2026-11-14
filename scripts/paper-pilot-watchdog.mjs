@@ -36,7 +36,8 @@ async function tick() {
   const entries = Array.isArray(orders.body) ? pilotEntryCount(orders.body, auth.activated_at_utc) : null;
   const expired = Date.now() >= Date.parse(auth.expires_at_utc);
   const killed = existsSync(join(root, "research/lab/windows/KILL"));
-  const brokerError = [bars, orders, account, positions].find((r) => r.error || !r.ok)?.error || null;
+  const failed = [bars, orders, account, positions].find((r) => r.error || !r.ok);
+  const brokerError = failed ? (failed.error || `status=${failed.status} body=${JSON.stringify(failed.body).slice(0, 180)}`) : null;
   const stopLimit = signal.atr14 && signal.close ? Number((signal.close - 1.5 * signal.atr14).toFixed(2)) : null;
   const state = {
     pid: process.pid,
