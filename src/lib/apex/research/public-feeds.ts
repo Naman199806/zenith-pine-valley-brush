@@ -5,13 +5,25 @@ export interface FeedObservation {
   url: string | null;
 }
 
+function clean(value: string | null): string | null {
+  if (!value) return null;
+  return value.replace(/<!\[CDATA\[|\]\]>/g, "").trim() || null;
+}
+
+export function parseRssDate(value: string | null): string | null {
+  const cleaned = clean(value);
+  if (!cleaned) return null;
+  const ms = Date.parse(cleaned);
+  return Number.isFinite(ms) ? new Date(ms).toISOString() : null;
+}
+
 export function parseRss(xml: string, limit = 5): FeedObservation[] {
   const items = xml.split("<item>").slice(1, limit + 1);
   return items.map((item) => ({
     source: "rss",
-    title: (item.match(/<title>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/title>/)?.[1] || "").trim(),
-    published: item.match(/<pubDate>([\s\S]*?)<\/pubDate>/)?.[1]?.trim() ?? null,
-    url: item.match(/<link>([\s\S]*?)<\/link>/)?.[1]?.trim() ?? null,
+    title: clean(item.match(/<title>([\s\S]*?)<\/title>/)?.[1] ?? null) || "",
+    published: parseRssDate(item.match(/<pubDate>([\s\S]*?)<\/pubDate>/)?.[1] ?? null),
+    url: clean(item.match(/<link>([\s\S]*?)<\/link>/)?.[1] ?? null),
   })).filter((item) => item.title);
 }
 

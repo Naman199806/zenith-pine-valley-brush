@@ -6,6 +6,7 @@ import { classifyBrokerResponse, staleCandleError } from "../src/lib/apex/runtim
 import { evaluateRuntime } from "../src/lib/apex/runtime/evaluate.ts";
 import { completedBars } from "../src/lib/apex/research/fmz-bb-rsi.ts";
 import { oracleFeed, pulseFeed, voltaFeed } from "../src/lib/apex/research/public-feeds.ts";
+import { runIntegratedCycle } from "../src/lib/apex/runtime/agent-cycle.ts";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const dir = join(root, "research/lab/windows");
@@ -21,7 +22,8 @@ if (!lock.acquired) {
 
 let bars = [];
 let account = { cash: null, btcQty: "unknown", error: null };
-let feeds = { oracle: "UNCHECKED", pulse: "UNCHECKED", volta: "UNCHECKED" };
+let feeds = { oracle: [], pulse: [], volta: [] };
+let quotes = [];
 let lastCandleFetch = 0;
 
 function env() {
@@ -65,8 +67,15 @@ async function refreshEvidence(force = false) {
     btcQty: Array.isArray(positionRes.body) ? (positionRes.body.find((p) => /BTC/.test(p.symbol))?.qty || "0") : "unknown",
     error: [barRes, accountRes, positionRes].find((r) => r.error)?.error || staleCandleError(lastBar),
   };
-  const [oracle, pulse, volta] = await Promise.all([oracleFeed(), pulseFeed(), voltaFeed()]);
-  feeds = { oracle: `${oracle.state}:${oracle.observations.length}`, pulse: `${pulse.state}:${pulse.observations.length}`, volta: `${volta.state}:${volta.observations.length}` };
+  const [oracle, pulse, volta, eth, spy] = await Promise.all([oracleFeed(), pulseFeed(), voltaFeed(), readJson("https://data.alpaca.markets/v1beta3/crypto/us/latest/quotes?symbols=ETH/USD", headers), fetch("https://query1.finance.yahoo.com/v8/finance/chart/SPY?interval=1d&range=1d", { signal: AbortSignal.timeout(8000) }).then((r) => r.json()).catch(() => null)]);
+  feeds = { oracle: oracle.observations, pulse: pulse.observations, volta: volta.observations };
+  const btcQuote = bars.at(-1);
+  const spyMeta = spy?.chart?.result?.[0]?.meta;
+  quotes = [
+    { symbol: "BTC/USD", price: btcQuote?.c ?? null, observedAt: btcQuote?.t ?? null, source: "alpaca-crypto-bars", session: "24/7" },
+    { symbol: "ETH/USD", price: eth.body?.quotes?.["ETH/USD"]?.ap ?? null, observedAt: eth.body?.quotes?.["ETH/USD"]?.t ?? null, source: "alpaca-crypto-quotes", session: "24/7" },
+    { symbol: "SPY", price: spyMeta?.regularMarketPrice ?? null, observedAt: spyMeta?.regularMarketTime ? new Date(spyMeta.regularMarketTime * 1000).toISOString() : null, source: "yahoo", session: "US_EQUITY" },
+  ];
 }
 
 let ticking = false;
@@ -76,18 +85,22 @@ async function tick() {
   try {
   await refreshEvidence();
   const evaluated = evaluateRuntime({ bars, cash: Number(account.cash || 0), ownedQty: Number(account.btcQty || 0), authorizationExpiresAt: null });
+  const frozen = JSON.parse(readFileSync(join(root, "research/lab/competition-20261115.json"), "utf8"));
+  const integrated = runIntegratedCycle({ quotes, oracle: feeds.oracle, pulse: feeds.pulse, volta: feeds.volta, frozen });
   const state = {
     pid: process.pid,
     heartbeat: new Date().toISOString(),
     status: "DISABLED",
     config: config.id,
-    traceId: evaluated.cycle.traceId,
-    signal: evaluated.cycle.finalDecision,
+    traceId: integrated.traceId,
+    signal: integrated.decision,
     sigma: evaluated.cycle.sigma,
     sentinel: evaluated.cycle.sentinel,
     completedBars: evaluated.cycle.market.completedBars,
     lastBar: evaluated.cycle.market.latestCompletedCandle,
-    feeds,
+    agents: integrated.agents.map((a) => ({ role: a.role, state: a.state, freshness: a.freshness, effect: a.effect })),
+    selected: integrated.selected,
+    feeds: { oracle: feeds.oracle.length, pulse: feeds.pulse.length, volta: feeds.volta.length },
     cash: account.cash,
     btcQty: account.btcQty,
     automatedEntries: false,
