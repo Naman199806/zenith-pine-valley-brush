@@ -1,0 +1,276 @@
+{
+  "traceId": "mc-2bd8eedc-9396-427b-958b-0ec3ffdac90e",
+  "evaluatedAt": "2026-11-15T06:00:17.567Z",
+  "market": {
+    "source": "https://data.alpaca.markets/v1beta3/crypto/us/bars",
+    "symbol": "BTC/USD",
+    "timeframe": "15Min",
+    "latestCompletedCandle": "2026-11-15T05:45:00Z",
+    "completedBars": 667,
+    "missing": null
+  },
+  "strategy": {
+    "id": "fmz-bollinger-rsi-long-v1",
+    "hash": "e68c0a76f04a73ac2ec856e8bf1c4552e7ded96ef27bfb133ce70d95b0fd4cd6",
+    "hashMatch": true
+  },
+  "agents": [
+    {
+      "role": "scout",
+      "status": "DETERMINISTIC",
+      "invoked": true,
+      "startedAt": "2026-11-15T06:00:17.570Z",
+      "finishedAt": "2026-11-15T06:00:17.570Z",
+      "durationMs": 0,
+      "functionUsed": "scanUniverse",
+      "input": {
+        "symbol": "BTC/USD"
+      },
+      "output": {
+        "candidates": [
+          "BTC/USD"
+        ],
+        "count": 1
+      },
+      "effect": "ADVISORY",
+      "error": null
+    },
+    {
+      "role": "vector",
+      "status": "DETERMINISTIC",
+      "invoked": true,
+      "startedAt": "2026-11-15T06:00:17.570Z",
+      "finishedAt": "2026-11-15T06:00:17.570Z",
+      "durationMs": 0,
+      "functionUsed": "evaluateFmz",
+      "input": {
+        "bars": 667,
+        "latest": "2026-11-15T05:45:00Z"
+      },
+      "output": {
+        "signal": "WAIT",
+        "rsi": 17.072066627505833,
+        "lower": 63484.5880704104,
+        "upper": 70693.23043217591,
+        "atr14": 453.88218817747617,
+        "reason": "no simultaneous cross"
+      },
+      "effect": "ADVISORY",
+      "error": null
+    },
+    {
+      "role": "atlas",
+      "status": "SKIPPED",
+      "invoked": false,
+      "startedAt": "2026-11-15T06:00:17.570Z",
+      "finishedAt": "2026-11-15T06:00:17.570Z",
+      "durationMs": 0,
+      "functionUsed": "none",
+      "input": {
+        "symbol": "BTC/USD"
+      },
+      "output": {
+        "stance": "UNAVAILABLE"
+      },
+      "effect": "NONE",
+      "error": "BTC spot has no equity fundamental feed; existing role marks Atlas out of scope"
+    },
+    {
+      "role": "oracle",
+      "status": "SKIPPED",
+      "invoked": false,
+      "startedAt": "2026-11-15T06:00:17.570Z",
+      "finishedAt": "2026-11-15T06:00:17.570Z",
+      "durationMs": 0,
+      "functionUsed": "none",
+      "input": {},
+      "output": {
+        "stance": "UNAVAILABLE"
+      },
+      "effect": "NONE",
+      "error": "no live macro feed in this cycle"
+    },
+    {
+      "role": "pulse",
+      "status": "SKIPPED",
+      "invoked": false,
+      "startedAt": "2026-11-15T06:00:17.570Z",
+      "finishedAt": "2026-11-15T06:00:17.570Z",
+      "durationMs": 0,
+      "functionUsed": "none",
+      "input": {},
+      "output": {
+        "stance": "UNAVAILABLE"
+      },
+      "effect": "NONE",
+      "error": "no live news feed; paid sentiment blocked by billing lock"
+    },
+    {
+      "role": "volta",
+      "status": "SKIPPED",
+      "invoked": false,
+      "startedAt": "2026-11-15T06:00:17.570Z",
+      "finishedAt": "2026-11-15T06:00:17.570Z",
+      "durationMs": 0,
+      "functionUsed": "none",
+      "input": {
+        "symbol": "BTC/USD"
+      },
+      "output": {
+        "stance": "UNAVAILABLE"
+      },
+      "effect": "NONE",
+      "error": "spot cycle has no options or derivatives data"
+    },
+    {
+      "role": "bull",
+      "status": "SKIPPED",
+      "invoked": false,
+      "startedAt": "2026-11-15T06:00:17.570Z",
+      "finishedAt": "2026-11-15T06:00:17.570Z",
+      "durationMs": 0,
+      "functionUsed": "none",
+      "input": {
+        "billingLock": true
+      },
+      "output": {
+        "stance": "UNAVAILABLE"
+      },
+      "effect": "NONE",
+      "error": "XAI_BILLING_LOCK active; historical Bull result not used as live analysis"
+    },
+    {
+      "role": "bear",
+      "status": "SKIPPED",
+      "invoked": false,
+      "startedAt": "2026-11-15T06:00:17.570Z",
+      "finishedAt": "2026-11-15T06:00:17.570Z",
+      "durationMs": 0,
+      "functionUsed": "none",
+      "input": {
+        "billingLock": true
+      },
+      "output": {
+        "stance": "UNAVAILABLE"
+      },
+      "effect": "NONE",
+      "error": "XAI_BILLING_LOCK active; historical Bear result not used as live analysis"
+    },
+    {
+      "role": "sigma",
+      "status": "DETERMINISTIC",
+      "invoked": true,
+      "startedAt": "2026-11-15T06:00:17.570Z",
+      "finishedAt": "2026-11-15T06:00:17.570Z",
+      "durationMs": 0,
+      "functionUsed": "evaluateFmz+hashCheck",
+      "input": {
+        "hash": "e68c0a76f04a73ac2ec856e8bf1c4552e7ded96ef27bfb133ce70d95b0fd4cd6",
+        "bars": 667
+      },
+      "output": {
+        "result": "PASS",
+        "signal": "WAIT"
+      },
+      "effect": "ADVISORY",
+      "error": null
+    },
+    {
+      "role": "sentinel",
+      "status": "DETERMINISTIC",
+      "invoked": true,
+      "startedAt": "2026-11-15T06:00:17.570Z",
+      "finishedAt": "2026-11-15T06:00:17.570Z",
+      "durationMs": 0,
+      "functionUsed": "riskVeto",
+      "input": {
+        "strategyApproved": false,
+        "pilotExpired": true,
+        "billingLocked": true
+      },
+      "output": {
+        "result": "VETO",
+        "reasons": [
+          "strategyApproved=false",
+          "paper pilot expired",
+          "XAI_BILLING_LOCK active"
+        ]
+      },
+      "effect": "VETO",
+      "error": null
+    },
+    {
+      "role": "allocator",
+      "status": "SKIPPED",
+      "invoked": false,
+      "startedAt": "2026-11-15T06:00:17.570Z",
+      "finishedAt": "2026-11-15T06:00:17.570Z",
+      "durationMs": 0,
+      "functionUsed": "none",
+      "input": {
+        "maxUsd": 25
+      },
+      "output": {
+        "skipped": true
+      },
+      "effect": "NONE",
+      "error": "no eligible BUY after Sigma/Sentinel"
+    },
+    {
+      "role": "pilot",
+      "status": "DETERMINISTIC",
+      "invoked": true,
+      "startedAt": "2026-11-15T06:00:17.570Z",
+      "finishedAt": "2026-11-15T06:00:17.570Z",
+      "durationMs": 0,
+      "functionUsed": "planDryRun",
+      "input": {
+        "decision": "NO_TRADE"
+      },
+      "output": {
+        "mode": "BLOCKED",
+        "brokerWrites": 0
+      },
+      "effect": "NONE",
+      "error": null
+    },
+    {
+      "role": "hermes",
+      "status": "DETERMINISTIC",
+      "invoked": true,
+      "startedAt": "2026-11-15T06:00:17.570Z",
+      "finishedAt": "2026-11-15T06:00:17.570Z",
+      "durationMs": 0,
+      "functionUsed": "writeJournal",
+      "input": {
+        "decision": "NO_TRADE"
+      },
+      "output": {
+        "saved": true
+      },
+      "effect": "JOURNAL",
+      "error": null
+    }
+  ],
+  "sigma": "PASS",
+  "sentinel": "VETO",
+  "sentinelReasons": [
+    "strategyApproved=false",
+    "paper pilot expired",
+    "XAI_BILLING_LOCK active"
+  ],
+  "allocator": {
+    "skipped": true
+  },
+  "finalDecision": "NO_TRADE",
+  "pilot": "BLOCKED",
+  "hermes": "SAVED",
+  "aiModelCalls": 0,
+  "brokerWrites": 0,
+  "flags": {
+    "LIVE": false,
+    "PAPER_AUTO": false,
+    "strategyApproved": false,
+    "billingLock": true
+  }
+}
