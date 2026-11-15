@@ -1,7 +1,7 @@
 {
   "strategyVersion": "etf-xs-breakout-20-v1",
   "symbol": "IWM",
-  "asOf": "2024-07-01T20:00:00Z",
+  "asOf": "2024-12-31T20:00:00Z",
   "provenance": "yahoo-chart-v8",
   "roles": [
     {
@@ -22,20 +22,18 @@
       "invoked": true,
       "mode": "DETERMINISTIC",
       "input": {
-        "bars": 210,
-        "asOf": "2024-07-01T20:00:00Z"
+        "bars": 220
       },
       "output": {
-        "signal": "EXIT",
-        "pointInTime": true
+        "signal": "EXIT"
       },
       "contribution": "CHANGED_DECISION",
-      "effect": "computed from bars; caller signal ignored"
+      "effect": "frozen spec including 60-day rank"
     },
     {
       "role": "Atlas",
       "invoked": false,
-      "mode": "NOT_APPLICABLE",
+      "mode": "UNAVAILABLE",
       "input": {},
       "output": {},
       "contribution": "UNAVAILABLE",
@@ -54,9 +52,7 @@
       "role": "Pulse",
       "invoked": false,
       "mode": "UNAVAILABLE",
-      "input": {
-        "billingLocked": true
-      },
+      "input": {},
       "output": {},
       "contribution": "UNAVAILABLE",
       "effect": "news not authorized"
@@ -81,7 +77,7 @@
         "inference": false
       },
       "contribution": "BLOCKED",
-      "effect": "billing lock; no paid call"
+      "effect": "billing lock"
     },
     {
       "role": "Bear",
@@ -94,63 +90,59 @@
         "inference": false
       },
       "contribution": "BLOCKED",
-      "effect": "billing lock; no paid call"
+      "effect": "billing lock"
     },
     {
       "role": "Sigma",
       "invoked": true,
       "mode": "DETERMINISTIC",
       "input": {
-        "version": "etf-xs-breakout-20-v1",
-        "verdict": "NO_WINNER",
-        "dataOk": true
+        "verdict": "NO_WINNER"
       },
       "output": {
         "veto": false
       },
       "contribution": "ADVISORY_ONLY",
-      "effect": "NO_WINNER or unregistered cannot BUY"
+      "effect": "mandatory; no strategy is broker-approved"
     },
     {
       "role": "Sentinel",
       "invoked": true,
       "mode": "DETERMINISTIC",
       "input": {
-        "ownedQty": 0.02,
-        "filledQty": 0.02,
+        "ownedQty": 0.5,
         "openExitQty": 0
       },
       "output": {
         "veto": false
       },
       "contribution": "ADVISORY_ONLY",
-      "effect": "broker-reconciled quantity and cap"
+      "effect": "entry cap separate from exit quantity"
     },
     {
       "role": "Allocator",
       "invoked": true,
       "mode": "DETERMINISTIC",
       "input": {
-        "proposed": 25
+        "proposed": 100
       },
       "output": {
         "sized": 25
       },
-      "contribution": "ADVISORY_ONLY",
-      "effect": "$25 cap"
+      "contribution": "CHANGED_DECISION",
+      "effect": "entry cap only"
     },
     {
       "role": "Pilot",
       "invoked": false,
       "mode": "BLOCKED",
-      "input": {
-        "research": "EXIT"
-      },
+      "input": {},
       "output": {
-        "executionAuthorized": false
+        "executionAuthorized": false,
+        "brokerExecutable": false
       },
       "contribution": "BLOCKED",
-      "effect": "LIVE disabled"
+      "effect": "LIVE disabled; synthetic fixtures cannot execute"
     },
     {
       "role": "Hermes",
@@ -160,21 +152,21 @@
         "persistence": "in-memory"
       },
       "output": {
-        "recorded": true,
-        "persistence": "in-memory"
+        "recorded": true
       },
       "contribution": "ADVISORY_ONLY",
-      "effect": "in-memory only; not claimed persistent"
+      "effect": "in-memory"
     }
   ],
   "quantRejects": false,
   "riskRejects": false,
   "researchRecommendation": "EXIT",
   "executionAuthorized": false,
-  "reason": "Risk-reducing EXIT for verified owned position. Entry strategy approval not required.",
+  "brokerExecutable": false,
+  "reason": "Risk-reducing EXIT against broker snapshot. Entry cap does not apply.",
   "hermes": {
     "recorded": true,
     "persistence": "in-memory",
-    "clientOrderId": "research-IWM-2024-07-01T20:00:00Z"
+    "clientOrderId": "research-IWM-2024-12-31T20:00:00Z"
   }
 }

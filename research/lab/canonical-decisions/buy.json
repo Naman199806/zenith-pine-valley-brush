@@ -1,7 +1,7 @@
 {
   "strategyVersion": "synthetic-eligible-fixture",
   "symbol": "SPY",
-  "asOf": "2024-06-14T20:00:00Z",
+  "asOf": "2024-12-31T20:00:00Z",
   "provenance": "synthetic-fixture",
   "roles": [
     {
@@ -22,20 +22,18 @@
       "invoked": true,
       "mode": "DETERMINISTIC",
       "input": {
-        "bars": 210,
-        "asOf": "2024-06-14T20:00:00Z"
+        "bars": 220
       },
       "output": {
-        "signal": "BUY",
-        "pointInTime": true
+        "signal": "BUY"
       },
       "contribution": "CHANGED_DECISION",
-      "effect": "computed from bars; caller signal ignored"
+      "effect": "frozen spec including 60-day rank"
     },
     {
       "role": "Atlas",
       "invoked": false,
-      "mode": "NOT_APPLICABLE",
+      "mode": "UNAVAILABLE",
       "input": {},
       "output": {},
       "contribution": "UNAVAILABLE",
@@ -54,9 +52,7 @@
       "role": "Pulse",
       "invoked": false,
       "mode": "UNAVAILABLE",
-      "input": {
-        "billingLocked": true
-      },
+      "input": {},
       "output": {},
       "contribution": "UNAVAILABLE",
       "effect": "news not authorized"
@@ -81,7 +77,7 @@
         "inference": false
       },
       "contribution": "BLOCKED",
-      "effect": "billing lock; no paid call"
+      "effect": "billing lock"
     },
     {
       "role": "Bear",
@@ -94,22 +90,20 @@
         "inference": false
       },
       "contribution": "BLOCKED",
-      "effect": "billing lock; no paid call"
+      "effect": "billing lock"
     },
     {
       "role": "Sigma",
       "invoked": true,
       "mode": "DETERMINISTIC",
       "input": {
-        "version": "synthetic-eligible-fixture",
-        "verdict": "SYNTHETIC_FIXTURE",
-        "dataOk": true
+        "verdict": "SYNTHETIC_FIXTURE"
       },
       "output": {
-        "veto": false
+        "veto": true
       },
-      "contribution": "ADVISORY_ONLY",
-      "effect": "registry accepted"
+      "contribution": "VETO",
+      "effect": "mandatory; no strategy is broker-approved"
     },
     {
       "role": "Sentinel",
@@ -117,14 +111,13 @@
       "mode": "DETERMINISTIC",
       "input": {
         "ownedQty": 0,
-        "filledQty": 0,
         "openExitQty": 0
       },
       "output": {
         "veto": false
       },
       "contribution": "ADVISORY_ONLY",
-      "effect": "broker-reconciled quantity and cap"
+      "effect": "entry cap separate from exit quantity"
     },
     {
       "role": "Allocator",
@@ -137,20 +130,19 @@
         "sized": 25
       },
       "contribution": "ADVISORY_ONLY",
-      "effect": "$25 cap"
+      "effect": "entry cap only"
     },
     {
       "role": "Pilot",
       "invoked": false,
       "mode": "BLOCKED",
-      "input": {
-        "research": "BUY"
-      },
+      "input": {},
       "output": {
-        "executionAuthorized": false
+        "executionAuthorized": false,
+        "brokerExecutable": false
       },
       "contribution": "BLOCKED",
-      "effect": "LIVE disabled"
+      "effect": "LIVE disabled; synthetic fixtures cannot execute"
     },
     {
       "role": "Hermes",
@@ -160,21 +152,21 @@
         "persistence": "in-memory"
       },
       "output": {
-        "recorded": true,
-        "persistence": "in-memory"
+        "recorded": true
       },
       "contribution": "ADVISORY_ONLY",
-      "effect": "in-memory only; not claimed persistent"
+      "effect": "in-memory"
     }
   ],
-  "quantRejects": false,
+  "quantRejects": true,
   "riskRejects": false,
-  "researchRecommendation": "BUY",
+  "researchRecommendation": "NO_TRADE",
   "executionAuthorized": false,
-  "reason": "Synthetic fixture only. Not a real approved strategy. Execution unauthorized.",
+  "brokerExecutable": false,
+  "reason": "No broker-approved strategy. Synthetic fixtures cannot be authorized.",
   "hermes": {
     "recorded": true,
     "persistence": "in-memory",
-    "clientOrderId": "research-SPY-2024-06-14T20:00:00Z"
+    "clientOrderId": null
   }
 }

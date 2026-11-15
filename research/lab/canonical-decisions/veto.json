@@ -1,7 +1,7 @@
 {
   "strategyVersion": "etf-xs-breakout-20-v1",
   "symbol": "SPY",
-  "asOf": "2024-06-14T20:00:00Z",
+  "asOf": "2024-12-31T20:00:00Z",
   "provenance": "yahoo-chart-v8",
   "roles": [
     {
@@ -22,20 +22,18 @@
       "invoked": true,
       "mode": "DETERMINISTIC",
       "input": {
-        "bars": 210,
-        "asOf": "2024-06-14T20:00:00Z"
+        "bars": 220
       },
       "output": {
-        "signal": "BUY",
-        "pointInTime": true
+        "signal": "BUY"
       },
       "contribution": "CHANGED_DECISION",
-      "effect": "computed from bars; caller signal ignored"
+      "effect": "frozen spec including 60-day rank"
     },
     {
       "role": "Atlas",
       "invoked": false,
-      "mode": "NOT_APPLICABLE",
+      "mode": "UNAVAILABLE",
       "input": {},
       "output": {},
       "contribution": "UNAVAILABLE",
@@ -54,9 +52,7 @@
       "role": "Pulse",
       "invoked": false,
       "mode": "UNAVAILABLE",
-      "input": {
-        "billingLocked": true
-      },
+      "input": {},
       "output": {},
       "contribution": "UNAVAILABLE",
       "effect": "news not authorized"
@@ -81,7 +77,7 @@
         "inference": false
       },
       "contribution": "BLOCKED",
-      "effect": "billing lock; no paid call"
+      "effect": "billing lock"
     },
     {
       "role": "Bear",
@@ -94,22 +90,20 @@
         "inference": false
       },
       "contribution": "BLOCKED",
-      "effect": "billing lock; no paid call"
+      "effect": "billing lock"
     },
     {
       "role": "Sigma",
       "invoked": true,
       "mode": "DETERMINISTIC",
       "input": {
-        "version": "etf-xs-breakout-20-v1",
-        "verdict": "NO_WINNER",
-        "dataOk": true
+        "verdict": "NO_WINNER"
       },
       "output": {
         "veto": true
       },
       "contribution": "VETO",
-      "effect": "NO_WINNER or unregistered cannot BUY"
+      "effect": "mandatory; no strategy is broker-approved"
     },
     {
       "role": "Sentinel",
@@ -117,14 +111,13 @@
       "mode": "DETERMINISTIC",
       "input": {
         "ownedQty": 0,
-        "filledQty": 0,
         "openExitQty": 0
       },
       "output": {
         "veto": false
       },
       "contribution": "ADVISORY_ONLY",
-      "effect": "broker-reconciled quantity and cap"
+      "effect": "entry cap separate from exit quantity"
     },
     {
       "role": "Allocator",
@@ -137,20 +130,19 @@
         "sized": 25
       },
       "contribution": "ADVISORY_ONLY",
-      "effect": "$25 cap"
+      "effect": "entry cap only"
     },
     {
       "role": "Pilot",
       "invoked": false,
       "mode": "BLOCKED",
-      "input": {
-        "research": "NO_TRADE"
-      },
+      "input": {},
       "output": {
-        "executionAuthorized": false
+        "executionAuthorized": false,
+        "brokerExecutable": false
       },
       "contribution": "BLOCKED",
-      "effect": "LIVE disabled"
+      "effect": "LIVE disabled; synthetic fixtures cannot execute"
     },
     {
       "role": "Hermes",
@@ -160,17 +152,17 @@
         "persistence": "in-memory"
       },
       "output": {
-        "recorded": true,
-        "persistence": "in-memory"
+        "recorded": true
       },
       "contribution": "ADVISORY_ONLY",
-      "effect": "in-memory only; not claimed persistent"
+      "effect": "in-memory"
     }
   ],
   "quantRejects": true,
   "riskRejects": false,
   "researchRecommendation": "NO_TRADE",
   "executionAuthorized": false,
+  "brokerExecutable": false,
   "reason": "Sigma: NO_WINNER cannot BUY.",
   "hermes": {
     "recorded": true,

@@ -1,22 +1,12 @@
 {
   "pipeline": "canonical-decision",
-  "correction": "Vector computes signal from bars. Sigma reads registry. etf-xs-breakout-20-v1 is NO_WINNER and cannot BUY. Synthetic fixture is test-only.",
   "strategyApproved": false,
   "executionAuthorized": false,
-  "measurable": ["Vector", "Sigma", "Sentinel", "Allocator"],
-  "roles": [
-    { "role": "Scout", "invoked": true, "contribution": "ADVISORY_ONLY" },
-    { "role": "Vector", "invoked": true, "contribution": "CHANGED_DECISION", "note": "computes signal; caller signal ignored" },
-    { "role": "Atlas", "invoked": false, "contribution": "UNAVAILABLE" },
-    { "role": "Oracle", "invoked": false, "contribution": "UNAVAILABLE" },
-    { "role": "Pulse", "invoked": false, "contribution": "UNAVAILABLE" },
-    { "role": "Volta", "invoked": false, "contribution": "UNAVAILABLE" },
-    { "role": "Bull", "invoked": false, "contribution": "BLOCKED" },
-    { "role": "Bear", "invoked": false, "contribution": "BLOCKED" },
-    { "role": "Sigma", "invoked": true, "contribution": "VETO", "note": "NO_WINNER cannot BUY" },
-    { "role": "Sentinel", "invoked": true, "contribution": "VETO" },
-    { "role": "Allocator", "invoked": true, "contribution": "CHANGED_DECISION" },
-    { "role": "Pilot", "invoked": false, "contribution": "BLOCKED" },
-    { "role": "Hermes", "invoked": true, "contribution": "ADVISORY_ONLY", "note": "persistent only when journalPath is written; otherwise in-memory" }
-  ]
+  "brokerExecutable": false,
+  "registry": {
+    "etf-xs-breakout-20-v1": "NO_WINNER",
+    "synthetic-eligible-fixture": "TEST ONLY; not broker-executable"
+  },
+  "mandatoryGates": ["Sigma", "Sentinel"],
+  "ablation": "test-only; missing Sigma or Sentinel blocks new entries"
 }
