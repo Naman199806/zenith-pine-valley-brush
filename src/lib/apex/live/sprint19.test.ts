@@ -23,12 +23,13 @@ const auth = (id: string): TicketAuthorization => ({
 });
 
 const freshQuote = () => ({ bid: 90000, ask: 90020, timestamp: new Date().toISOString() });
+const approved = evaluateGates({ dataIntegrityOk: true, riskOk: true, notional: 10 });
 
 test("persistent journal survives fresh process restart", () => {
   const dir = mkdtempSync(join(tmpdir(), "hermes-"));
   const path = join(dir, "journal.json");
   const j1 = new HermesJournal(path);
-  const intent = prepareSupervisedTicket(auth("persist-1"), freshQuote()).intent!;
+  const intent = prepareSupervisedTicket(auth("persist-1"), freshQuote(), false, approved).intent!;
   j1.persist(intent);
   j1.consumeAuthorization("persist-1");
   j1.updateStatus(intent.clientOrderId, "UNKNOWN", 0, null, "timeout");
@@ -47,7 +48,7 @@ test("unknown recovery queries by client-order ID and never resubmits", () => {
   const dir = mkdtempSync(join(tmpdir(), "hermes-"));
   const j = new HermesJournal(join(dir, "j.json"));
   const broker = new MockBroker();
-  const intent = prepareSupervisedTicket(auth("unk-1"), freshQuote()).intent!;
+  const intent = prepareSupervisedTicket(auth("unk-1"), freshQuote(), false, approved).intent!;
   j.persist(intent);
   broker.disconnectNext = true;
   assert.throws(() => broker.submit(intent.clientOrderId, "buy", 0.0001, "BTC/USD"), /disconnect/);
@@ -110,7 +111,7 @@ test("preflight fails closed on missing account_blocked, invalid values, malform
 
 test("quote freshness and gate vetoes cannot be bypassed", () => {
   const stale = { bid: 90000, ask: 90020, timestamp: new Date(Date.now() - 60_000).toISOString() };
-  const r = prepareSupervisedTicket(auth("fresh"), stale);
+  const r = prepareSupervisedTicket(auth("fresh"), stale, false, approved);
   assert.equal(r.submitted, false);
   assert.ok(r.reason.includes("stale"));
 

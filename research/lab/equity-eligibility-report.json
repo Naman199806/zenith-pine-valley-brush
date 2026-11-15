@@ -1,0 +1,21 @@
+{
+  "report": "GET-only US equity eligibility verification template",
+  "status": "NOT_INITIATED",
+  "reason": "No separate LIVE read authorization was initiated by the local operator. Credentials were not accessed.",
+  "candidates": ["SPY", "QQQ", "IWM"],
+  "requiredChecks": [
+    "GET /v2/assets/{symbol} for tradable, fractionable, min_order_size, min_trade_increment",
+    "GET /v2/account for ACTIVE, trading_blocked, account_blocked, buying_power, crypto not required",
+    "GET /v2/positions and GET /v2/orders?status=open",
+    "Fresh quote bid/ask/timestamp within 15s and 20 bps spread"
+  ],
+  "rulesAppliedLocally": {
+    "worstCaseNotional": "qty × limitPrice × (1 + 10 bps)",
+    "hardCap": 25,
+    "fractional": "day time-in-force only",
+    "extendedOvernight": "limit only, day or gtc, extended_hours true",
+    "overnightWindow": "Sunday 20:00 ET through Friday 04:00 ET",
+    "closedWindow": "Friday 20:00 ET through Sunday 20:00 ET"
+  },
+  "canSubmit": false
+}

@@ -31,6 +31,19 @@ export interface IntentRecord {
   status: "PERSISTED" | "SUBMITTED" | "FILLED" | "PARTIAL" | "REJECTED" | "CANCELED" | "UNKNOWN";
   filledQty: number;
   avgPrice: number | null;
+  equityIdentity?: {
+    symbol: string;
+    side: "buy" | "sell";
+    orderType: "market" | "limit";
+    qty: number;
+    limitPrice: number | null;
+    timeInForce: "day" | "gtc" | "ioc";
+    session: string;
+    extendedHours: boolean;
+    singleUseId: string;
+    expiry: string;
+    worstCaseNotional: number;
+  };
 }
 
 export interface Quote {
@@ -80,13 +93,15 @@ export function checkSpread(quote: Quote, maxBps = MAX_SPREAD_BPS): string | nul
 export interface GateResult {
   sigmaVeto: boolean;
   sentinelVeto: boolean;
+  sigmaApproved: boolean;
+  sentinelApproved: boolean;
   reason: string | null;
 }
 
 export function evaluateGates(opts: { dataIntegrityOk: boolean; riskOk: boolean; notional: number }): GateResult {
-  if (!opts.dataIntegrityOk) return { sigmaVeto: true, sentinelVeto: false, reason: "Sigma veto: data integrity failure" };
-  if (!opts.riskOk || opts.notional > HARD_MAX) return { sigmaVeto: false, sentinelVeto: true, reason: "Sentinel veto: risk or exposure limit" };
-  return { sigmaVeto: false, sentinelVeto: false, reason: null };
+  if (!opts.dataIntegrityOk) return { sigmaVeto: true, sentinelVeto: false, sigmaApproved: false, sentinelApproved: false, reason: "Sigma veto: data integrity failure" };
+  if (!opts.riskOk || opts.notional > HARD_MAX) return { sigmaVeto: false, sentinelVeto: true, sigmaApproved: false, sentinelApproved: false, reason: "Sentinel veto: risk or exposure limit" };
+  return { sigmaVeto: false, sentinelVeto: false, sigmaApproved: true, sentinelApproved: true, reason: null };
 }
 
 export interface ExecutorResult {
@@ -107,17 +122,21 @@ export function prepareSupervisedTicket(
   auth: TicketAuthorization,
   quote: Quote,
   emergencyEntryBlock = false,
-  gates: GateResult = { sigmaVeto: false, sentinelVeto: false, reason: null },
+  gates: GateResult | null = null,
 ): ExecutorResult {
   const err = validateTicket(auth);
   if (err) {
     return { enabled: false, submitted: false, clientOrderId: null, reason: err, intent: null };
   }
-  if (gates.sigmaVeto || gates.sentinelVeto) {
-    return { enabled: false, submitted: false, clientOrderId: null, reason: gates.reason || "gate veto", intent: null };
-  }
   if (emergencyEntryBlock && auth.side === "buy") {
     return { enabled: false, submitted: false, clientOrderId: null, reason: "emergency entry block active; risk-reducing exit remains possible under separate authorization", intent: null };
+  }
+  if (auth.side === "buy") {
+    if (!gates || gates.sigmaVeto || gates.sentinelVeto || !gates.sigmaApproved || !gates.sentinelApproved) {
+      return { enabled: false, submitted: false, clientOrderId: null, reason: gates?.reason || "missing Sigma or Sentinel approval; entry blocked", intent: null };
+    }
+  } else if (gates && (gates.sigmaVeto || gates.sentinelVeto)) {
+    return { enabled: false, submitted: false, clientOrderId: null, reason: gates.reason || "gate veto", intent: null };
   }
   const freshErr = checkQuoteFreshness(quote);
   if (freshErr) {

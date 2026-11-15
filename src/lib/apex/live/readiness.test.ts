@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { strictLivePreflight, assertStrictLiveGet } from "./preflight.ts";
-import { prepareSupervisedTicket, reconcileBeforeExit, verifyFlat, checkSpread, type TicketAuthorization } from "./executor.ts";
+import { prepareSupervisedTicket, reconcileBeforeExit, verifyFlat, checkSpread, evaluateGates, type TicketAuthorization } from "./executor.ts";
 import { CONNECTIVITY_TEST, STRATEGY_TRADE, agentRoleStatus } from "./connectivity.ts";
 
 const validAuth = (overrides: Partial<TicketAuthorization> = {}): TicketAuthorization => ({
@@ -19,6 +19,7 @@ const validAuth = (overrides: Partial<TicketAuthorization> = {}): TicketAuthoriz
 });
 
 const goodQuote = { bid: 90000, ask: 90010, timestamp: new Date().toISOString() };
+const approved = evaluateGates({ dataIntegrityOk: true, riskOk: true, notional: 10 });
 
 test("strict preflight rejects non-HTTPS, wrong host, and POST", () => {
   assert.throws(() => assertStrictLiveGet("http://api.alpaca.markets/v2/account"), /HTTPS/);
@@ -70,13 +71,13 @@ test("executor refuses STRATEGY_TRADE, expired auth, and missing order permissio
 });
 
 test("executor persists intent but remains disabled; spread gate works", () => {
-  const ok = prepareSupervisedTicket(validAuth(), goodQuote);
+  const ok = prepareSupervisedTicket(validAuth(), goodQuote, false, approved);
   assert.equal(ok.enabled, false);
   assert.equal(ok.submitted, false);
   assert.ok(ok.clientOrderId);
   assert.equal(ok.intent?.status, "PERSISTED");
 
-  const wide = prepareSupervisedTicket(validAuth(), { bid: 90000, ask: 91000, timestamp: new Date().toISOString() });
+  const wide = prepareSupervisedTicket(validAuth(), { bid: 90000, ask: 91000, timestamp: new Date().toISOString() }, false, approved);
   assert.ok(wide.reason.includes("spread"));
   assert.equal(checkSpread({ bid: 100, ask: 100.1, timestamp: "" }), null);
 });
@@ -102,7 +103,7 @@ test("reconcile owned quantity before sell and verify flat", () => {
 });
 
 test("mocked full round-trip: BUY intent → fill → SELL intent → flat", () => {
-  const buy = prepareSupervisedTicket(validAuth({ singleUseId: "rt-buy" }), goodQuote);
+  const buy = prepareSupervisedTicket(validAuth({ singleUseId: "rt-buy" }), goodQuote, false, approved);
   assert.equal(buy.submitted, false);
   assert.equal(buy.intent?.status, "PERSISTED");
 
@@ -127,8 +128,8 @@ test("13 agent roles preserved; Bull/Bear blocked; no strategy approval", () => 
 });
 
 test("duplicate client ID and unknown status are detectable", () => {
-  const a = prepareSupervisedTicket(validAuth({ singleUseId: "dup" }), goodQuote);
-  const b = prepareSupervisedTicket(validAuth({ singleUseId: "dup" }), goodQuote);
+  const a = prepareSupervisedTicket(validAuth({ singleUseId: "dup" }), goodQuote, false, approved);
+  const b = prepareSupervisedTicket(validAuth({ singleUseId: "dup" }), goodQuote, false, approved);
   assert.notEqual(a.clientOrderId, b.clientOrderId); // timestamp differentiates
   assert.equal(a.intent?.status, "PERSISTED");
 });

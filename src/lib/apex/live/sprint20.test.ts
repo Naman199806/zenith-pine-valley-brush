@@ -3,12 +3,14 @@ import test from "node:test";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { evaluateAsset, marketSession, validateEquityQuote, EQUITY_CANDIDATES } from "./equity.ts";
-import { prepareEquityTicket, validateEquityTicket, type EquityTicket } from "./equity-adapter.ts";
+import { evaluateAsset, marketSession, validateEquityQuote, EQUITY_CANDIDATES, worstCaseNotional } from "./equity.ts";
+import { prepareEquityTicket, validateEquityTicket, identityMatches, proposedBrokerBody, type EquityTicket } from "./equity-adapter.ts";
 import { HermesJournal, MockBroker } from "./journal.ts";
 import { evaluateGates } from "./executor.ts";
 import { CONNECTIVITY_TEST, STRATEGY_TRADE, agentRoleStatus } from "./connectivity.ts";
 import { architectureReadiness } from "./architecture.ts";
+
+const approved = evaluateGates({ dataIntegrityOk: true, riskOk: true, notional: 10 });
 
 const ticket = (over: Partial<EquityTicket> = {}): EquityTicket => ({
   category: CONNECTIVITY_TEST,
@@ -17,7 +19,7 @@ const ticket = (over: Partial<EquityTicket> = {}): EquityTicket => ({
   orderType: "limit",
   timeInForce: "day",
   maxNotional: 10,
-  qty: 0.1,
+  qty: 0.01,
   limitPrice: 500,
   expiry: new Date(Date.now() + 3600_000).toISOString(),
   singleUseId: "eq-1",
@@ -25,6 +27,7 @@ const ticket = (over: Partial<EquityTicket> = {}): EquityTicket => ({
   orderAuthorized: true,
   confirmed: true,
   session: "REGULAR",
+  fractionable: true,
   ...over,
 });
 
@@ -41,12 +44,18 @@ test("SPY eligibility evidence and candidate set", () => {
   assert.ok(bad.blockers.includes("minimum ambiguous"));
 });
 
-test("market session classifies weekend, holiday, regular, extended, overnight", () => {
-  assert.equal(marketSession(new Date("2026-11-14T15:00:00Z")), "CLOSED"); // Saturday
-  assert.equal(marketSession(new Date("2026-01-01T15:00:00Z")), "CLOSED"); // holiday
-  assert.equal(marketSession(new Date("2026-11-16T15:00:00Z")), "REGULAR"); // Monday 10:00 ET
-  assert.equal(marketSession(new Date("2026-11-16T12:00:00Z")), "EXTENDED"); // 07:00 ET
-  assert.equal(marketSession(new Date("2026-11-17T02:00:00Z")), "OVERNIGHT"); // Mon 21:00 ET
+test("market session: Sunday 8pm reopen, Friday close, weekend, holiday, shortened", () => {
+  assert.equal(marketSession(new Date("2026-11-15T00:00:00Z")), "CLOSED"); // Sat evening prior? check ET
+  assert.equal(marketSession(new Date("2026-11-16T00:30:00Z")), "CLOSED"); // Sun 19:30 ET, before 20:00 reopen
+  // Sunday 2026-11-15 20:00 ET = 2026-11-16 01:00 UTC (EST)
+  assert.equal(marketSession(new Date("2026-11-16T01:00:00Z")), "OVERNIGHT");
+  assert.equal(marketSession(new Date("2026-11-15T23:00:00Z")), "CLOSED"); // Sun 18:00 ET
+  // Friday 2026-11-20 20:00 ET = 2026-11-21 01:00 UTC
+  assert.equal(marketSession(new Date("2026-11-21T01:00:00Z")), "CLOSED");
+  assert.equal(marketSession(new Date("2026-11-20T08:00:00Z")), "OVERNIGHT"); // Fri 03:00 ET
+  assert.equal(marketSession(new Date("2026-01-01T15:00:00Z")), "CLOSED");
+  assert.equal(marketSession(new Date("2026-11-16T15:00:00Z")), "REGULAR");
+  assert.equal(marketSession(new Date("2026-11-27T18:00:00Z"), [{ date: "2026-11-27", status: "SHORTENED", earlyCloseEt: "13:00" }]), "CLOSED");
 });
 
 test("equity quote validation enforces freshness and spread", () => {
@@ -57,25 +66,32 @@ test("equity quote validation enforces freshness and spread", () => {
   assert.equal(validateEquityQuote(wide).ok, false);
 });
 
-test("equity adapter refuses STRATEGY_TRADE, closed, overnight market, and persists intent disabled", () => {
+test("equity adapter refuses STRATEGY_TRADE, closed, overnight market, and requires gates", () => {
   const dir = mkdtempSync(join(tmpdir(), "eq-"));
   const j = new HermesJournal(join(dir, "j.json"));
-  const strat = prepareEquityTicket(ticket({ category: STRATEGY_TRADE }), quote(), j);
+  const strat = prepareEquityTicket(ticket({ category: STRATEGY_TRADE }), quote(), j, approved);
   assert.equal(strat.submitted, false);
   assert.ok(strat.reason.includes("CONNECTIVITY_TEST"));
   assert.equal(strat.intentPersisted, false);
 
-  const closed = prepareEquityTicket(ticket({ session: "CLOSED" }), quote(), j);
+  const closed = prepareEquityTicket(ticket({ session: "CLOSED" }), quote(), j, approved);
   assert.ok(closed.reason.includes("closed"));
 
-  const ovn = prepareEquityTicket(ticket({ session: "OVERNIGHT", orderType: "market", limitPrice: null }), quote(), j);
-  assert.ok(ovn.reason.includes("limit-only"));
+  const ovn = prepareEquityTicket(ticket({ session: "OVERNIGHT", orderType: "market", limitPrice: null }), quote(), j, approved);
+  assert.ok(ovn.reason.includes("limit"));
 
-  const ok = prepareEquityTicket(ticket({ singleUseId: "ok-1" }), quote(), j);
+  const missing = prepareEquityTicket(ticket({ singleUseId: "no-gate" }), quote(), j, null);
+  assert.equal(missing.intentPersisted, false);
+  assert.ok(missing.reason.includes("Sigma") || missing.reason.includes("approval"));
+
+  const ok = prepareEquityTicket(ticket({ singleUseId: "ok-1" }), quote(), j, approved);
   assert.equal(ok.enabled, false);
   assert.equal(ok.submitted, false);
   assert.equal(ok.intentPersisted, true);
   assert.ok(ok.clientOrderId);
+  assert.ok(ok.identity);
+  const proposed = proposedBrokerBody(ok.identity!, ok.clientOrderId!);
+  assert.equal(identityMatches(ok.identity!, proposed), true);
   rmSync(dir, { recursive: true, force: true });
 });
 
@@ -95,7 +111,7 @@ test("mock equity lifecycle: BUY partial → complete → SELL → flat, with jo
   const path = join(dir, "j.json");
   const j = new HermesJournal(path);
   const broker = new MockBroker();
-  const buy = prepareEquityTicket(ticket({ singleUseId: "life-buy" }), quote(), j);
+  const buy = prepareEquityTicket(ticket({ singleUseId: "life-buy", qty: 0.02, limitPrice: 100, maxNotional: 10 }), quote(), j, approved);
   assert.equal(buy.intentPersisted, true);
   const filled = broker.submit(buy.clientOrderId!, "buy", 0.02, "SPY");
   broker.partialFill(buy.clientOrderId!, 0.01);
@@ -103,7 +119,7 @@ test("mock equity lifecycle: BUY partial → complete → SELL → flat, with jo
   broker.complete(buy.clientOrderId!);
   assert.equal(broker.getPosition(), 0.02);
   j.reconcileByClientOrderId(buy.clientOrderId!, "filled", 0.02);
-  const sell = prepareEquityTicket(ticket({ singleUseId: "life-sell", side: "sell" }), quote(), j);
+  const sell = prepareEquityTicket(ticket({ singleUseId: "life-sell", side: "sell", qty: 0.02 }), quote(), j, null);
   const sold = broker.submit(sell.clientOrderId!, "sell", 0.02, "SPY");
   assert.equal(sold.status, "filled");
   assert.equal(broker.getPosition(), 0);

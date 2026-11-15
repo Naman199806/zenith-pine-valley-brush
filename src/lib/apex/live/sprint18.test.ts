@@ -4,7 +4,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { strictLivePreflight } from "./preflight.ts";
-import { prepareSupervisedTicket, verifyFlat, type TicketAuthorization } from "./executor.ts";
+import { prepareSupervisedTicket, verifyFlat, evaluateGates, type TicketAuthorization } from "./executor.ts";
 import { HermesJournal, MockBroker } from "./journal.ts";
 import { architectureReadiness, sigmaVeto, sentinelVeto } from "./architecture.ts";
 import { CONNECTIVITY_TEST } from "./connectivity.ts";
@@ -23,6 +23,7 @@ const auth = (id: string, side: "buy" | "sell" = "buy"): TicketAuthorization => 
 });
 
 const quote = { bid: 90000, ask: 90020, timestamp: new Date().toISOString() };
+const approved = evaluateGates({ dataIntegrityOk: true, riskOk: true, notional: 10 });
 
 test("preflight fails closed on non-finite buying power and missing crypto_status", async () => {
   const badPower = {
@@ -48,7 +49,7 @@ test("preflight fails closed on non-finite buying power and missing crypto_statu
 test("journal consumes single-use auth, is idempotent, and supports recovery", () => {
   const dir = mkdtempSync(join(tmpdir(), "hermes-"));
   const j = new HermesJournal(join(dir, "j.json"));
-  const intent = prepareSupervisedTicket(auth("j1"), quote).intent!;
+  const intent = prepareSupervisedTicket(auth("j1"), quote, false, approved).intent!;
   const e1 = j.persist(intent);
   const e2 = j.persist(intent);
   assert.equal(e1.clientOrderId, e2.clientOrderId);
@@ -101,7 +102,7 @@ test("architecture matrix has six stages; Sigma and Sentinel veto independently"
 });
 
 test("LIVE transport remains hard-disabled; no unexpected writes", () => {
-  const r = prepareSupervisedTicket(auth("disabled"), quote);
+  const r = prepareSupervisedTicket(auth("disabled"), quote, false, approved);
   assert.equal(r.enabled, false);
   assert.equal(r.submitted, false);
   assert.ok(r.reason.includes("disabled"));
