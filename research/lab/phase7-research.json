@@ -1,0 +1,52 @@
+{
+  "priorTests": 7,
+  "multipleTesting": "Bonferroni note: with 7 prior plus 2 new tests, a nominal 5% false-discovery bar is about 0.56%. Neither result is claimed significant.",
+  "holdoutsUsed": false,
+  "candidates": [
+    {
+      "id": "gld-real-rate-v1",
+      "spec": {
+        "rationale": "Gold is held only when long-duration Treasuries are rising over 63 sessions, a proxy for falling real yields. Otherwise cash.",
+        "failure": "Reject unless validation beats GLD buy-and-hold after costs with at least 12 trades.",
+        "costsBps": 5
+      },
+      "development": {
+        "trades": 279,
+        "net": 1.6850496520593041,
+        "maxDd": 0.29224830915965355,
+        "bench": 3.307570832987005,
+        "decision": "REJECTED"
+      },
+      "validation": {
+        "trades": 23,
+        "net": 0.559452817529587,
+        "maxDd": 0.1012774083850028,
+        "bench": 0.9839555498164416,
+        "decision": "REJECTED"
+      }
+    },
+    {
+      "id": "eth-btc-relative-v1",
+      "spec": {
+        "rationale": "ETH is held only when its 20-session return exceeds BTC by 5 percentage points. Otherwise cash. This is cross-asset crypto leadership, not BTC trend following.",
+        "failure": "Reject unless validation beats ETH buy-and-hold after costs with at least 12 trades.",
+        "costsBps": 25
+      },
+      "development": {
+        "trades": 20,
+        "net": 0.21701989647478803,
+        "maxDd": 0.14171907589141766,
+        "bench": 0.05669511552389528,
+        "decision": "ELIGIBLE_FOR_FURTHER_VALIDATION"
+      },
+      "validation": {
+        "trades": 28,
+        "net": -0.0427403095747072,
+        "maxDd": 0.314490185399269,
+        "bench": 0.029326659238687602,
+        "decision": "REJECTED"
+      }
+    }
+  ],
+  "selected": "NO_WINNER"
+}

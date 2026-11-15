@@ -7,6 +7,7 @@ import { completedBars } from "../src/lib/apex/research/fmz-bb-rsi.ts";
 import { oracleFeed, pulseFeed, voltaFeed } from "../src/lib/apex/research/public-feeds.ts";
 import { decide, candleCloseMs } from "../src/lib/apex/runtime/decision.ts";
 import { assertProductionIsolation } from "../src/lib/apex/runtime/execution-safety.ts";
+import { readSnapshot, reconcile } from "../src/lib/apex/broker/reconcile-paper.ts";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const dir = join(root, "research/lab/windows");
@@ -86,6 +87,16 @@ async function tick() {
   try {
   await refreshEvidence();
   const decision = decide({ quotes, oracle: feeds.oracle, pulse: feeds.pulse, volta: feeds.volta, authorizationExpiresAt: null, ownedQty: Number(account.btcQty || 0), cash: Number(account.cash || 0), price: quotes.find((q) => q.symbol === "BTC/USD")?.price ?? 0 });
+  let stateReconciliation = { ok: false, entriesBlocked: true, notes: ["not checked"] };
+  try {
+    const keys = env();
+    const headers = { "APCA-API-KEY-ID": keys.APCA_API_KEY_ID || "", "APCA-API-SECRET-KEY": keys.APCA_API_SECRET_KEY || "" };
+    const transport = { async get(url) { const res = await fetch(url, { headers, signal: AbortSignal.timeout(10000) }); return { status: res.status, body: await res.json() }; } };
+    const snap = await readSnapshot(transport);
+    stateReconciliation = reconcile({ "BTC/USD": Number(account.btcQty || 0) }, snap);
+  } catch (err) {
+    stateReconciliation = { ok: false, entriesBlocked: true, notes: [err instanceof Error ? err.message : "reconcile failed"] };
+  }
   const state = {
     pid: process.pid,
     heartbeat: new Date().toISOString(),
@@ -102,6 +113,7 @@ async function tick() {
     automatedEntries: false,
     brokerWrites: 0,
     brokerError: account.error,
+    reconciliation: stateReconciliation,
     reason: config.reason,
   };
   writeFileSync(heartbeatPath, JSON.stringify(state, null, 2));
