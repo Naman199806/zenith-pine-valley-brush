@@ -1,0 +1,79 @@
+{
+  "plan": [
+    {
+      "rank": 1,
+      "id": "spy-dual-momentum-v1",
+      "source": "absolute dual momentum",
+      "instruments": [
+        "SPY"
+      ],
+      "regime": "equity trend",
+      "data": "Yahoo SPY daily 1993-2025, sealed after 2025-11-11",
+      "frequency": "monthly-equivalent, checked daily",
+      "capacity": "high",
+      "costsBps": 5,
+      "pass": "validation beats SPY buy-and-hold after costs with at least 8 trades and positive net"
+    },
+    {
+      "rank": 2,
+      "id": "gld-equity-stress-v1",
+      "source": "equity stress to gold hedge",
+      "instruments": [
+        "SPY",
+        "GLD"
+      ],
+      "regime": "risk-off",
+      "data": "Yahoo SPY/GLD daily",
+      "frequency": "low",
+      "capacity": "high",
+      "costsBps": 5,
+      "pass": "not tested this phase"
+    },
+    {
+      "rank": 3,
+      "id": "btc-weekday-seasonality-v1",
+      "source": "calendar seasonality",
+      "instruments": [
+        "BTC/USD"
+      ],
+      "regime": "crypto microstructure",
+      "data": "Coinbase daily",
+      "frequency": "daily",
+      "capacity": "medium",
+      "costsBps": 25,
+      "pass": "not tested; lower plausibility and higher data-mining risk"
+    }
+  ],
+  "frozen": {
+    "id": "spy-dual-momentum-v1",
+    "frozen": true,
+    "rules": "Long SPY only when the completed close is above both the 63-session and 252-session prior close. Otherwise cash. Fill next open. No shorting.",
+    "costsBps": 5,
+    "development": [
+      "1993-01-29",
+      "2023-12-31"
+    ],
+    "validation": [
+      "2024-01-01",
+      "2025-11-10"
+    ],
+    "holdout": "2025-11-11 onward sealed"
+  },
+  "multipleTesting": "Nine prior rejected tests plus this one. No significance is claimed from a single validation window.",
+  "holdoutUsed": false,
+  "development": {
+    "trades": 351,
+    "net": 2.113898247671193,
+    "maxDd": 0.2339772232039055,
+    "bench": 9.817866231774538,
+    "decision": "REJECTED"
+  },
+  "validation": {
+    "trades": 5,
+    "net": 0.14142808648328087,
+    "maxDd": 0.04798148960352949,
+    "bench": 0.4417433856788522,
+    "decision": "REJECTED"
+  },
+  "selected": "NO_WINNER"
+}

@@ -93,7 +93,8 @@ async function tick() {
     const headers = { "APCA-API-KEY-ID": keys.APCA_API_KEY_ID || "", "APCA-API-SECRET-KEY": keys.APCA_API_SECRET_KEY || "" };
     const transport = { async get(url) { const res = await fetch(url, { headers, signal: AbortSignal.timeout(10000) }); return { status: res.status, body: await res.json() }; } };
     const snap = await readSnapshot(transport);
-    stateReconciliation = reconcile({ "BTC/USD": Number(account.btcQty || 0) }, snap);
+    const known = JSON.parse(readFileSync(join(root, "research/lab/known-client-order-ids.json"), "utf8"));
+    stateReconciliation = reconcile({ "BTC/USD": Number(account.btcQty || 0) }, snap, Array.isArray(known) ? known : []);
   } catch (err) {
     stateReconciliation = { ok: false, entriesBlocked: true, notes: [err instanceof Error ? err.message : "reconcile failed"] };
   }
