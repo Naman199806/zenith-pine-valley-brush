@@ -65,14 +65,16 @@ function requireAccount(body: unknown): AccountSchema {
   const a = body as Record<string, unknown>;
   if (typeof a.status !== "string") throw new Error("account status missing");
   if (typeof a.trading_blocked !== "boolean") throw new Error("trading_blocked missing");
+  if (typeof a.account_blocked !== "boolean") throw new Error("account_blocked missing");
   if (a.crypto_status === undefined || a.crypto_status === null) throw new Error("crypto_status missing; fail closed");
   if (typeof a.crypto_status !== "string") throw new Error("crypto_status malformed");
   const buyingPower = finiteNumber(a.buying_power, "buying_power");
   const cash = finiteNumber(a.cash, "cash");
+  if (buyingPower < 0 || cash < 0) throw new Error("negative financial value");
   return {
     status: a.status,
     trading_blocked: a.trading_blocked,
-    account_blocked: Boolean(a.account_blocked),
+    account_blocked: a.account_blocked,
     buying_power: String(buyingPower),
     cash: String(cash),
     crypto_status: a.crypto_status,
@@ -83,10 +85,15 @@ function requireAsset(body: unknown): AssetSchema {
   if (!body || typeof body !== "object") throw new Error("asset response malformed");
   const a = body as Record<string, unknown>;
   if (typeof a.tradable !== "boolean") throw new Error("tradable missing");
+  if (a.min_order_size === undefined || a.min_order_size === null || a.min_order_size === "") {
+    throw new Error("asset minimum ambiguous; fail closed");
+  }
+  const min = finiteNumber(a.min_order_size, "min_order_size");
+  if (min < 0) throw new Error("negative min_order_size");
   return {
     tradable: a.tradable,
     fractionable: Boolean(a.fractionable),
-    min_order_size: typeof a.min_order_size === "string" ? a.min_order_size : undefined,
+    min_order_size: String(min),
     min_trade_increment: typeof a.min_trade_increment === "string" ? a.min_trade_increment : undefined,
   };
 }
@@ -169,6 +176,11 @@ export async function strictLivePreflight(
     assertStrictLiveGet(ordUrl);
     const ordRes = await transport.get(ordUrl);
     if (ordRes.status !== 200 || !Array.isArray(ordRes.body)) throw new Error("open orders malformed");
+    for (const o of ordRes.body) {
+      if (!o || typeof o !== "object" || typeof (o as { id?: unknown }).id !== "string") {
+        throw new Error("order record malformed; fail closed");
+      }
+    }
     result.openOrders = ordRes.body.length;
 
     const assetUrl = `${LIVE_ORIGIN}/v2/assets/${encodeURIComponent(opts.symbol)}`;

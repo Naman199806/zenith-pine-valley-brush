@@ -1,5 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { strictLivePreflight } from "./preflight.ts";
 import { prepareSupervisedTicket, verifyFlat, type TicketAuthorization } from "./executor.ts";
 import { HermesJournal, MockBroker } from "./journal.ts";
@@ -34,7 +37,7 @@ test("preflight fails closed on non-finite buying power and missing crypto_statu
 
   const noCrypto = {
     async get(url: string) {
-      if (url.includes("/account")) return { status: 200, body: { status: "ACTIVE", trading_blocked: false, buying_power: "1000", cash: "1000" } };
+      if (url.includes("/account")) return { status: 200, body: { status: "ACTIVE", trading_blocked: false, account_blocked: false, buying_power: "1000", cash: "1000" } };
       return { status: 200, body: [] };
     },
   };
@@ -43,7 +46,8 @@ test("preflight fails closed on non-finite buying power and missing crypto_statu
 });
 
 test("journal consumes single-use auth, is idempotent, and supports recovery", () => {
-  const j = new HermesJournal();
+  const dir = mkdtempSync(join(tmpdir(), "hermes-"));
+  const j = new HermesJournal(join(dir, "j.json"));
   const intent = prepareSupervisedTicket(auth("j1"), quote).intent!;
   const e1 = j.persist(intent);
   const e2 = j.persist(intent);
@@ -51,7 +55,7 @@ test("journal consumes single-use auth, is idempotent, and supports recovery", (
   j.consumeAuthorization("j1");
   assert.throws(() => j.consumeAuthorization("j1"), /already consumed/);
   j.updateStatus(intent.clientOrderId, "UNKNOWN", 0, null, "timeout");
-  const rec = j.reconcileUnknown(intent.clientOrderId, "filled", 0.0001);
+  const rec = j.reconcileByClientOrderId(intent.clientOrderId, "filled", 0.0001);
   assert.equal(rec.status, "FILLED");
   assert.equal(j.replay().length, 1);
 });
@@ -65,7 +69,7 @@ test("mock broker full lifecycle: buy, partial, sell, flat", () => {
   broker.partialFill(buyId, 0.0001);
   assert.equal(broker.getPosition(), 0.0001);
   broker.complete(buyId);
-  const sell = broker.submit("sell-1", "sell", 0.0001, "BTC/USD");
+  const sell = broker.submit("sell-1", "sell", 0.0002, "BTC/USD");
   assert.equal(sell.status, "filled");
   assert.equal(broker.getPosition(), 0);
   assert.equal(broker.openOrders(), 0);

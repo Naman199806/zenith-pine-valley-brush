@@ -46,6 +46,7 @@ export interface LiveOrderTransport {
 
 const HARD_MAX = 25;
 const MAX_SPREAD_BPS = 50;
+const MAX_QUOTE_AGE_MS = 15_000;
 
 export function validateTicket(auth: TicketAuthorization, now = new Date()): string | null {
   if (auth.category !== CONNECTIVITY_TEST) return "only CONNECTIVITY_TEST permitted";
@@ -59,12 +60,33 @@ export function validateTicket(auth: TicketAuthorization, now = new Date()): str
   return null;
 }
 
+export function checkQuoteFreshness(quote: Quote, now = Date.now()): string | null {
+  const ts = Date.parse(quote.timestamp);
+  if (!Number.isFinite(ts)) return "quote timestamp missing or invalid";
+  const age = now - ts;
+  if (age < 0) return "quote timestamp in the future";
+  if (age > MAX_QUOTE_AGE_MS) return `quote stale (${age} ms > ${MAX_QUOTE_AGE_MS})`;
+  return null;
+}
+
 export function checkSpread(quote: Quote, maxBps = MAX_SPREAD_BPS): string | null {
   if (!(quote.bid > 0 && quote.ask > quote.bid)) return "invalid quote";
   const mid = (quote.bid + quote.ask) / 2;
   const spreadBps = ((quote.ask - quote.bid) / mid) * 10000;
   if (spreadBps > maxBps) return `spread ${spreadBps.toFixed(1)} bps exceeds ${maxBps}`;
   return null;
+}
+
+export interface GateResult {
+  sigmaVeto: boolean;
+  sentinelVeto: boolean;
+  reason: string | null;
+}
+
+export function evaluateGates(opts: { dataIntegrityOk: boolean; riskOk: boolean; notional: number }): GateResult {
+  if (!opts.dataIntegrityOk) return { sigmaVeto: true, sentinelVeto: false, reason: "Sigma veto: data integrity failure" };
+  if (!opts.riskOk || opts.notional > HARD_MAX) return { sigmaVeto: false, sentinelVeto: true, reason: "Sentinel veto: risk or exposure limit" };
+  return { sigmaVeto: false, sentinelVeto: false, reason: null };
 }
 
 export interface ExecutorResult {
@@ -85,13 +107,21 @@ export function prepareSupervisedTicket(
   auth: TicketAuthorization,
   quote: Quote,
   emergencyEntryBlock = false,
+  gates: GateResult = { sigmaVeto: false, sentinelVeto: false, reason: null },
 ): ExecutorResult {
   const err = validateTicket(auth);
   if (err) {
     return { enabled: false, submitted: false, clientOrderId: null, reason: err, intent: null };
   }
+  if (gates.sigmaVeto || gates.sentinelVeto) {
+    return { enabled: false, submitted: false, clientOrderId: null, reason: gates.reason || "gate veto", intent: null };
+  }
   if (emergencyEntryBlock && auth.side === "buy") {
     return { enabled: false, submitted: false, clientOrderId: null, reason: "emergency entry block active; risk-reducing exit remains possible under separate authorization", intent: null };
+  }
+  const freshErr = checkQuoteFreshness(quote);
+  if (freshErr) {
+    return { enabled: false, submitted: false, clientOrderId: null, reason: freshErr, intent: null };
   }
   const spreadErr = checkSpread(quote);
   if (spreadErr) {
@@ -106,7 +136,6 @@ export function prepareSupervisedTicket(
     filledQty: 0,
     avgPrice: null,
   };
-  // Hard disable: never submit.
   return {
     enabled: false,
     submitted: false,

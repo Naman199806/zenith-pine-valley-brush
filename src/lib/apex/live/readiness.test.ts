@@ -76,7 +76,7 @@ test("executor persists intent but remains disabled; spread gate works", () => {
   assert.ok(ok.clientOrderId);
   assert.equal(ok.intent?.status, "PERSISTED");
 
-  const wide = prepareSupervisedTicket(validAuth(), { bid: 90000, ask: 91000, timestamp: "" });
+  const wide = prepareSupervisedTicket(validAuth(), { bid: 90000, ask: 91000, timestamp: new Date().toISOString() });
   assert.ok(wide.reason.includes("spread"));
   assert.equal(checkSpread({ bid: 100, ask: 100.1, timestamp: "" }), null);
 });
