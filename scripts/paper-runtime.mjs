@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { acquireLock, releaseLock, touchLock } from "../src/lib/apex/runtime/lock.ts";
+import { classifyBrokerResponse, staleCandleError } from "../src/lib/apex/runtime/broker.ts";
 import { evaluateRuntime } from "../src/lib/apex/runtime/evaluate.ts";
 import { completedBars } from "../src/lib/apex/research/fmz-bb-rsi.ts";
 import { oracleFeed, pulseFeed, voltaFeed } from "../src/lib/apex/research/public-feeds.ts";
@@ -34,9 +35,7 @@ function env() {
 
 async function readJson(url, headers) {
   const res = await fetch(url, { headers, signal: AbortSignal.timeout(10000) });
-  const text = await res.text();
-  try { return { ok: res.ok, status: res.status, body: JSON.parse(text) }; }
-  catch { return { ok: false, status: res.status, error: `non-json status=${res.status}` }; }
+  return classifyBrokerResponse(res.status, await res.text());
 }
 
 async function refreshEvidence(force = false) {
@@ -60,16 +59,21 @@ async function refreshEvidence(force = false) {
   if (barRes.ok) {
     bars = completedBars((barRes.body?.bars?.["BTC/USD"] || []).map((b) => ({ t: b.t, o: b.o, h: b.h, l: b.l, c: b.c })).reverse());
   }
+  const lastBar = bars.at(-1)?.t ?? null;
   account = {
     cash: accountRes.body?.cash ?? null,
     btcQty: Array.isArray(positionRes.body) ? (positionRes.body.find((p) => /BTC/.test(p.symbol))?.qty || "0") : "unknown",
-    error: [barRes, accountRes, positionRes].find((r) => r.error || !r.ok)?.error || null,
+    error: [barRes, accountRes, positionRes].find((r) => r.error)?.error || staleCandleError(lastBar),
   };
   const [oracle, pulse, volta] = await Promise.all([oracleFeed(), pulseFeed(), voltaFeed()]);
   feeds = { oracle: `${oracle.state}:${oracle.observations.length}`, pulse: `${pulse.state}:${pulse.observations.length}`, volta: `${volta.state}:${volta.observations.length}` };
 }
 
+let ticking = false;
 async function tick() {
+  if (ticking) return;
+  ticking = true;
+  try {
   await refreshEvidence();
   const evaluated = evaluateRuntime({ bars, cash: Number(account.cash || 0), ownedQty: Number(account.btcQty || 0), authorizationExpiresAt: null });
   const state = {
@@ -94,7 +98,10 @@ async function tick() {
   };
   writeFileSync(heartbeatPath, JSON.stringify(state, null, 2));
   touchLock(lockPath);
-  console.log(JSON.stringify({ heartbeat: state.heartbeat, signal: state.signal, brokerWrites: 0 }));
+  console.log(JSON.stringify({ heartbeat: state.heartbeat, signal: state.signal, brokerWrites: 0, brokerError: state.brokerError }));
+  } finally {
+    ticking = false;
+  }
 }
 
 const timer = setInterval(() => { tick().catch((err) => console.error(err.message)); }, 30_000);

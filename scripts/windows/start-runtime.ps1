@@ -6,9 +6,21 @@ $LogDir = Join-Path $Root "research\lab\windows"
 New-Item -ItemType Directory -Force -Path $LogDir | Out-Null
 $Lock = Join-Path $LogDir "runtime.lock"
 if (Test-Path $Lock) {
-  $old = Get-Content $Lock -ErrorAction SilentlyContinue
-  if ($old -and (Get-Process -Id $old -ErrorAction SilentlyContinue)) { Write-Output "already running pid $old"; exit 0 }
+  try {
+    $j = Get-Content $Lock -Raw | ConvertFrom-Json
+    if ($j.pid -and (Get-Process -Id $j.pid -ErrorAction SilentlyContinue)) {
+      Write-Output "already running pid $($j.pid)"
+      exit 0
+    }
+  } catch {
+    Write-Output "stale or unreadable lock; Node will recover it"
+  }
 }
-$proc = Start-Process -FilePath "node" -ArgumentList "--experimental-strip-types","scripts/paper-runtime.mjs" -WorkingDirectory $Root -WindowStyle Hidden -RedirectStandardOutput (Join-Path $LogDir "runtime.out.log") -RedirectStandardError (Join-Path $LogDir "runtime.err.log") -PassThru
-Set-Content -Path $Lock -Value $proc.Id
-Write-Output "started disabled runtime pid $($proc.Id)"
+$Node = (Get-Command node -ErrorAction Stop).Source
+if ($args -contains "-Background") {
+  $proc = Start-Process -FilePath $Node -ArgumentList "--experimental-strip-types","scripts/paper-runtime.mjs" -WorkingDirectory $Root -WindowStyle Hidden -RedirectStandardOutput (Join-Path $LogDir "runtime.out.log") -RedirectStandardError (Join-Path $LogDir "runtime.err.log") -PassThru
+  Write-Output "started disabled runtime pid $($proc.Id); Node owns the lock"
+  exit 0
+}
+& $Node --experimental-strip-types scripts/paper-runtime.mjs
+exit $LASTEXITCODE

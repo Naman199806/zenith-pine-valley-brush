@@ -18,11 +18,20 @@ export function acquireLock(path: string, pid = process.pid, now = new Date(), a
     return { acquired: false, recovered: false, existingPid: current.pid };
   }
   const recovered = Boolean(current && current.pid !== pid);
+  if (current && current.pid !== pid) {
+    try { unlinkSync(path); } catch { /* another process recovered first */ }
+  }
   const next: LockState = { pid, heartbeat: now.toISOString() };
-  const tmp = `${path}.${pid}.tmp`;
-  writeFileSync(tmp, JSON.stringify(next));
-  renameSync(tmp, path);
-  return { acquired: true, recovered, existingPid: current?.pid ?? null };
+  try {
+    writeFileSync(path, JSON.stringify(next), { flag: "wx" });
+    return { acquired: true, recovered, existingPid: current?.pid ?? null };
+  } catch (err) {
+    const raced = readLock(path);
+    if ((err as NodeJS.ErrnoException).code === "EEXIST" && raced && raced.pid !== pid) {
+      return { acquired: false, recovered: false, existingPid: raced.pid };
+    }
+    throw err;
+  }
 }
 
 export function touchLock(path: string, pid = process.pid, now = new Date()): void {
