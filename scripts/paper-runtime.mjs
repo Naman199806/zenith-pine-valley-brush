@@ -1,42 +1,108 @@
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { planPaperOrder } from "../src/lib/apex/broker/paper-pipeline.ts";
+import { acquireLock, releaseLock, touchLock } from "../src/lib/apex/runtime/lock.ts";
+import { evaluateRuntime } from "../src/lib/apex/runtime/evaluate.ts";
+import { completedBars } from "../src/lib/apex/research/fmz-bb-rsi.ts";
+import { oracleFeed, pulseFeed, voltaFeed } from "../src/lib/apex/research/public-feeds.ts";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const dir = join(root, "research/lab/windows");
 mkdirSync(dir, { recursive: true });
+const lockPath = join(dir, "runtime.lock");
+const heartbeatPath = join(root, "research/lab/paper-runtime-heartbeat.json");
 const config = JSON.parse(readFileSync(join(root, "research/lab/paper-runtime-disabled.json"), "utf8"));
-const lock = join(dir, "runtime.lock");
-if (existsSync(lock) && process.env.APEX_RUNTIME_FORCE !== "1") {
-  const old = readFileSync(lock, "utf8").trim();
-  if (old && old !== String(process.pid)) {
-    console.log(JSON.stringify({ status: "LOCKED", pid: old }));
-  }
+const lock = acquireLock(lockPath);
+if (!lock.acquired) {
+  console.log(JSON.stringify({ status: "LOCKED", existingPid: lock.existingPid }));
+  process.exit(0);
 }
-writeFileSync(lock, String(process.pid));
-const plan = planPaperOrder({
-  signal: "WAIT",
-  price: 1,
-  cash: 0,
-  maxNotional: 25,
-  strategyApproved: false,
-  riskOk: true,
-  billingLocked: true,
-  authorizationExpiresAt: null,
-  nowMs: Date.now(),
-  ownedQty: 0,
-  endpoint: "https://paper-api.alpaca.markets/v2/orders",
-});
-const state = {
-  pid: process.pid,
-  heartbeat: new Date().toISOString(),
-  status: "DISABLED",
-  config: config.id,
-  automatedEntries: false,
-  plan,
-  brokerWrites: 0,
-  reason: config.reason,
-};
-writeFileSync(join(root, "research/lab/paper-runtime-heartbeat.json"), JSON.stringify(state, null, 2));
-console.log(JSON.stringify(state));
+
+let bars = [];
+let account = { cash: null, btcQty: "unknown", error: null };
+let feeds = { oracle: "UNCHECKED", pulse: "UNCHECKED", volta: "UNCHECKED" };
+let lastCandleFetch = 0;
+
+function env() {
+  const path = join(root, ".env");
+  if (!existsSync(path)) return {};
+  return Object.fromEntries(readFileSync(path, "utf8").split(/\n/).filter((l) => l.includes("=") && !l.trim().startsWith("#")).map((l) => {
+    const i = l.indexOf("=");
+    return [l.slice(0, i).trim(), l.slice(i + 1).trim().replace(/^['"]|['"]$/g, "")];
+  }));
+}
+
+async function readJson(url, headers) {
+  const res = await fetch(url, { headers, signal: AbortSignal.timeout(10000) });
+  const text = await res.text();
+  try { return { ok: res.ok, status: res.status, body: JSON.parse(text) }; }
+  catch { return { ok: false, status: res.status, error: `non-json status=${res.status}` }; }
+}
+
+async function refreshEvidence(force = false) {
+  const now = Date.now();
+  if (!force && now - lastCandleFetch < 60_000) return;
+  lastCandleFetch = now;
+  const keys = env();
+  const headers = { "APCA-API-KEY-ID": keys.APCA_API_KEY_ID || "", "APCA-API-SECRET-KEY": keys.APCA_API_SECRET_KEY || "" };
+  if (!headers["APCA-API-KEY-ID"]) {
+    account.error = "missing paper credentials";
+    return;
+  }
+  const end = new Date();
+  const start = new Date(end.getTime() - 8 * 24 * 60 * 60 * 1000);
+  const barsUrl = `https://data.alpaca.markets/v1beta3/crypto/us/bars?symbols=BTC/USD&timeframe=15Min&start=${start.toISOString()}&end=${end.toISOString()}&limit=1000&sort=desc`;
+  const [barRes, accountRes, positionRes] = await Promise.all([
+    readJson(barsUrl, headers),
+    readJson("https://paper-api.alpaca.markets/v2/account", headers),
+    readJson("https://paper-api.alpaca.markets/v2/positions", headers),
+  ]);
+  if (barRes.ok) {
+    bars = completedBars((barRes.body?.bars?.["BTC/USD"] || []).map((b) => ({ t: b.t, o: b.o, h: b.h, l: b.l, c: b.c })).reverse());
+  }
+  account = {
+    cash: accountRes.body?.cash ?? null,
+    btcQty: Array.isArray(positionRes.body) ? (positionRes.body.find((p) => /BTC/.test(p.symbol))?.qty || "0") : "unknown",
+    error: [barRes, accountRes, positionRes].find((r) => r.error || !r.ok)?.error || null,
+  };
+  const [oracle, pulse, volta] = await Promise.all([oracleFeed(), pulseFeed(), voltaFeed()]);
+  feeds = { oracle: `${oracle.state}:${oracle.observations.length}`, pulse: `${pulse.state}:${pulse.observations.length}`, volta: `${volta.state}:${volta.observations.length}` };
+}
+
+async function tick() {
+  await refreshEvidence();
+  const evaluated = evaluateRuntime({ bars, cash: Number(account.cash || 0), ownedQty: Number(account.btcQty || 0), authorizationExpiresAt: null });
+  const state = {
+    pid: process.pid,
+    heartbeat: new Date().toISOString(),
+    status: "DISABLED",
+    config: config.id,
+    traceId: evaluated.cycle.traceId,
+    signal: evaluated.cycle.finalDecision,
+    sigma: evaluated.cycle.sigma,
+    sentinel: evaluated.cycle.sentinel,
+    completedBars: evaluated.cycle.market.completedBars,
+    lastBar: evaluated.cycle.market.latestCompletedCandle,
+    feeds,
+    cash: account.cash,
+    btcQty: account.btcQty,
+    automatedEntries: false,
+    brokerWrites: 0,
+    plan: evaluated.plan,
+    brokerError: account.error,
+    reason: config.reason,
+  };
+  writeFileSync(heartbeatPath, JSON.stringify(state, null, 2));
+  touchLock(lockPath);
+  console.log(JSON.stringify({ heartbeat: state.heartbeat, signal: state.signal, brokerWrites: 0 }));
+}
+
+const timer = setInterval(() => { tick().catch((err) => console.error(err.message)); }, 30_000);
+await tick();
+function shutdown() {
+  clearInterval(timer);
+  releaseLock(lockPath);
+  process.exit(0);
+}
+process.on("SIGINT", shutdown);
+process.on("SIGTERM", shutdown);

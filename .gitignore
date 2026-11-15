@@ -5,3 +5,7 @@ node_modules/
 .env.*
 
 .runtimes/
+
+research/lab/paper-runtime-heartbeat.json
+research/lab/windows/*.lock
+research/lab/windows/*.tmp
