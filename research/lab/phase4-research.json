@@ -1,0 +1,55 @@
+{
+  "preregistered": {
+    "btc-low-vol-cash-v1": {
+      "id": "btc-low-vol-cash-v1",
+      "rationale": "Unhedged BTC long exposure is only held when 20-day realized volatility is below a frozen threshold; otherwise cash.",
+      "failure": "Reject if validation return is not positive after costs, does not beat cash, or has fewer than 12 trades.",
+      "costsBps": 25,
+      "volThreshold": 0.04
+    },
+    "spy-sma200-cash-v1": {
+      "id": "spy-sma200-cash-v1",
+      "rationale": "SPY is held only while its completed close is above the 200-day average; otherwise cash. This is a trend filter, not relative-strength rotation.",
+      "failure": "Reject if validation underperforms SPY buy-and-hold after costs or has fewer than 8 trades.",
+      "costsBps": 5
+    }
+  },
+  "holdoutsUsed": false,
+  "candidates": [
+    {
+      "id": "btc-low-vol-cash-v1",
+      "development": {
+        "trades": 15,
+        "net": 0.7431907315765993,
+        "maxDd": 0.35493516384812795,
+        "bench": 0.7367366654319532,
+        "decision": "ELIGIBLE_FOR_FURTHER_VALIDATION"
+      },
+      "validation": {
+        "trades": 3,
+        "net": -0.2521095906137515,
+        "maxDd": 0.5157357772567088,
+        "bench": -0.27349771236469567,
+        "decision": "INSUFFICIENT_EVIDENCE"
+      }
+    },
+    {
+      "id": "spy-sma200-cash-v1",
+      "development": {
+        "trades": 217,
+        "net": 6.861012128248789,
+        "maxDd": 0.30558840497920287,
+        "bench": 14.509303042763158,
+        "decision": "REJECTED"
+      },
+      "validation": {
+        "trades": 5,
+        "net": 0.3659100781802933,
+        "maxDd": 0.10863257057727253,
+        "bench": 0.4417433856788522,
+        "decision": "INSUFFICIENT_EVIDENCE"
+      }
+    }
+  ],
+  "selected": "NO_WINNER"
+}
