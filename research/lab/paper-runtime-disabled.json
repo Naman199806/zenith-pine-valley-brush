@@ -1,0 +1,12 @@
+{
+  "id": "paper-runtime-20261115",
+  "status": "DISABLED",
+  "replacesExpiredPilot": false,
+  "expiredPilotAuthorization": "research/lab/paper-pilot-auth.json",
+  "automatedEntries": false,
+  "LIVE": false,
+  "PAPER_AUTO": false,
+  "strategyApproved": false,
+  "billingLock": "ACTIVE",
+  "reason": "New runtime is installed disabled. It does not extend the expired 2026-11-15T03:05:00Z pilot."
+}

@@ -1,0 +1,15 @@
+{
+  "pid": 5348,
+  "heartbeat": "2026-11-15T06:18:35.135Z",
+  "status": "DISABLED",
+  "config": "paper-runtime-20261115",
+  "automatedEntries": false,
+  "plan": {
+    "action": "NO_TRADE",
+    "qty": 0,
+    "reason": "strategyApproved=false",
+    "brokerWrites": 0
+  },
+  "brokerWrites": 0,
+  "reason": "New runtime is installed disabled. It does not extend the expired 2026-11-15T03:05:00Z pilot."
+}

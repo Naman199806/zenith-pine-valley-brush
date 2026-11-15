@@ -1,0 +1,10 @@
+$Root = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+if (-not (Test-Path (Join-Path $Root "package.json"))) { $Root = "C:\Users\sharm\apex-quant-x-github" }
+$Hb = Join-Path $Root "research\lab\paper-runtime-heartbeat.json"
+if (-not (Test-Path $Hb)) { Write-Output "NO_HEARTBEAT root=$Root"; exit 1 }
+$j = Get-Content $Hb -Raw | ConvertFrom-Json
+Write-Output ("status=" + $j.status)
+Write-Output ("heartbeat=" + $j.heartbeat)
+Write-Output ("automatedEntries=" + $j.automatedEntries)
+Write-Output ("brokerWrites=" + $j.brokerWrites)
+Write-Output ("root=" + $Root)
