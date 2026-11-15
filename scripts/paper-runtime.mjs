@@ -64,7 +64,7 @@ async function refreshEvidence(force = false) {
   account = {
     cash: accountRes.body?.cash ?? null,
     btcQty: Array.isArray(positionRes.body) ? (positionRes.body.find((p) => /BTC/.test(p.symbol))?.qty || "0") : "unknown",
-    error: [barRes, accountRes, positionRes].find((r) => r.error)?.error || staleCandleError(lastBar),
+    error: [barRes, accountRes, positionRes].find((r) => r.error)?.error || staleCandleError(lastBar ? new Date(candleCloseMs(lastBar)).toISOString() : null),
   };
   const [oracle, pulse, volta, eth, spy] = await Promise.all([oracleFeed(), pulseFeed(), voltaFeed(), readJson("https://data.alpaca.markets/v1beta3/crypto/us/latest/quotes?symbols=ETH/USD", headers), fetch("https://query1.finance.yahoo.com/v8/finance/chart/SPY?interval=1d&range=1d", { signal: AbortSignal.timeout(8000) }).then((r) => r.json()).catch(() => null)]);
   feeds = { oracle: oracle.observations, pulse: pulse.observations, volta: volta.observations };
