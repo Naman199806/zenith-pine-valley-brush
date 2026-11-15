@@ -1,0 +1,32 @@
+{
+  "source": "coinbase-public-candles",
+  "bars": 17280,
+  "first": "2026-05-19T06:15:00.000Z",
+  "last": "2026-11-15T06:00:00.000Z",
+  "research": {
+    "trades": 44,
+    "wins": 7,
+    "netReturn": -0.00005082347108942287,
+    "profitFactor": 0.15529341205509697,
+    "maxDrawdown": 0.00005168227754233782,
+    "expectancy": -0.11550788883951926,
+    "benchmark": -0.1737196971209487,
+    "costsBps": 25,
+    "unfilledStops": 10,
+    "missingCandles": 0,
+    "decision": "REJECTED",
+    "reason": "no credible edge"
+  },
+  "traceId": "mc-2ba687b6-ed5b-43c9-bba0-ad8bfd6403a7",
+  "decision": "NO_TRADE",
+  "sigma": "PASS",
+  "sentinel": "VETO",
+  "plan": {
+    "action": "NO_TRADE",
+    "qty": 0,
+    "reason": "fresh risk verdict failed",
+    "brokerWrites": 0
+  },
+  "brokerWrites": 0,
+  "aiModelCalls": 0
+}
