@@ -1,0 +1,192 @@
+{
+  "strategyVersion": "etf-xs-breakout-20-v1",
+  "symbol": "QQQ",
+  "asOf": "2024-06-14T20:00:00Z",
+  "provenance": "yahoo-chart-v8:QQQ",
+  "roles": [
+    {
+      "role": "Scout",
+      "invoked": true,
+      "mode": "DETERMINISTIC",
+      "input": {
+        "symbol": "QQQ"
+      },
+      "output": {
+        "scanned": true,
+        "inUniverse": true
+      },
+      "contribution": "ADVISORY_ONLY",
+      "effect": "confirms symbol is in the frozen universe; does not create the signal"
+    },
+    {
+      "role": "Vector",
+      "invoked": true,
+      "mode": "DETERMINISTIC",
+      "input": {
+        "asOf": "2024-06-14T20:00:00Z",
+        "strategyVersion": "etf-xs-breakout-20-v1"
+      },
+      "output": {
+        "signal": "BUY"
+      },
+      "contribution": "CHANGED_DECISION",
+      "effect": "supplies the frozen strategy signal"
+    },
+    {
+      "role": "Atlas",
+      "invoked": true,
+      "mode": "NOT_APPLICABLE",
+      "input": {
+        "symbol": "QQQ"
+      },
+      "output": {
+        "stance": "UNAVAILABLE"
+      },
+      "contribution": "UNAVAILABLE",
+      "effect": "no fundamental source connected"
+    },
+    {
+      "role": "Oracle",
+      "invoked": true,
+      "mode": "UNAVAILABLE",
+      "input": {},
+      "output": {
+        "stance": "UNAVAILABLE"
+      },
+      "contribution": "UNAVAILABLE",
+      "effect": "local macro feed not bound to this equity decision"
+    },
+    {
+      "role": "Pulse",
+      "invoked": true,
+      "mode": "UNAVAILABLE",
+      "input": {
+        "billingLocked": true
+      },
+      "output": {
+        "stance": "UNAVAILABLE"
+      },
+      "contribution": "UNAVAILABLE",
+      "effect": "news/sentiment source not authorized"
+    },
+    {
+      "role": "Volta",
+      "invoked": true,
+      "mode": "UNAVAILABLE",
+      "input": {
+        "symbol": "QQQ"
+      },
+      "output": {
+        "stance": "UNAVAILABLE"
+      },
+      "contribution": "UNAVAILABLE",
+      "effect": "derivatives feed not connected"
+    },
+    {
+      "role": "Bull",
+      "invoked": true,
+      "mode": "BLOCKED",
+      "input": {
+        "billingLocked": true
+      },
+      "output": {
+        "inference": false
+      },
+      "contribution": "BLOCKED",
+      "effect": "billing lock active; no paid call; no substitution"
+    },
+    {
+      "role": "Bear",
+      "invoked": true,
+      "mode": "BLOCKED",
+      "input": {
+        "billingLocked": true
+      },
+      "output": {
+        "inference": false
+      },
+      "contribution": "BLOCKED",
+      "effect": "billing lock active; no paid call; no substitution"
+    },
+    {
+      "role": "Sigma",
+      "invoked": true,
+      "mode": "DETERMINISTIC",
+      "input": {
+        "dataOk": false,
+        "version": "etf-xs-breakout-20-v1"
+      },
+      "output": {
+        "veto": true
+      },
+      "contribution": "VETO",
+      "effect": "quant veto"
+    },
+    {
+      "role": "Sentinel",
+      "invoked": true,
+      "mode": "DETERMINISTIC",
+      "input": {
+        "notional": 25,
+        "ownedQty": 0,
+        "filledQty": 0,
+        "openExitQty": 0
+      },
+      "output": {
+        "veto": false
+      },
+      "contribution": "ADVISORY_ONLY",
+      "effect": "exposure and exit reconciliation accepted"
+    },
+    {
+      "role": "Allocator",
+      "invoked": true,
+      "mode": "DETERMINISTIC",
+      "input": {
+        "proposed": 25
+      },
+      "output": {
+        "sizedNotional": 25
+      },
+      "contribution": "ADVISORY_ONLY",
+      "effect": "enforces $25 cap"
+    },
+    {
+      "role": "Pilot",
+      "invoked": true,
+      "mode": "BLOCKED",
+      "input": {
+        "research": "NO_TRADE"
+      },
+      "output": {
+        "executionAuthorized": false
+      },
+      "contribution": "BLOCKED",
+      "effect": "LIVE submission disabled; no autonomous authorization"
+    },
+    {
+      "role": "Hermes",
+      "invoked": true,
+      "mode": "DETERMINISTIC",
+      "input": {
+        "research": "NO_TRADE"
+      },
+      "output": {
+        "recorded": true,
+        "clientOrderId": null,
+        "submitted": false
+      },
+      "contribution": "ADVISORY_ONLY",
+      "effect": "records the decision; does not submit"
+    }
+  ],
+  "quantRejects": true,
+  "riskRejects": false,
+  "researchRecommendation": "NO_TRADE",
+  "executionAuthorized": false,
+  "reason": "Sigma veto. Research cannot override.",
+  "hermes": {
+    "recorded": true,
+    "clientOrderId": null
+  }
+}
