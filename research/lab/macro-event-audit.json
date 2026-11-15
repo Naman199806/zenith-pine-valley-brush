@@ -1,60 +1,119 @@
 {
-  "retrievedUtc": "2026-11-15T07:56:54.377629+00:00",
-  "baseline": "e15ff5ba",
-  "fomc": {
+  "retrievedUtc": "2026-11-15T08:07:33.143574Z",
+  "commitNote": "corrected per-instrument eligibility; cross-month dates fixed; convention times not treated as verified",
+  "instrumentInception": {
+    "SPY": "1993-01-29",
+    "QQQ": "1999-03-10",
+    "TLT": "2002-07-30"
+  },
+  "marketDataEnd": "2026-11-11",
+  "FOMC": {
     "total": 310,
-    "scheduled": 264,
-    "unscheduled": 40,
-    "canceled": 1,
-    "notationVote": 5,
-    "withStatementUrl": 134,
-    "timeStatus": {
-      "UNVERIFIED": 256,
-      "CONVENTION_2PM_ET_NOT_PAGE_VERIFIED": 48,
-      "NOT_APPLICABLE": 6
+    "status_counts": {
+      "SCHEDULED": 264,
+      "UNSCHEDULED": 40,
+      "CANCELED": 1,
+      "NOTATION_VOTE": 5
     },
-    "samplePageVerification": {
-      "monetary20260128a.htm": "2:00 p.m. confirmed",
-      "monetary20250319a.htm": "2:00 p.m. confirmed",
-      "monetary20241218a.htm": "2:00 p.m. confirmed",
-      "monetary20150128a.htm": "time string not found in page"
+    "date_verified": 309,
+    "time_verified": 0,
+    "time_convention_only": 48,
+    "time_unverified": 262,
+    "exclusions": {
+      "canceled": 1,
+      "notation_vote": 5,
+      "no_statement_date": 0,
+      "pre_inception_SPY": 0,
+      "pre_inception_QQQ": 51,
+      "pre_inception_TLT": 83,
+      "missing_next_bar_SPY": 1,
+      "missing_next_bar_QQQ": 1,
+      "missing_next_bar_TLT": 1,
+      "future_event": 1
     },
-    "coverageNextSession": {
-      "eligibleAll3": 303,
-      "missing": 1,
-      "missingDetail": "2026-12-09 statement (future relative to market data ending 2026-11-11)"
+    "eligible_SPY": 303,
+    "eligible_QQQ": 252,
+    "eligible_TLT": 220,
+    "eligible_all_three": 220,
+    "sample_1995_02_01": {
+      "statementDate": "1995-02-01",
+      "next": {
+        "SPY": "1995-02-02",
+        "QQQ": "1999-03-10",
+        "TLT": "2002-07-30"
+      },
+      "eligible": {
+        "SPY": true,
+        "QQQ": false,
+        "TLT": false
+      }
     },
-    "years": "1994-2026"
+    "next_session_gap_days": {
+      "SPY": {
+        "3": 7,
+        "1": 290,
+        "4": 3,
+        "2": 3
+      },
+      "QQQ": {
+        "1": 245,
+        "4": 2,
+        "3": 3,
+        "2": 2
+      },
+      "TLT": {
+        "1": 214,
+        "3": 3,
+        "4": 1,
+        "2": 2
+      }
+    }
   },
-  "cpi": {
+  "CPI": {
     "total": 227,
-    "withTime": 227,
-    "timeStatus": "SCHEDULE_TIME (08:30 AM ET from BLS schedule pages)",
-    "originalValues": "NOT_RETRIEVED",
-    "originalValueNote": "BLS schedule pages list date and time only. Originally published headline values require parsing individual news-release archives; not retrieved in this pass.",
-    "coverageNextSession": {
-      "eligibleAll3": 226,
-      "missing": 1,
-      "missingDetail": "2026-12-10 release (future relative to market data ending 2026-11-11)"
+    "status_counts": {
+      "SCHEDULED": 227
     },
-    "earliest": "2008-01-16"
+    "date_verified": 227,
+    "time_verified": 227,
+    "time_convention_only": 0,
+    "time_unverified": 0,
+    "exclusions": {
+      "canceled": 0,
+      "notation_vote": 0,
+      "no_statement_date": 0,
+      "pre_inception_SPY": 0,
+      "pre_inception_QQQ": 0,
+      "pre_inception_TLT": 0,
+      "missing_next_bar_SPY": 1,
+      "missing_next_bar_QQQ": 1,
+      "missing_next_bar_TLT": 1,
+      "future_event": 1
+    },
+    "eligible_SPY": 226,
+    "eligible_QQQ": 226,
+    "eligible_TLT": 226,
+    "eligible_all_three": 226,
+    "sample_1995_02_01": null,
+    "next_session_gap_days": {
+      "SPY": {
+        "1": 179,
+        "3": 39,
+        "4": 8
+      },
+      "QQQ": {
+        "1": 179,
+        "3": 39,
+        "4": 8
+      },
+      "TLT": {
+        "1": 179,
+        "3": 39,
+        "4": 8
+      }
+    }
   },
-  "marketData": {
-    "SPY": "1993-01-29 to 2026-11-11 (8505 bars)",
-    "QQQ": "1999-03-10 to 2026-11-11",
-    "TLT": "2002-07-30 to 2026-11-11",
-    "source": "research/data/raw/yahoo/20261112/"
-  },
-  "backtesterTemporal": {
-    "status": "NO_MISALIGNMENT_FOUND",
-    "note": "FMZ engine fills at next bar open then marks equity at next bar close (post-fill). Main daily engine closes positions by day end. No use of pre-fill price for post-fill mark."
-  },
-  "methodology": "Executable next-session event study only. Use the first daily bar strictly after the statement date as the post-event observation. Do not use the statement-day close for FOMC (14:00 ET is during the session). Do not infer any intraday execution price from daily OHLC. CPI 08:30 ET is pre-open so statement-day open is post-event, but still not a precise 08:30 fill.",
+  "methodology": "Next-session open only, requiring instrument first bar <= statementDate. FOMC 14:00 ET is inside the cash session so statement-day close embeds reaction. CPI 08:30 ET is pre-open but daily bars do not provide 08:30 price. Do not infer intraday fills. Conventional 2PM ET is NOT proof of actual historical publication time.",
   "verdict": "TESTABLE_NEXT_SESSION",
-  "notTestable": [
-    "intraday reaction window",
-    "same-session FOMC fill at announcement time",
-    "originally published CPI surprise magnitude",
-    "pre-event fill using statement-day close for FOMC"
-  ]
+  "notTestable": "intraday reaction, same-bar FOMC fill, originally published CPI surprise, any event before instrument inception"
 }

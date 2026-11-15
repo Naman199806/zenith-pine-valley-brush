@@ -33,11 +33,41 @@ test("next-session lookup does not use the event-day close as a fill", () => {
   assert.notEqual(next, event);
 });
 
-test("coverage numbers match the audit for next-session eligibility", () => {
-  assert.equal(audit.fomc.coverageNextSession.eligibleAll3, 303);
-  assert.equal(audit.cpi.coverageNextSession.eligibleAll3, 226);
+test("corrected per-instrument eligibility and intersection", () => {
+  assert.equal(audit.FOMC.eligible_SPY, 303);
+  assert.equal(audit.FOMC.eligible_QQQ, 252);
+  assert.equal(audit.FOMC.eligible_TLT, 220);
+  assert.equal(audit.FOMC.eligible_all_three, 220);
+  assert.equal(audit.CPI.eligible_all_three, 226);
   assert.equal(audit.verdict, "TESTABLE_NEXT_SESSION");
-  assert.equal(audit.backtesterTemporal.status, "NO_MISALIGNMENT_FOUND");
+});
+
+test("1995-02-01 FOMC is eligible for SPY only", () => {
+  const sample = audit.FOMC.sample_1995_02_01;
+  assert.equal(sample.statementDate, "1995-02-01");
+  assert.equal(sample.eligible.SPY, true);
+  assert.equal(sample.eligible.QQQ, false);
+  assert.equal(sample.eligible.TLT, false);
+});
+
+test("event cannot be eligible before instrument first bar", () => {
+  const first = audit.instrumentInception;
+  assert.equal(first.SPY, "1993-01-29");
+  assert.equal(first.QQQ, "1999-03-10");
+  assert.equal(first.TLT, "2002-07-30");
+  // pre-inception counts match
+  assert.equal(audit.FOMC.exclusions.pre_inception_QQQ, 51);
+  assert.equal(audit.FOMC.exclusions.pre_inception_TLT, 83);
+  assert.equal(audit.FOMC.exclusions.pre_inception_SPY, 0);
+});
+
+test("DATE_VERIFIED is separate from TIME_VERIFIED; convention is not proof", () => {
+  assert.ok(audit.FOMC.date_verified >= 300);
+  assert.equal(audit.FOMC.time_verified, 0);
+  assert.equal(audit.FOMC.time_convention_only, 48);
+  assert.ok(audit.FOMC.time_unverified > 200);
+  assert.equal(audit.CPI.time_verified, 227);
+  assert.ok(audit.methodology.includes("Conventional 2PM ET is NOT proof"));
 });
 
 test("UTC conversion respects DST for sample dates", () => {
