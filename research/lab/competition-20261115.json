@@ -1,0 +1,220 @@
+{
+  "frozenManifest": "research/lab/strategies/competition-20261115.json",
+  "holdouts": {
+    "btcFrom": "2026-09-14",
+    "equityFrom": "2025-11-11",
+    "used": false
+  },
+  "candidates": [
+    {
+      "development": {
+        "id": "btc-donchian-breakout-v1",
+        "trades": 6,
+        "wins": 2,
+        "netReturn": 0.07574808921625342,
+        "profitFactor": 3.2484234073940828,
+        "maxDrawdown": 0.04995442940169833,
+        "expectancy": 1262.4681536042237,
+        "benchmark": 0.7678900928869177,
+        "decision": "INSUFFICIENT_EVIDENCE",
+        "reason": "too few trades",
+        "holdoutUsed": false
+      },
+      "validation": {
+        "id": "btc-donchian-breakout-v1",
+        "trades": 7,
+        "wins": 2,
+        "netReturn": -0.0022127594303165132,
+        "profitFactor": 0.4274073034969315,
+        "maxDrawdown": 0.052124022928366154,
+        "expectancy": -31.610849004521565,
+        "benchmark": -0.20435259349445078,
+        "decision": "INSUFFICIENT_EVIDENCE",
+        "reason": "too few trades",
+        "holdoutUsed": false
+      }
+    },
+    {
+      "development": {
+        "id": "btc-mean-revert-regime-v1",
+        "trades": 33,
+        "wins": 19,
+        "netReturn": -0.04814682849116059,
+        "profitFactor": 0.47841923584397833,
+        "maxDrawdown": 0.0688037867425487,
+        "expectancy": -145.8994802762441,
+        "benchmark": 0.6050753727828289,
+        "decision": "REJECTED",
+        "reason": "fails return, profit factor, drawdown, or benchmark gate",
+        "holdoutUsed": false
+      },
+      "validation": {
+        "id": "btc-mean-revert-regime-v1",
+        "trades": 13,
+        "wins": 5,
+        "netReturn": -0.022827569805952463,
+        "profitFactor": 0.518908107907871,
+        "maxDrawdown": 0.030779938958314743,
+        "expectancy": -175.59669081501937,
+        "benchmark": -0.3482156307193023,
+        "decision": "INSUFFICIENT_EVIDENCE",
+        "reason": "too few trades",
+        "holdoutUsed": false
+      }
+    },
+    {
+      "development": {
+        "id": "etf-defensive-rs-v1",
+        "trades": 141,
+        "wins": 0,
+        "netReturn": 12.653237374909233,
+        "profitFactor": null,
+        "maxDrawdown": 0.693056485398463,
+        "expectancy": 8973.927216247683,
+        "benchmark": 14.13260241368841,
+        "decision": "REJECTED",
+        "reason": "fails return, profit factor, drawdown, or benchmark gate",
+        "holdoutUsed": false
+      },
+      "validation": {
+        "id": "etf-defensive-rs-v1",
+        "trades": 10,
+        "wins": 0,
+        "netReturn": 0.1695511798024094,
+        "profitFactor": null,
+        "maxDrawdown": 0.16983188103805247,
+        "expectancy": 1695.5117980240932,
+        "benchmark": 0.340731100909631,
+        "decision": "INSUFFICIENT_EVIDENCE",
+        "reason": "too few trades",
+        "holdoutUsed": false
+      }
+    }
+  ],
+  "selected": "NO_WINNER",
+  "agents": [
+    {
+      "role": "scout",
+      "state": "DETERMINISTIC",
+      "asOf": "2026-11-15T06:13:37.215Z",
+      "input": {
+        "symbol": "BTC/USD"
+      },
+      "output": {
+        "scanned": [
+          "BTC/USD"
+        ],
+        "candidates": [
+          "BTC/USD"
+        ]
+      },
+      "effect": "ADVISORY",
+      "modelCall": false,
+      "error": null
+    },
+    {
+      "role": "vector",
+      "state": "DETERMINISTIC",
+      "asOf": "2026-11-15T06:13:37.215Z",
+      "input": {
+        "bars": 300,
+        "latest": "2026-09-13T00:00:00Z"
+      },
+      "output": {
+        "signal": "WAIT",
+        "rsi": 19.39530859450113,
+        "lower": 57088.61836431428,
+        "upper": 83185.33863568562,
+        "atr14": 2127.849925226468,
+        "reason": "no simultaneous cross"
+      },
+      "effect": "ADVISORY",
+      "modelCall": false,
+      "error": null
+    },
+    {
+      "role": "atlas",
+      "state": "NOT_APPLICABLE",
+      "asOf": "2026-11-15T06:13:37.215Z",
+      "input": {
+        "symbol": "BTC/USD"
+      },
+      "output": {
+        "stance": "UNAVAILABLE"
+      },
+      "effect": "NONE",
+      "modelCall": false,
+      "error": "spot crypto has no equity fundamental statement"
+    },
+    {
+      "role": "oracle",
+      "state": "UNAVAILABLE",
+      "asOf": "2026-11-15T06:13:37.215Z",
+      "input": {},
+      "output": {
+        "stance": "UNAVAILABLE"
+      },
+      "effect": "NONE",
+      "modelCall": false,
+      "error": "no macro feed configured"
+    },
+    {
+      "role": "pulse",
+      "state": "UNAVAILABLE",
+      "asOf": "2026-11-15T06:13:37.215Z",
+      "input": {
+        "billingLocked": true
+      },
+      "output": {
+        "stance": "UNAVAILABLE"
+      },
+      "effect": "NONE",
+      "modelCall": false,
+      "error": "billing lock blocks paid sentiment"
+    },
+    {
+      "role": "volta",
+      "state": "UNAVAILABLE",
+      "asOf": "2026-11-15T06:13:37.215Z",
+      "input": {
+        "symbol": "BTC/USD"
+      },
+      "output": {
+        "stance": "UNAVAILABLE"
+      },
+      "effect": "NONE",
+      "modelCall": false,
+      "error": "no derivatives feed"
+    },
+    {
+      "role": "bull",
+      "state": "BLOCKED",
+      "asOf": "2026-11-15T06:13:37.215Z",
+      "input": {
+        "billingLocked": true
+      },
+      "output": {
+        "stance": "UNAVAILABLE"
+      },
+      "effect": "NONE",
+      "modelCall": false,
+      "error": "paid Bull call blocked"
+    },
+    {
+      "role": "bear",
+      "state": "BLOCKED",
+      "asOf": "2026-11-15T06:13:37.215Z",
+      "input": {
+        "billingLocked": true
+      },
+      "output": {
+        "stance": "UNAVAILABLE"
+      },
+      "effect": "NONE",
+      "modelCall": false,
+      "error": "paid Bear call blocked"
+    }
+  ],
+  "aiModelCalls": 0,
+  "brokerWrites": 0
+}

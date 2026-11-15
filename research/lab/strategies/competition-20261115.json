@@ -1,0 +1,34 @@
+{
+  "id": "competition-20261115",
+  "frozenBeforeEvaluation": true,
+  "fmzStatus": "REJECTED_FROZEN",
+  "candidates": [
+    {
+      "id": "btc-donchian-breakout-v1",
+      "market": "BTC/USD",
+      "timeframe": "1D",
+      "rules": "Long next open when completed close breaks above prior 20-day high and close is above EMA100. Exit next open when close falls below prior 10-day low or below EMA100. Stop is 2x ATR14 Wilder. No shorts, no leverage.",
+      "costsBps": 25,
+      "sizing": "20 percent of equity",
+      "holdoutFrom": "2026-09-14"
+    },
+    {
+      "id": "btc-mean-revert-regime-v1",
+      "market": "BTC/USD",
+      "timeframe": "1D",
+      "rules": "Long next open when RSI(2) is below 10 and close is above EMA200. Exit next open when close is above EMA5 or after 5 sessions. No shorts, no leverage.",
+      "costsBps": 25,
+      "sizing": "20 percent of equity",
+      "holdoutFrom": "2026-09-14"
+    },
+    {
+      "id": "etf-defensive-rs-v1",
+      "market": "SPY QQQ IWM GLD TLT BIL",
+      "timeframe": "1D",
+      "rules": "Once per month hold the single highest 60-day return asset. If that return is negative, hold BIL. Fill next session open. No shorts, no leverage.",
+      "costsBps": 5,
+      "sizing": "100 percent of equity in one asset",
+      "holdoutFrom": "2025-11-11"
+    }
+  ]
+}
