@@ -1,0 +1,655 @@
+{
+  "spec": {
+    "name": "etf-xs-breakout-20-v1",
+    "universe": [
+      "SPY",
+      "QQQ",
+      "IWM"
+    ],
+    "breakout_days": 20,
+    "trend_sma": 200,
+    "rank_days": 60,
+    "exit_low_days": 10,
+    "exit_sma": 50,
+    "start_capital": 100.0,
+    "position_cap": 25.0,
+    "slippage_bps": 2.0,
+    "commission_bps": 0.0,
+    "max_chase_pct": 0.005,
+    "warmup_start": "2016-01-01",
+    "development": [
+      "2017-01-03",
+      "2021-12-31"
+    ],
+    "validation": [
+      "2022-01-03",
+      "2024-12-31"
+    ],
+    "holdout": [
+      "2025-01-02",
+      "2026-11-11"
+    ],
+    "source": "yahoo-chart-v8",
+    "adjustment": "OHLC split-adjusted, dividend-unadjusted; dividends credited as cash"
+  },
+  "provenance": {
+    "spec": {
+      "name": "etf-xs-breakout-20-v1",
+      "universe": [
+        "SPY",
+        "QQQ",
+        "IWM"
+      ],
+      "breakout_days": 20,
+      "trend_sma": 200,
+      "rank_days": 60,
+      "exit_low_days": 10,
+      "exit_sma": 50,
+      "start_capital": 100.0,
+      "position_cap": 25.0,
+      "slippage_bps": 2.0,
+      "commission_bps": 0.0,
+      "max_chase_pct": 0.005,
+      "warmup_start": "2016-01-01",
+      "development": [
+        "2017-01-03",
+        "2021-12-31"
+      ],
+      "validation": [
+        "2022-01-03",
+        "2024-12-31"
+      ],
+      "holdout": [
+        "2025-01-02",
+        "2026-11-11"
+      ],
+      "source": "yahoo-chart-v8",
+      "adjustment": "OHLC split-adjusted, dividend-unadjusted; dividends credited as cash"
+    },
+    "symbols": {
+      "SPY": {
+        "checksum": "b7d2529962e3d4339fb0fe1e11bbc75bfba8df20d1b7e951b5a155497951a28b",
+        "first": "1993-01-29",
+        "last": "2026-11-11",
+        "count": 8505,
+        "policy": "OHLC and volume are the vendor's split-adjusted, dividend-unadjusted prints. yahooAdjClose is a side field only. It is revised when later dividends are paid and is not a point-in-time price."
+      },
+      "QQQ": {
+        "checksum": "bfd2870cb767de364fcaf18e770dab3718582152899ea0837b3d2be23aa6940c",
+        "first": "1999-03-10",
+        "last": "2026-11-11",
+        "count": 6963,
+        "policy": "OHLC and volume are the vendor's split-adjusted, dividend-unadjusted prints. yahooAdjClose is a side field only. It is revised when later dividends are paid and is not a point-in-time price."
+      },
+      "IWM": {
+        "checksum": "0ef7a4ccbb5b989cfccb72aea8c81f1f99e4c9a3a77149e4a231df27990354ce",
+        "first": "2000-05-26",
+        "last": "2026-11-11",
+        "count": 6655,
+        "policy": "OHLC and volume are the vendor's split-adjusted, dividend-unadjusted prints. yahooAdjClose is a side field only. It is revised when later dividends are paid and is not a point-in-time price."
+      }
+    }
+  },
+  "segments": {
+    "development": {
+      "strategy": {
+        "cagr": 0.0279,
+        "total": 0.1474,
+        "max_dd": -0.035,
+        "sharpe": 1.022,
+        "sortino": 1.426,
+        "end_equity": 114.7399,
+        "trades": 31,
+        "win_rate": 0.452,
+        "profit_factor": 2.493,
+        "expectancy": 0.4494,
+        "unfilled": 8,
+        "turnover": 31,
+        "yearly": {
+          "2017": 0.0337,
+          "2018": 0.0041,
+          "2019": 0.0378,
+          "2020": 0.0623,
+          "2021": -0.0
+        }
+      },
+      "strategy_2x_costs": {
+        "cagr": 0.0274,
+        "total": 0.1442,
+        "max_dd": -0.0354,
+        "sharpe": 1.0,
+        "sortino": 1.395,
+        "end_equity": 114.4193,
+        "trades": 31,
+        "win_rate": 0.452,
+        "profit_factor": 2.433,
+        "expectancy": 0.4392,
+        "unfilled": 8,
+        "turnover": 31,
+        "yearly": {
+          "2017": 0.0328,
+          "2018": 0.0035,
+          "2019": 0.0374,
+          "2020": 0.0622,
+          "2021": -0.0008
+        }
+      },
+      "spy_buy_hold": {
+        "cagr": 0.1743,
+        "total": 1.2302,
+        "max_dd": -0.3221,
+        "sharpe": 0.985,
+        "sortino": 1.356,
+        "end_equity": 223.0217
+      },
+      "spy_sma200_capped": {
+        "cagr": 0.0355,
+        "total": 0.19,
+        "max_dd": -0.0549,
+        "sharpe": 1.03,
+        "sortino": 1.377,
+        "end_equity": 119.0031
+      },
+      "trades": [
+        {
+          "exit": "2017-03-22",
+          "symbol": "QQQ",
+          "px": 129.824,
+          "pnl": 1.8178
+        },
+        {
+          "exit": "2017-04-17",
+          "symbol": "QQQ",
+          "px": 130.7439,
+          "pnl": -0.2803
+        },
+        {
+          "exit": "2017-05-18",
+          "symbol": "QQQ",
+          "px": 135.9928,
+          "pnl": 0.6133
+        },
+        {
+          "exit": "2017-06-12",
+          "symbol": "QQQ",
+          "px": 138.7722,
+          "pnl": -0.2789
+        },
+        {
+          "exit": "2017-07-07",
+          "symbol": "IWM",
+          "px": 139.4021,
+          "pnl": -0.4034
+        },
+        {
+          "exit": "2017-08-11",
+          "symbol": "QQQ",
+          "px": 141.1918,
+          "pnl": -0.1944
+        },
+        {
+          "exit": "2017-09-26",
+          "symbol": "QQQ",
+          "px": 143.5013,
+          "pnl": -0.2736
+        },
+        {
+          "exit": "2017-10-18",
+          "symbol": "IWM",
+          "px": 149.4701,
+          "pnl": 0.8923
+        },
+        {
+          "exit": "2018-02-05",
+          "symbol": "SPY",
+          "px": 273.3953,
+          "pnl": 1.7039
+        },
+        {
+          "exit": "2018-03-23",
+          "symbol": "IWM",
+          "px": 153.5293,
+          "pnl": -0.1556
+        },
+        {
+          "exit": "2018-05-01",
+          "symbol": "IWM",
+          "px": 152.9794,
+          "pnl": -0.6668
+        },
+        {
+          "exit": "2018-06-26",
+          "symbol": "IWM",
+          "px": 165.1969,
+          "pnl": 1.1319
+        },
+        {
+          "exit": "2018-07-31",
+          "symbol": "QQQ",
+          "px": 175.7648,
+          "pnl": -0.5183
+        },
+        {
+          "exit": "2018-10-10",
+          "symbol": "SPY",
+          "px": 286.7726,
+          "pnl": 0.1161
+        },
+        {
+          "exit": "2018-11-09",
+          "symbol": "SPY",
+          "px": 278.9742,
+          "pnl": -0.1063
+        },
+        {
+          "exit": "2019-03-08",
+          "symbol": "SPY",
+          "px": 272.8854,
+          "pnl": -0.1999
+        },
+        {
+          "exit": "2019-05-08",
+          "symbol": "QQQ",
+          "px": 185.5929,
+          "pnl": 1.4792
+        },
+        {
+          "exit": "2019-08-02",
+          "symbol": "SPY",
+          "px": 293.7912,
+          "pnl": 0.3865
+        },
+        {
+          "exit": "2019-09-25",
+          "symbol": "QQQ",
+          "px": 187.7424,
+          "pnl": -0.572
+        },
+        {
+          "exit": "2020-02-25",
+          "symbol": "QQQ",
+          "px": 223.2054,
+          "pnl": 3.9278
+        },
+        {
+          "exit": "2020-09-09",
+          "symbol": "SPY",
+          "px": 337.4825,
+          "pnl": 2.6887
+        },
+        {
+          "exit": "2020-10-29",
+          "symbol": "IWM",
+          "px": 152.7395,
+          "pnl": -1.6357
+        },
+        {
+          "exit": "2021-02-01",
+          "symbol": "IWM",
+          "px": 208.1284,
+          "pnl": 6.4103
+        },
+        {
+          "exit": "2021-03-05",
+          "symbol": "IWM",
+          "px": 216.8466,
+          "pnl": -1.1367
+        },
+        {
+          "exit": "2021-03-24",
+          "symbol": "IWM",
+          "px": 219.816,
+          "pnl": -1.3166
+        },
+        {
+          "exit": "2021-05-13",
+          "symbol": "SPY",
+          "px": 406.9886,
+          "pnl": 0.0707
+        },
+        {
+          "exit": "2021-06-21",
+          "symbol": "IWM",
+          "px": 224.0052,
+          "pnl": -0.5406
+        },
+        {
+          "exit": "2021-08-19",
+          "symbol": "QQQ",
+          "px": 360.148,
+          "pnl": 0.904
+        },
+        {
+          "exit": "2021-09-21",
+          "symbol": "QQQ",
+          "px": 367.5065,
+          "pnl": -0.4285
+        },
+        {
+          "exit": "2021-11-29",
+          "symbol": "SPY",
+          "px": 463.9772,
+          "pnl": 1.1214
+        },
+        {
+          "exit": "2021-12-21",
+          "symbol": "SPY",
+          "px": 458.5183,
+          "pnl": -0.6255
+        }
+      ]
+    },
+    "validation": {
+      "strategy": {
+        "cagr": 0.0126,
+        "total": 0.0379,
+        "max_dd": -0.0322,
+        "sharpe": 0.46,
+        "sortino": 0.657,
+        "end_equity": 103.7929,
+        "trades": 16,
+        "win_rate": 0.438,
+        "profit_factor": 1.785,
+        "expectancy": 0.2203,
+        "unfilled": 2,
+        "turnover": 16,
+        "yearly": {
+          "2022": -0.0255,
+          "2023": 0.065,
+          "2024": 0.0045
+        }
+      },
+      "strategy_2x_costs": {
+        "cagr": 0.012,
+        "total": 0.0363,
+        "max_dd": -0.0325,
+        "sharpe": 0.441,
+        "sortino": 0.63,
+        "end_equity": 103.6314,
+        "trades": 16,
+        "win_rate": 0.438,
+        "profit_factor": 1.735,
+        "expectancy": 0.2103,
+        "unfilled": 2,
+        "turnover": 16,
+        "yearly": {
+          "2022": -0.0258,
+          "2023": 0.0646,
+          "2024": 0.0037
+        }
+      },
+      "spy_buy_hold": {
+        "cagr": 0.0841,
+        "total": 0.2725,
+        "max_dd": -0.2441,
+        "sharpe": 0.548,
+        "sortino": 0.779,
+        "end_equity": 127.2515
+      },
+      "spy_sma200_capped": {
+        "cagr": 0.0166,
+        "total": 0.0502,
+        "max_dd": -0.0613,
+        "sharpe": 0.546,
+        "sortino": 0.758,
+        "end_equity": 105.0244
+      },
+      "trades": [
+        {
+          "exit": "2022-01-10",
+          "symbol": "SPY",
+          "px": 462.6075,
+          "pnl": -0.8715
+        },
+        {
+          "exit": "2022-04-12",
+          "symbol": "SPY",
+          "px": 442.9914,
+          "pnl": -0.2242
+        },
+        {
+          "exit": "2022-12-16",
+          "symbol": "SPY",
+          "px": 385.103,
+          "pnl": -1.4522
+        },
+        {
+          "exit": "2023-02-22",
+          "symbol": "IWM",
+          "px": 187.7924,
+          "pnl": 0.1009
+        },
+        {
+          "exit": "2023-04-26",
+          "symbol": "QQQ",
+          "px": 313.3773,
+          "pnl": 0.2453
+        },
+        {
+          "exit": "2023-08-10",
+          "symbol": "QQQ",
+          "px": 370.8958,
+          "pnl": 3.7825
+        },
+        {
+          "exit": "2023-09-08",
+          "symbol": "QQQ",
+          "px": 371.9356,
+          "pnl": -0.3368
+        },
+        {
+          "exit": "2024-01-03",
+          "symbol": "QQQ",
+          "px": 399.85,
+          "pnl": 1.7885
+        },
+        {
+          "exit": "2024-04-05",
+          "symbol": "QQQ",
+          "px": 436.6926,
+          "pnl": 0.8389
+        },
+        {
+          "exit": "2024-05-24",
+          "symbol": "IWM",
+          "px": 204.749,
+          "pnl": -0.1989
+        },
+        {
+          "exit": "2024-07-19",
+          "symbol": "QQQ",
+          "px": 479.0542,
+          "pnl": 1.0768
+        },
+        {
+          "exit": "2024-09-04",
+          "symbol": "SPY",
+          "px": 550.09,
+          "pnl": -0.41
+        },
+        {
+          "exit": "2024-10-04",
+          "symbol": "IWM",
+          "px": 219.2461,
+          "pnl": -0.4752
+        },
+        {
+          "exit": "2024-11-01",
+          "symbol": "SPY",
+          "px": 571.2057,
+          "pnl": -0.2031
+        },
+        {
+          "exit": "2024-12-11",
+          "symbol": "IWM",
+          "px": 238.6623,
+          "pnl": 0.182
+        },
+        {
+          "exit": "2024-12-19",
+          "symbol": "QQQ",
+          "px": 521.0858,
+          "pnl": -0.3174
+        }
+      ]
+    },
+    "holdout": {
+      "strategy": {
+        "cagr": -0.0123,
+        "total": -0.0226,
+        "max_dd": -0.0423,
+        "sharpe": -0.404,
+        "sortino": -0.513,
+        "end_equity": 97.7403,
+        "trades": 17,
+        "win_rate": 0.235,
+        "profit_factor": 0.656,
+        "expectancy": -0.1441,
+        "unfilled": 4,
+        "turnover": 17,
+        "yearly": {
+          "2025": 0.0043,
+          "2026": -0.0282
+        }
+      },
+      "strategy_2x_costs": {
+        "cagr": -0.0132,
+        "total": -0.0243,
+        "max_dd": -0.0435,
+        "sharpe": -0.436,
+        "sortino": -0.552,
+        "end_equity": 97.5713,
+        "trades": 17,
+        "win_rate": 0.235,
+        "profit_factor": 0.639,
+        "expectancy": -0.1541,
+        "unfilled": 4,
+        "turnover": 17,
+        "yearly": {
+          "2025": 0.0037,
+          "2026": -0.0292
+        }
+      },
+      "spy_buy_hold": {
+        "cagr": 0.1577,
+        "total": 0.311,
+        "max_dd": -0.1872,
+        "sharpe": 0.97,
+        "sortino": 1.438,
+        "end_equity": 131.0984
+      },
+      "spy_sma200_capped": {
+        "cagr": 0.0271,
+        "total": 0.0507,
+        "max_dd": -0.028,
+        "sharpe": 0.851,
+        "sortino": 1.167,
+        "end_equity": 105.0739
+      },
+      "trades": [
+        {
+          "exit": "2025-01-23",
+          "symbol": "IWM",
+          "px": 226.8846,
+          "pnl": -0.2737
+        },
+        {
+          "exit": "2025-01-28",
+          "symbol": "QQQ",
+          "px": 515.1169,
+          "pnl": -0.6628
+        },
+        {
+          "exit": "2025-02-25",
+          "symbol": "QQQ",
+          "px": 519.1361,
+          "pnl": -0.7919
+        },
+        {
+          "exit": "2025-08-04",
+          "symbol": "SPY",
+          "px": 625.5448,
+          "pnl": 1.8002
+        },
+        {
+          "exit": "2025-10-13",
+          "symbol": "QQQ",
+          "px": 599.5601,
+          "pnl": 1.2705
+        },
+        {
+          "exit": "2025-11-05",
+          "symbol": "IWM",
+          "px": 241.9116,
+          "pnl": -0.9072
+        },
+        {
+          "exit": "2026-01-02",
+          "symbol": "IWM",
+          "px": 247.5805,
+          "pnl": -0.0483
+        },
+        {
+          "exit": "2026-01-21",
+          "symbol": "SPY",
+          "px": 679.5141,
+          "pnl": -0.4627
+        },
+        {
+          "exit": "2026-02-06",
+          "symbol": "IWM",
+          "px": 259.688,
+          "pnl": -0.8738
+        },
+        {
+          "exit": "2026-05-19",
+          "symbol": "IWM",
+          "px": 273.7552,
+          "pnl": 1.4414
+        },
+        {
+          "exit": "2026-06-08",
+          "symbol": "QQQ",
+          "px": 717.6664,
+          "pnl": -0.5265
+        },
+        {
+          "exit": "2026-07-27",
+          "symbol": "IWM",
+          "px": 293.9212,
+          "pnl": -0.1385
+        },
+        {
+          "exit": "2026-08-21",
+          "symbol": "SPY",
+          "px": 765.8968,
+          "pnl": 0.1681
+        },
+        {
+          "exit": "2026-10-01",
+          "symbol": "SPY",
+          "px": 764.2071,
+          "pnl": -0.3222
+        },
+        {
+          "exit": "2026-10-15",
+          "symbol": "QQQ",
+          "px": 718.4063,
+          "pnl": -1.0371
+        },
+        {
+          "exit": "2026-11-02",
+          "symbol": "IWM",
+          "px": 281.5837,
+          "pnl": -0.0392
+        },
+        {
+          "exit": "2026-11-06",
+          "symbol": "IWM",
+          "px": 271.9256,
+          "pnl": -1.0466
+        }
+      ]
+    }
+  }
+}

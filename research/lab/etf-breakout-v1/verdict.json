@@ -1,0 +1,7 @@
+{
+  "name": "etf-xs-breakout-20-v1",
+  "verdict": "NO_WINNER",
+  "reason": "Holdout total return is negative. Strategy underperforms SPY buy-and-hold in every segment and underperforms the capped 200-day SMA baseline in every segment. Profit factor on the untouched holdout is below 1. No parameter was changed after the holdout was computed.",
+  "position_cap_note": "Strategy and SMA200 baseline use a $25 position cap on $100 capital. SPY buy-and-hold uses the full $100 for the benchmark comparison.",
+  "recommendation": "NO-GO for strategy research promotion. strategyApproved remains false. Do not trade."
+}
