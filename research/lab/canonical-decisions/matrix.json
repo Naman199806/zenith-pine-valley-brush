@@ -1,21 +1,22 @@
 {
   "pipeline": "canonical-decision",
-  "strategyVersion": "etf-xs-breakout-20-v1",
+  "correction": "Vector computes signal from bars. Sigma reads registry. etf-xs-breakout-20-v1 is NO_WINNER and cannot BUY. Synthetic fixture is test-only.",
   "strategyApproved": false,
   "executionAuthorized": false,
+  "measurable": ["Vector", "Sigma", "Sentinel", "Allocator"],
   "roles": [
-    { "role": "Scout", "invoked": true, "mode": "DETERMINISTIC", "contribution": "ADVISORY_ONLY", "note": "universe membership only" },
-    { "role": "Vector", "invoked": true, "mode": "DETERMINISTIC", "contribution": "CHANGED_DECISION", "note": "frozen strategy signal" },
-    { "role": "Atlas", "invoked": true, "mode": "NOT_APPLICABLE", "contribution": "UNAVAILABLE", "note": "no fundamental source" },
-    { "role": "Oracle", "invoked": true, "mode": "UNAVAILABLE", "contribution": "UNAVAILABLE", "note": "macro feed not bound" },
-    { "role": "Pulse", "invoked": true, "mode": "UNAVAILABLE", "contribution": "UNAVAILABLE", "note": "news not authorized" },
-    { "role": "Volta", "invoked": true, "mode": "UNAVAILABLE", "contribution": "UNAVAILABLE", "note": "derivatives not connected" },
-    { "role": "Bull", "invoked": true, "mode": "BLOCKED", "contribution": "BLOCKED", "note": "billing lock; no paid call; no fixture substitution" },
-    { "role": "Bear", "invoked": true, "mode": "BLOCKED", "contribution": "BLOCKED", "note": "billing lock; no paid call; no fixture substitution" },
-    { "role": "Sigma", "invoked": true, "mode": "DETERMINISTIC", "contribution": "VETO", "note": "independent quant veto" },
-    { "role": "Sentinel", "invoked": true, "mode": "DETERMINISTIC", "contribution": "VETO", "note": "independent risk veto" },
-    { "role": "Allocator", "invoked": true, "mode": "DETERMINISTIC", "contribution": "CHANGED_DECISION", "note": "$25 cap" },
-    { "role": "Pilot", "invoked": true, "mode": "BLOCKED", "contribution": "BLOCKED", "note": "LIVE submission disabled" },
-    { "role": "Hermes", "invoked": true, "mode": "DETERMINISTIC", "contribution": "ADVISORY_ONLY", "note": "records only; does not submit" }
+    { "role": "Scout", "invoked": true, "contribution": "ADVISORY_ONLY" },
+    { "role": "Vector", "invoked": true, "contribution": "CHANGED_DECISION", "note": "computes signal; caller signal ignored" },
+    { "role": "Atlas", "invoked": false, "contribution": "UNAVAILABLE" },
+    { "role": "Oracle", "invoked": false, "contribution": "UNAVAILABLE" },
+    { "role": "Pulse", "invoked": false, "contribution": "UNAVAILABLE" },
+    { "role": "Volta", "invoked": false, "contribution": "UNAVAILABLE" },
+    { "role": "Bull", "invoked": false, "contribution": "BLOCKED" },
+    { "role": "Bear", "invoked": false, "contribution": "BLOCKED" },
+    { "role": "Sigma", "invoked": true, "contribution": "VETO", "note": "NO_WINNER cannot BUY" },
+    { "role": "Sentinel", "invoked": true, "contribution": "VETO" },
+    { "role": "Allocator", "invoked": true, "contribution": "CHANGED_DECISION" },
+    { "role": "Pilot", "invoked": false, "contribution": "BLOCKED" },
+    { "role": "Hermes", "invoked": true, "contribution": "ADVISORY_ONLY", "note": "persistent only when journalPath is written; otherwise in-memory" }
   ]
 }
