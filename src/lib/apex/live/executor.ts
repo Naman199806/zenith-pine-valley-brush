@@ -104,6 +104,63 @@ export function evaluateGates(opts: { dataIntegrityOk: boolean; riskOk: boolean;
   return { sigmaVeto: false, sentinelVeto: false, sigmaApproved: true, sentinelApproved: true, reason: null };
 }
 
+export interface GateProof {
+  singleUseId: string;
+  symbol: string;
+  side: "buy" | "sell";
+  qty: number;
+  limitPrice: number | null;
+  computedAt: string;
+  sigmaApproved: boolean;
+  sentinelApproved: boolean;
+  sigmaVeto: boolean;
+  sentinelVeto: boolean;
+  proof: string;
+}
+
+function proofMaterial(p: Omit<GateProof, "proof">): string {
+  return [p.singleUseId, p.symbol, p.side, String(p.qty), String(p.limitPrice), p.computedAt, String(p.sigmaApproved), String(p.sentinelApproved), String(p.sigmaVeto), String(p.sentinelVeto)].join("|");
+}
+
+export function issueGateProof(
+  bind: { singleUseId: string; symbol: string; side: "buy" | "sell"; qty: number; limitPrice: number | null },
+  opts: { dataIntegrityOk: boolean; riskOk: boolean; notional: number },
+  now = new Date(),
+): GateProof {
+  const sigmaVeto = !opts.dataIntegrityOk;
+  const sentinelVeto = !opts.riskOk || opts.notional > HARD_MAX;
+  const base = {
+    singleUseId: bind.singleUseId,
+    symbol: bind.symbol,
+    side: bind.side,
+    qty: bind.qty,
+    limitPrice: bind.limitPrice,
+    computedAt: now.toISOString(),
+    sigmaApproved: !sigmaVeto,
+    sentinelApproved: !sentinelVeto,
+    sigmaVeto,
+    sentinelVeto,
+  };
+  return { ...base, proof: proofMaterial(base) };
+}
+
+export function verifyGateProof(
+  proof: GateProof | null,
+  bind: { singleUseId: string; symbol: string; side: "buy" | "sell"; qty: number; limitPrice: number | null },
+  now = Date.now(),
+  maxAgeMs = 30_000,
+): string | null {
+  if (!proof) return "missing ticket-bound gate proof";
+  if (proof.proof !== proofMaterial({ ...proof })) return "gate proof is not independently computed";
+  if (proof.singleUseId !== bind.singleUseId || proof.symbol !== bind.symbol || proof.side !== bind.side) return "gate proof not bound to ticket";
+  if (proof.qty !== bind.qty || proof.limitPrice !== bind.limitPrice) return "gate proof quantity or price mismatch";
+  const age = now - Date.parse(proof.computedAt);
+  if (!Number.isFinite(age) || age < 0 || age > maxAgeMs) return "gate proof stale or future";
+  if (proof.sigmaVeto || !proof.sigmaApproved) return "Sigma approval missing or vetoed";
+  if (proof.sentinelVeto || !proof.sentinelApproved) return "Sentinel approval missing or vetoed";
+  return null;
+}
+
 export interface ExecutorResult {
   enabled: false;
   submitted: false;

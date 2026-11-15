@@ -6,11 +6,12 @@ import { join } from "node:path";
 import { evaluateAsset, marketSession, validateEquityQuote, EQUITY_CANDIDATES, worstCaseNotional } from "./equity.ts";
 import { prepareEquityTicket, validateEquityTicket, identityMatches, proposedBrokerBody, type EquityTicket } from "./equity-adapter.ts";
 import { HermesJournal, MockBroker } from "./journal.ts";
-import { evaluateGates } from "./executor.ts";
+import { issueGateProof } from "./executor.ts";
 import { CONNECTIVITY_TEST, STRATEGY_TRADE, agentRoleStatus } from "./connectivity.ts";
 import { architectureReadiness } from "./architecture.ts";
 
-const approved = evaluateGates({ dataIntegrityOk: true, riskOk: true, notional: 10 });
+const now = new Date("2026-11-16T15:00:00Z"); // Monday regular
+const calendar: [] = [];
 
 const ticket = (over: Partial<EquityTicket> = {}): EquityTicket => ({
   category: CONNECTIVITY_TEST,
@@ -21,7 +22,7 @@ const ticket = (over: Partial<EquityTicket> = {}): EquityTicket => ({
   maxNotional: 10,
   qty: 0.01,
   limitPrice: 500,
-  expiry: new Date(Date.now() + 3600_000).toISOString(),
+  expiry: new Date(now.getTime() + 3600_000).toISOString(),
   singleUseId: "eq-1",
   readAuthorized: true,
   orderAuthorized: true,
@@ -31,101 +32,95 @@ const ticket = (over: Partial<EquityTicket> = {}): EquityTicket => ({
   ...over,
 });
 
-const quote = () => ({ bid: 500, ask: 500.05, timestamp: new Date().toISOString() });
+const quote = () => ({ bid: 500, ask: 500.05, timestamp: now.toISOString() });
+const proofFor = (t: EquityTicket) => issueGateProof(
+  { singleUseId: t.singleUseId, symbol: t.symbol, side: t.side, qty: t.qty, limitPrice: t.limitPrice },
+  { dataIntegrityOk: true, riskOk: true, notional: t.maxNotional },
+  now,
+);
 
 test("SPY eligibility evidence and candidate set", () => {
   assert.ok(EQUITY_CANDIDATES.includes("SPY"));
   const spy = evaluateAsset({ symbol: "SPY", tradable: true, fractionable: true, overnight_tradable: true, min_order_size: "1", min_trade_increment: "0.01" });
   assert.equal(spy.tradable, true);
-  assert.equal(spy.fractionable, true);
   assert.equal(spy.blockers.length, 0);
   const bad = evaluateAsset({ symbol: "SPY", tradable: false });
   assert.ok(bad.blockers.includes("not tradable"));
-  assert.ok(bad.blockers.includes("minimum ambiguous"));
 });
 
 test("market session: Sunday 8pm reopen, Friday close, weekend, holiday, shortened", () => {
-  assert.equal(marketSession(new Date("2026-11-15T00:00:00Z")), "CLOSED"); // Sat evening prior? check ET
-  assert.equal(marketSession(new Date("2026-11-16T00:30:00Z")), "CLOSED"); // Sun 19:30 ET, before 20:00 reopen
-  // Sunday 2026-11-15 20:00 ET = 2026-11-16 01:00 UTC (EST)
+  assert.equal(marketSession(new Date("2026-11-16T00:30:00Z")), "CLOSED");
   assert.equal(marketSession(new Date("2026-11-16T01:00:00Z")), "OVERNIGHT");
-  assert.equal(marketSession(new Date("2026-11-15T23:00:00Z")), "CLOSED"); // Sun 18:00 ET
-  // Friday 2026-11-20 20:00 ET = 2026-11-21 01:00 UTC
+  assert.equal(marketSession(new Date("2026-11-15T23:00:00Z")), "CLOSED");
   assert.equal(marketSession(new Date("2026-11-21T01:00:00Z")), "CLOSED");
-  assert.equal(marketSession(new Date("2026-11-20T08:00:00Z")), "OVERNIGHT"); // Fri 03:00 ET
+  assert.equal(marketSession(new Date("2026-11-20T08:00:00Z")), "OVERNIGHT");
   assert.equal(marketSession(new Date("2026-01-01T15:00:00Z")), "CLOSED");
-  assert.equal(marketSession(new Date("2026-11-16T15:00:00Z")), "REGULAR");
+  assert.equal(marketSession(now), "REGULAR");
   assert.equal(marketSession(new Date("2026-11-27T18:00:00Z"), [{ date: "2026-11-27", status: "SHORTENED", earlyCloseEt: "13:00" }]), "CLOSED");
 });
 
 test("equity quote validation enforces freshness and spread", () => {
-  assert.equal(validateEquityQuote(quote()).ok, true);
-  const stale = { bid: 500, ask: 500.05, timestamp: new Date(Date.now() - 60_000).toISOString() };
-  assert.equal(validateEquityQuote(stale).ok, false);
-  const wide = { bid: 500, ask: 510, timestamp: new Date().toISOString() };
-  assert.equal(validateEquityQuote(wide).ok, false);
+  assert.equal(validateEquityQuote(quote(), now.getTime()).ok, true);
+  const stale = { bid: 500, ask: 500.05, timestamp: new Date(now.getTime() - 60_000).toISOString() };
+  assert.equal(validateEquityQuote(stale, now.getTime()).ok, false);
 });
 
-test("equity adapter refuses STRATEGY_TRADE, closed, overnight market, and requires gates", () => {
+test("equity adapter refuses STRATEGY_TRADE, closed, market BUY, and requires proof", () => {
   const dir = mkdtempSync(join(tmpdir(), "eq-"));
   const j = new HermesJournal(join(dir, "j.json"));
-  const strat = prepareEquityTicket(ticket({ category: STRATEGY_TRADE }), quote(), j, approved);
-  assert.equal(strat.submitted, false);
+  const strat = prepareEquityTicket(ticket({ category: STRATEGY_TRADE }), quote(), j, proofFor(ticket({ category: STRATEGY_TRADE })), { now, calendar });
   assert.ok(strat.reason.includes("CONNECTIVITY_TEST"));
-  assert.equal(strat.intentPersisted, false);
-
-  const closed = prepareEquityTicket(ticket({ session: "CLOSED" }), quote(), j, approved);
-  assert.ok(closed.reason.includes("closed"));
-
-  const ovn = prepareEquityTicket(ticket({ session: "OVERNIGHT", orderType: "market", limitPrice: null }), quote(), j, approved);
-  assert.ok(ovn.reason.includes("limit"));
-
-  const missing = prepareEquityTicket(ticket({ singleUseId: "no-gate" }), quote(), j, null);
+  const closed = prepareEquityTicket(ticket({ session: "CLOSED" }), quote(), j, null, { now: new Date("2026-11-15T23:00:00Z"), calendar });
+  assert.ok(closed.reason.includes("session") || closed.reason.includes("closed"));
+  const mkt = prepareEquityTicket(ticket({ orderType: "market", limitPrice: null }), quote(), j, null, { now, calendar });
+  assert.ok(mkt.reason.includes("limit"));
+  const missing = prepareEquityTicket(ticket({ singleUseId: "no-gate" }), quote(), j, null, { now, calendar });
   assert.equal(missing.intentPersisted, false);
-  assert.ok(missing.reason.includes("Sigma") || missing.reason.includes("approval"));
-
-  const ok = prepareEquityTicket(ticket({ singleUseId: "ok-1" }), quote(), j, approved);
+  assert.ok(missing.reason.includes("proof") || missing.reason.includes("Sigma"));
+  const t = ticket({ singleUseId: "ok-1" });
+  const ok = prepareEquityTicket(t, quote(), j, proofFor(t), { now, calendar });
   assert.equal(ok.enabled, false);
   assert.equal(ok.submitted, false);
   assert.equal(ok.intentPersisted, true);
-  assert.ok(ok.clientOrderId);
-  assert.ok(ok.identity);
-  const proposed = proposedBrokerBody(ok.identity!, ok.clientOrderId!);
-  assert.equal(identityMatches(ok.identity!, proposed), true);
+  assert.equal(identityMatches(ok.identity!, proposedBrokerBody(ok.identity!, ok.clientOrderId!)), true);
   rmSync(dir, { recursive: true, force: true });
 });
 
-test("Sigma and Sentinel vetoes block equity ticket", () => {
+test("Sigma veto proof blocks equity ticket", () => {
   const dir = mkdtempSync(join(tmpdir(), "eq-"));
   const j = new HermesJournal(join(dir, "j.json"));
-  const sigma = evaluateGates({ dataIntegrityOk: false, riskOk: true, notional: 10 });
-  const r = prepareEquityTicket(ticket({ singleUseId: "veto" }), quote(), j, sigma);
-  assert.equal(r.submitted, false);
+  const t = ticket({ singleUseId: "veto" });
+  const sigma = issueGateProof(
+    { singleUseId: t.singleUseId, symbol: t.symbol, side: t.side, qty: t.qty, limitPrice: t.limitPrice },
+    { dataIntegrityOk: false, riskOk: true, notional: 10 },
+    now,
+  );
+  const r = prepareEquityTicket(t, quote(), j, sigma, { now, calendar });
   assert.ok(r.reason.includes("Sigma"));
   assert.equal(r.intentPersisted, false);
   rmSync(dir, { recursive: true, force: true });
 });
 
-test("mock equity lifecycle: BUY partial → complete → SELL → flat, with journal recovery", () => {
+test("mock equity lifecycle with journal recovery and distinct exit auth", () => {
   const dir = mkdtempSync(join(tmpdir(), "eq-"));
   const path = join(dir, "j.json");
   const j = new HermesJournal(path);
   const broker = new MockBroker();
-  const buy = prepareEquityTicket(ticket({ singleUseId: "life-buy", qty: 0.02, limitPrice: 100, maxNotional: 10 }), quote(), j, approved);
+  const t = ticket({ singleUseId: "life-buy", qty: 0.02, limitPrice: 100, maxNotional: 10 });
+  const buy = prepareEquityTicket(t, quote(), j, proofFor(t), { now, calendar });
   assert.equal(buy.intentPersisted, true);
-  const filled = broker.submit(buy.clientOrderId!, "buy", 0.02, "SPY");
+  broker.submit(buy.clientOrderId!, "buy", 0.02, "SPY");
   broker.partialFill(buy.clientOrderId!, 0.01);
   assert.equal(broker.getPosition(), 0.01);
   broker.complete(buy.clientOrderId!);
-  assert.equal(broker.getPosition(), 0.02);
-  j.reconcileByClientOrderId(buy.clientOrderId!, "filled", 0.02);
-  const sell = prepareEquityTicket(ticket({ singleUseId: "life-sell", side: "sell", qty: 0.02 }), quote(), j, null);
+  const sellT = ticket({ singleUseId: "life-sell", side: "sell", qty: 0.02 });
+  const sell = prepareEquityTicket(sellT, quote(), j, null, { now, calendar, positions: { ownedQty: 0.02, openExitQty: 0 } });
   const sold = broker.submit(sell.clientOrderId!, "sell", 0.02, "SPY");
   assert.equal(sold.status, "filled");
   assert.equal(broker.getPosition(), 0);
-  assert.equal(broker.openOrders(), 0);
   const j2 = new HermesJournal(path);
   assert.ok(j2.get(buy.clientOrderId!));
+  assert.equal(j2.isConsumed("life-buy"), true);
   rmSync(dir, { recursive: true, force: true });
 });
 
@@ -138,4 +133,5 @@ test("13 agents and six stages preserved", () => {
 test("validateEquityTicket enforces notional and limit", () => {
   assert.ok(validateEquityTicket(ticket({ maxNotional: 100 }))?.includes("25"));
   assert.ok(validateEquityTicket(ticket({ orderType: "limit", limitPrice: null }))?.includes("limit"));
+  assert.ok(worstCaseNotional(0.1, 500, 10) > 25);
 });

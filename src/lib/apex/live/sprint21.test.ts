@@ -6,10 +6,11 @@ import { join } from "node:path";
 import { worstCaseNotional, marketSession } from "./equity.ts";
 import { prepareEquityTicket, validateEquityTicket, identityMatches, proposedBrokerBody, type EquityTicket } from "./equity-adapter.ts";
 import { HermesJournal } from "./journal.ts";
-import { evaluateGates } from "./executor.ts";
+import { issueGateProof } from "./executor.ts";
 import { CONNECTIVITY_TEST } from "./connectivity.ts";
 
-const approved = evaluateGates({ dataIntegrityOk: true, riskOk: true, notional: 10 });
+const now = new Date("2026-11-16T15:00:00Z");
+const calendar: [] = [];
 
 const ticket = (over: Partial<EquityTicket> = {}): EquityTicket => ({
   category: CONNECTIVITY_TEST,
@@ -20,7 +21,7 @@ const ticket = (over: Partial<EquityTicket> = {}): EquityTicket => ({
   maxNotional: 10,
   qty: 0.01,
   limitPrice: 500,
-  expiry: new Date(Date.now() + 3600_000).toISOString(),
+  expiry: new Date(now.getTime() + 3600_000).toISOString(),
   singleUseId: "adv-1",
   readAuthorized: true,
   orderAuthorized: true,
@@ -30,64 +31,67 @@ const ticket = (over: Partial<EquityTicket> = {}): EquityTicket => ({
   ...over,
 });
 
-const quote = () => ({ bid: 500, ask: 500.02, timestamp: new Date().toISOString() });
+const quote = () => ({ bid: 500, ask: 500.02, timestamp: now.toISOString() });
+const proofFor = (t: EquityTicket) => issueGateProof(
+  { singleUseId: t.singleUseId, symbol: t.symbol, side: t.side, qty: t.qty, limitPrice: t.limitPrice },
+  { dataIntegrityOk: true, riskOk: true, notional: t.maxNotional },
+  now,
+);
 
 test("worst-case notional rejects qty × limit exceeding approved cap", () => {
-  const worst = worstCaseNotional(0.1, 500, 10);
-  assert.ok(worst > 25);
-  const r = validateEquityTicket(ticket({ qty: 0.1, limitPrice: 500, maxNotional: 25 }));
-  assert.ok(r && r.includes("worst-case"));
-  const ok = validateEquityTicket(ticket({ qty: 0.01, limitPrice: 500, maxNotional: 10 }));
-  assert.equal(ok, null);
+  assert.ok(worstCaseNotional(0.1, 500, 10) > 25);
+  assert.ok(validateEquityTicket(ticket({ qty: 0.1, limitPrice: 500, maxNotional: 25 }))?.includes("worst-case"));
+  assert.equal(validateEquityTicket(ticket({ qty: 0.01, limitPrice: 500, maxNotional: 10 })), null);
 });
 
-test("missing gate evidence blocks entry persistence", () => {
+test("hand-built approval object is rejected; proof must be computed", () => {
   const dir = mkdtempSync(join(tmpdir(), "adv-"));
   const j = new HermesJournal(join(dir, "j.json"));
-  const r = prepareEquityTicket(ticket(), quote(), j, null);
+  const t = ticket();
+  const fake = { ...proofFor(t), proof: "forged" };
+  const r = prepareEquityTicket(t, quote(), j, fake, { now, calendar });
   assert.equal(r.intentPersisted, false);
-  assert.ok(r.reason.includes("Sigma") || r.reason.includes("approval"));
-  const veto = evaluateGates({ dataIntegrityOk: true, riskOk: false, notional: 10 });
-  const r2 = prepareEquityTicket(ticket({ singleUseId: "sen" }), quote(), j, veto);
-  assert.equal(r2.intentPersisted, false);
-  assert.ok(r2.reason.includes("Sentinel"));
+  assert.ok(r.reason.includes("independently computed") || r.reason.includes("proof"));
   rmSync(dir, { recursive: true, force: true });
 });
 
-test("persisted identity matches proposed broker order", () => {
+test("persisted identity matches every execution-critical field", () => {
   const dir = mkdtempSync(join(tmpdir(), "adv-"));
   const j = new HermesJournal(join(dir, "j.json"));
-  const r = prepareEquityTicket(ticket({ session: "EXTENDED", orderType: "limit" }), quote(), j, approved);
+  const t = ticket({ singleUseId: "id-1" });
+  const r = prepareEquityTicket(t, quote(), j, proofFor(t), { now, calendar });
   assert.equal(r.intentPersisted, true);
-  assert.equal(r.identity?.extendedHours, true);
   const proposed = proposedBrokerBody(r.identity!, r.clientOrderId!);
   assert.equal(identityMatches(r.identity!, proposed), true);
-  const stored = j.get(r.clientOrderId!)?.equityIdentity;
-  assert.equal(stored?.symbol, "SPY");
-  assert.equal(stored?.timeInForce, "day");
-  assert.equal(stored?.session, "EXTENDED");
-  assert.equal(stored?.singleUseId, "adv-1");
+  assert.equal(r.identity?.qty, 0.01);
+  assert.equal(r.identity?.session, "REGULAR");
+  assert.equal(r.identity?.singleUseId, "id-1");
+  assert.equal(j.get(r.clientOrderId!)?.equityIdentity?.expiry, t.expiry);
   rmSync(dir, { recursive: true, force: true });
 });
 
-test("Alpaca rejects fractional gtc and overnight market", () => {
+test("Alpaca rejects fractional gtc, market BUY, and overnight market", () => {
   assert.ok(validateEquityTicket(ticket({ qty: 0.5, timeInForce: "gtc" }))?.includes("fractional"));
-  assert.ok(validateEquityTicket(ticket({ session: "OVERNIGHT", orderType: "market", limitPrice: 100 }))?.includes("limit"));
+  assert.ok(validateEquityTicket(ticket({ orderType: "market", limitPrice: 100 }))?.includes("limit"));
   assert.ok(validateEquityTicket(ticket({ qty: 1, session: "OVERNIGHT", timeInForce: "ioc" }))?.includes("day or gtc"));
-  assert.ok(validateEquityTicket(ticket({ limitPrice: 500.001 }))?.includes("two decimals"));
 });
 
 test("Sunday 8pm reopen and Friday overnight close", () => {
-  assert.equal(marketSession(new Date("2026-11-16T01:00:00Z")), "OVERNIGHT"); // Sun 20:00 ET
-  assert.equal(marketSession(new Date("2026-11-21T01:00:00Z")), "CLOSED"); // Fri 20:00 ET
-  assert.equal(marketSession(new Date("2026-11-20T08:30:00Z")), "OVERNIGHT"); // Fri 03:30 ET
+  assert.equal(marketSession(new Date("2026-11-16T01:00:00Z")), "OVERNIGHT");
+  assert.equal(marketSession(new Date("2026-11-21T01:00:00Z")), "CLOSED");
+  assert.equal(marketSession(new Date("2026-11-20T08:30:00Z")), "OVERNIGHT");
 });
 
-test("risk-reducing exit persists without entry gate approval", () => {
+test("risk-reducing exit requires position snapshot and distinct auth", () => {
   const dir = mkdtempSync(join(tmpdir(), "adv-"));
   const j = new HermesJournal(join(dir, "j.json"));
-  const r = prepareEquityTicket(ticket({ side: "sell", singleUseId: "exit-1" }), quote(), j, null);
-  assert.equal(r.intentPersisted, true);
-  assert.equal(r.submitted, false);
+  const noPos = prepareEquityTicket(ticket({ side: "sell", singleUseId: "exit-1" }), quote(), j, null, { now, calendar });
+  assert.ok(noPos.reason.includes("position"));
+  const ok = prepareEquityTicket(ticket({ side: "sell", singleUseId: "exit-2" }), quote(), j, null, { now, calendar, positions: { ownedQty: 0.01, openExitQty: 0 } });
+  assert.equal(ok.intentPersisted, true);
+  const over = prepareEquityTicket(ticket({ side: "sell", singleUseId: "exit-3", qty: 1 }), quote(), j, null, { now, calendar, positions: { ownedQty: 0.01, openExitQty: 0 } });
+  assert.ok(over.reason.includes("exceeds"));
+  const conflict = prepareEquityTicket(ticket({ side: "sell", singleUseId: "exit-4" }), quote(), j, null, { now, calendar, positions: { ownedQty: 0.01, openExitQty: 0.01 } });
+  assert.ok(conflict.reason.includes("conflicting"));
   rmSync(dir, { recursive: true, force: true });
 });

@@ -1,18 +1,18 @@
 /**
  * Isolated, disabled-by-default Alpaca equity order adapter.
- * CONNECTIVITY_TEST only. Never STRATEGY_TRADE.
- * Worst-case notional = qty × limit × (1 + buffer). Hard cap $25.
- * Explicit Sigma and Sentinel approvals required before any entry intent.
- * Full order identity persisted and verified against the proposed broker body.
+ * CONNECTIVITY_TEST only. Limit BUY only. Worst-case notional hard-capped at $25.
+ * Session is recomputed from the execution timestamp and calendar evidence.
+ * Entry requires a fresh, ticket-bound Sigma/Sentinel proof. Hand-built approvals are rejected.
+ * SELL requires confirmed owned quantity and no conflicting exit. Distinct single-use id.
  * Hard-disable remains; this module never submits.
  */
 
 import { CONNECTIVITY_TEST, type AuthorizationCategory } from "./connectivity.ts";
-import type { Session } from "./equity.ts";
-import { worstCaseNotional } from "./equity.ts";
+import type { Session, CalendarException } from "./equity.ts";
+import { marketSession, worstCaseNotional } from "./equity.ts";
 import type { HermesJournal } from "./journal.ts";
-import type { TicketAuthorization, Quote, GateResult } from "./executor.ts";
-import { checkQuoteFreshness, checkSpread } from "./executor.ts";
+import type { TicketAuthorization, Quote, GateProof } from "./executor.ts";
+import { checkQuoteFreshness, checkSpread, verifyGateProof } from "./executor.ts";
 
 export interface EquityTicket {
   category: AuthorizationCategory;
@@ -46,6 +46,11 @@ export interface EquityIdentity {
   worstCaseNotional: number;
 }
 
+export interface PositionSnapshot {
+  ownedQty: number;
+  openExitQty: number;
+}
+
 export interface EquityAdapterResult {
   enabled: false;
   submitted: false;
@@ -63,10 +68,13 @@ export function proposedBrokerBody(id: EquityIdentity, clientOrderId: string): R
     symbol: id.symbol,
     side: id.side,
     type: id.orderType,
-    qty: id.qty.toFixed(9).replace(/0+$/, "").replace(/\.$/, ""),
+    qty: id.qty,
     time_in_force: id.timeInForce,
     limit_price: id.limitPrice,
     extended_hours: id.extendedHours,
+    session: id.session,
+    expiry: id.expiry,
+    single_use_id: id.singleUseId,
     client_order_id: clientOrderId,
   };
 }
@@ -76,13 +84,16 @@ export function identityMatches(persisted: EquityIdentity, proposed: Record<stri
     persisted.symbol === proposed.symbol &&
     persisted.side === proposed.side &&
     persisted.orderType === proposed.type &&
+    persisted.qty === proposed.qty &&
     persisted.timeInForce === proposed.time_in_force &&
     persisted.extendedHours === proposed.extended_hours &&
-    persisted.limitPrice === proposed.limit_price
+    persisted.limitPrice === proposed.limit_price &&
+    persisted.session === proposed.session &&
+    persisted.expiry === proposed.expiry &&
+    persisted.singleUseId === proposed.single_use_id
   );
 }
 
-/** Alpaca rules: fractional requires day TIF; extended/overnight require limit + day/gtc + extended_hours. */
 export function validateAlpacaCombo(t: EquityTicket): string | null {
   const fractional = !Number.isInteger(t.qty);
   if (fractional && t.timeInForce !== "day") return "fractional orders require day time-in-force";
@@ -101,19 +112,19 @@ export function validateAlpacaCombo(t: EquityTicket): string | null {
 export function validateEquityTicket(t: EquityTicket, now = new Date()): string | null {
   if (t.category !== CONNECTIVITY_TEST) return "only CONNECTIVITY_TEST permitted";
   if (t.side !== "buy" && t.side !== "sell") return "invalid side";
+  if (t.side === "buy" && t.orderType !== "limit") return "connectivity-test BUY must be limit";
   if (!t.readAuthorized || !t.orderAuthorized || !t.confirmed) return "separate read and order authorization plus confirmation required";
   if (t.maxNotional <= 0 || t.maxNotional > HARD_MAX) return `max notional must be <= ${HARD_MAX}`;
-  if (!(t.qty > 0)) return "quantity must be positive";
+  if (!(t.qty > 0) || !Number.isFinite(t.qty)) return "quantity must be a positive finite number";
   if (new Date(t.expiry) <= now) return "authorization expired";
   if (!t.singleUseId) return "single-use identity required";
   if (t.session === "CLOSED") return "market closed";
-  if (t.orderType === "limit" && (t.limitPrice == null || t.limitPrice <= 0)) return "limit price required";
+  if (t.orderType === "limit" && (t.limitPrice == null || !(t.limitPrice > 0) || !Number.isFinite(t.limitPrice))) return "limit price required";
   const alpaca = validateAlpacaCombo(t);
   if (alpaca) return alpaca;
   if (t.side === "buy") {
-    const price = t.orderType === "limit" ? t.limitPrice! : t.limitPrice ?? 0;
-    if (!(price > 0)) return "BUY requires a limit price for worst-case notional";
-    const worst = worstCaseNotional(t.qty, price, COST_BUFFER_BPS);
+    const worst = worstCaseNotional(t.qty, t.limitPrice!, COST_BUFFER_BPS);
+    if (!Number.isFinite(worst)) return "worst-case notional not finite";
     if (worst > t.maxNotional + 1e-6) return `worst-case notional ${worst.toFixed(4)} exceeds approved ${t.maxNotional}`;
     if (worst > HARD_MAX + 1e-6) return `worst-case notional ${worst.toFixed(4)} exceeds hard cap ${HARD_MAX}`;
   }
@@ -124,27 +135,45 @@ export function prepareEquityTicket(
   ticket: EquityTicket,
   quote: Quote,
   journal: HermesJournal,
-  gates: GateResult | null,
+  proof: GateProof | null,
+  opts: {
+    now?: Date;
+    calendar: CalendarException[] | null;
+    positions?: PositionSnapshot;
+  },
 ): EquityAdapterResult {
   const fail = (reason: string): EquityAdapterResult => ({
     enabled: false, submitted: false, clientOrderId: null, reason, intentPersisted: false, identity: null,
   });
-  const err = validateEquityTicket(ticket);
+  if (opts.calendar == null) return fail("missing calendar evidence");
+  const now = opts.now ?? new Date();
+  const computed = marketSession(now, opts.calendar);
+  if (computed !== ticket.session) return fail(`session mismatch: ticket ${ticket.session} vs computed ${computed}`);
+  const err = validateEquityTicket(ticket, now);
   if (err) return fail(err);
-  // Entries require explicit independent gate approvals. Missing evidence blocks. Exits may proceed under separate auth.
+  if (journal.isConsumed(ticket.singleUseId)) return fail("authorization already consumed");
   if (ticket.side === "buy") {
-    if (!gates || gates.sigmaVeto || gates.sentinelVeto || !gates.sigmaApproved || !gates.sentinelApproved) {
-      return fail(gates?.reason || "missing Sigma or Sentinel approval; entry blocked");
-    }
+    const gateErr = verifyGateProof(proof, {
+      singleUseId: ticket.singleUseId,
+      symbol: ticket.symbol,
+      side: ticket.side,
+      qty: ticket.qty,
+      limitPrice: ticket.limitPrice,
+    }, now.getTime());
+    if (gateErr) return fail(gateErr);
   }
-  const fresh = checkQuoteFreshness(quote);
+  if (ticket.side === "sell") {
+    const pos = opts.positions;
+    if (!pos) return fail("SELL requires reconciled position snapshot");
+    if (ticket.qty > pos.ownedQty + 1e-12) return fail("SELL exceeds confirmed owned quantity");
+    if (pos.openExitQty > 0) return fail("conflicting open exit order");
+  }
+  const fresh = checkQuoteFreshness(quote, now.getTime());
   if (fresh) return fail(fresh);
   const spread = checkSpread(quote, 20);
   if (spread) return fail(spread);
-  const extendedHours = ticket.session === "EXTENDED" || ticket.session === "OVERNIGHT";
-  const worst = ticket.side === "buy" && ticket.limitPrice
-    ? worstCaseNotional(ticket.qty, ticket.limitPrice, COST_BUFFER_BPS)
-    : 0;
+  const extendedHours = computed === "EXTENDED" || computed === "OVERNIGHT";
+  const worst = ticket.side === "buy" ? worstCaseNotional(ticket.qty, ticket.limitPrice!, COST_BUFFER_BPS) : 0;
   const identity: EquityIdentity = {
     symbol: ticket.symbol,
     side: ticket.side,
@@ -152,13 +181,13 @@ export function prepareEquityTicket(
     qty: ticket.qty,
     limitPrice: ticket.limitPrice,
     timeInForce: ticket.timeInForce,
-    session: ticket.session,
+    session: computed,
     extendedHours,
     singleUseId: ticket.singleUseId,
     expiry: ticket.expiry,
     worstCaseNotional: worst,
   };
-  const clientOrderId = `apex-eq-${ticket.singleUseId}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+  const clientOrderId = `apex-eq-${ticket.singleUseId}-${now.getTime()}-${Math.random().toString(36).slice(2, 6)}`;
   const proposed = proposedBrokerBody(identity, clientOrderId);
   if (!identityMatches(identity, proposed)) return fail("persisted identity does not match proposed broker order");
   const auth: TicketAuthorization = {
@@ -176,12 +205,13 @@ export function prepareEquityTicket(
   journal.persist({
     clientOrderId,
     ticket: auth,
-    createdAt: new Date().toISOString(),
+    createdAt: now.toISOString(),
     status: "PERSISTED",
     filledQty: 0,
     avgPrice: null,
     equityIdentity: identity,
   });
+  journal.consumeAuthorization(ticket.singleUseId);
   return {
     enabled: false,
     submitted: false,

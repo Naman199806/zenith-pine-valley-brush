@@ -1,21 +1,48 @@
 {
-  "report": "GET-only US equity eligibility verification template",
+  "report": "GET-only Alpaca equity preflight for SPY, QQQ, IWM",
   "status": "NOT_INITIATED",
-  "reason": "No separate LIVE read authorization was initiated by the local operator. Credentials were not accessed.",
-  "candidates": ["SPY", "QQQ", "IWM"],
-  "requiredChecks": [
-    "GET /v2/assets/{symbol} for tradable, fractionable, min_order_size, min_trade_increment",
-    "GET /v2/account for ACTIVE, trading_blocked, account_blocked, buying_power, crypto not required",
-    "GET /v2/positions and GET /v2/orders?status=open",
-    "Fresh quote bid/ask/timestamp within 15s and 20 bps spread"
-  ],
-  "rulesAppliedLocally": {
-    "worstCaseNotional": "qty × limitPrice × (1 + 10 bps)",
-    "hardCap": 25,
-    "fractional": "day time-in-force only",
-    "extendedOvernight": "limit only, day or gtc, extended_hours true",
-    "overnightWindow": "Sunday 20:00 ET through Friday 04:00 ET",
-    "closedWindow": "Friday 20:00 ET through Sunday 20:00 ET"
+  "reason": "No operator-initiated LIVE read authorization. Credentials were not accessed. Unperformed checks are UNKNOWN, not PASS.",
+  "symbols": {
+    "SPY": {
+      "accountActive": "UNKNOWN",
+      "tradingBlocked": "UNKNOWN",
+      "accountBlocked": "UNKNOWN",
+      "buyingPower": "UNKNOWN",
+      "positions": "UNKNOWN",
+      "openOrders": "UNKNOWN",
+      "tradable": "UNKNOWN",
+      "fractionable": "UNKNOWN",
+      "overnightEligible": "UNKNOWN",
+      "minOrderSize": "UNKNOWN",
+      "quoteFreshness": "UNKNOWN"
+    },
+    "QQQ": {
+      "accountActive": "UNKNOWN",
+      "tradingBlocked": "UNKNOWN",
+      "accountBlocked": "UNKNOWN",
+      "buyingPower": "UNKNOWN",
+      "positions": "UNKNOWN",
+      "openOrders": "UNKNOWN",
+      "tradable": "UNKNOWN",
+      "fractionable": "UNKNOWN",
+      "overnightEligible": "UNKNOWN",
+      "minOrderSize": "UNKNOWN",
+      "quoteFreshness": "UNKNOWN"
+    },
+    "IWM": {
+      "accountActive": "UNKNOWN",
+      "tradingBlocked": "UNKNOWN",
+      "accountBlocked": "UNKNOWN",
+      "buyingPower": "UNKNOWN",
+      "positions": "UNKNOWN",
+      "openOrders": "UNKNOWN",
+      "tradable": "UNKNOWN",
+      "fractionable": "UNKNOWN",
+      "overnightEligible": "UNKNOWN",
+      "minOrderSize": "UNKNOWN",
+      "quoteFreshness": "UNKNOWN"
+    }
   },
-  "canSubmit": false
+  "canSubmit": false,
+  "hardDisable": true
 }
