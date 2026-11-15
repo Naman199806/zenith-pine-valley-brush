@@ -1,66 +1,69 @@
 {
-  "baseline": "f55aefbd",
-  "scheduled_eligible_independent": 195,
-  "hypothesis": "Absolute next-session TLT open-to-close return differs between scheduled FOMC events and matched non-event sessions",
-  "full": {
-    "n_event": 195,
-    "n_control": 388,
-    "mean_event": 0.0053352275059070685,
-    "mean_control": 0.004631362919991753,
-    "median_event": 0.004169920929063205,
-    "median_control": 0.0035280652601511336,
-    "diff_means": 0.0007038645859153156,
-    "ci95": [
-      -3.2598672769422205e-05,
-      0.0014403278446000535
-    ],
-    "cohens_d": 0.167896274679797,
-    "approx_p": 0.06103484740467957
+  "baseline": "0f173587",
+  "status": "PERIOD_BOUNDED_RECOMPUTE",
+  "previous_full_sample_status": "HOLDOUT_CONTAMINATED",
+  "contamination_details": {
+    "previous_full_sample_events": 195,
+    "development_events": 133,
+    "validation_events": 47,
+    "post_2024_events_previously_examined": 15,
+    "note": "Original full-sample and bootstrap included 15 post-2024 observations. Control matching previously used sessions outside the evaluation period. Those observations are no longer treated as sealed. This recompute uses only period-bounded events and controls. No further holdout access."
   },
+  "hypothesis": "Absolute next-session TLT open-to-close return differs between scheduled FOMC events and matched non-event sessions within the same chronological period",
   "development_to_2018": {
     "n_event": 133,
     "n_control": 264,
     "mean_event": 0.005239100579972553,
-    "mean_control": 0.0046823946341458395,
+    "mean_control": 0.004716798029150974,
     "median_event": 0.004090815401262334,
-    "median_control": 0.0034979911471244734,
-    "diff_means": 0.0005567059458267132,
+    "median_control": 0.0036039623836797256,
+    "diff_means": 0.000522302550821579,
     "ci95": [
-      -0.0002977860129930517,
-      0.001411197904646478
+      -0.0003314828721447295,
+      0.0013760879737878874
     ],
-    "cohens_d": 0.1332642351227651,
-    "approx_p": 0.20161983940230432
+    "cohens_d": 0.1252270561908568,
+    "approx_p": 0.23051688913937607
   },
   "validation_2019_2024": {
     "n_event": 47,
     "n_control": 94,
     "mean_event": 0.006035074212742404,
-    "mean_control": 0.004431246859280169,
+    "mean_control": 0.004780948295916292,
     "median_event": 0.004972662800366359,
-    "median_control": 0.0034254224973083213,
-    "diff_means": 0.0016038273534622347,
+    "median_control": 0.003590846577211141,
+    "diff_means": 0.0012541259168261125,
     "ci95": [
-      -0.00012294760789610128,
-      0.003330602314820571
+      -0.0004919853080546362,
+      0.003000237141706861
     ],
-    "cohens_d": 0.3645111687773303,
-    "approx_p": 0.06869102087737344
+    "cohens_d": 0.2772684883988282,
+    "approx_p": 0.15920532770699225
   },
-  "bootstrap_full": {
-    "boot_mean": 0.0007075753479929589,
+  "bootstrap_development": {
+    "boot_mean": 0.0005237593592698188,
     "boot_ci95": [
-      -2.396375199439655e-05,
-      0.0014807184321941431
+      -0.0003875089592024006,
+      0.0014048902577052467
     ]
   },
-  "time_status": {
-    "UNVERIFIED": 148,
-    "CONVENTION_2PM_ET_NOT_PAGE_VERIFIED": 47
+  "bootstrap_validation": {
+    "boot_mean": 0.0012346037112119183,
+    "boot_ci95": [
+      -0.0003941819329519869,
+      0.003140231416204965
+    ]
   },
-  "matching": "DOW match, year +/-1, prior-20d median abs-ret within 75%, exclude event next and +/-3d buffer",
+  "time_status_development": {
+    "UNVERIFIED": 133
+  },
+  "time_status_validation": {
+    "UNVERIFIED": 15,
+    "CONVENTION_2PM_ET_NOT_PAGE_VERIFIED": 32
+  },
+  "matching": "Within-period only. DOW match, year +/-1, prior-20d median abs-ret within 75%, exclude event next and +/-3d buffer inside the period.",
   "no_lookahead": true,
   "next_session_only": true,
-  "sealed_holdout_preserved": "post-2024 unused",
-  "multiple_testing_note": "Single primary hypothesis. Prior strategy rejections exist; interpret conservatively."
+  "decision": "NO-GO",
+  "decision_reason": "Period-bounded results remain non-significant with CIs including zero. No independent evidence justifies reconsideration."
 }

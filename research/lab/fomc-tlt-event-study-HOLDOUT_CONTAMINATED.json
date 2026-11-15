@@ -1,0 +1,69 @@
+{
+  "baseline": "f55aefbd",
+  "scheduled_eligible_independent": 195,
+  "hypothesis": "Absolute next-session TLT open-to-close return differs between scheduled FOMC events and matched non-event sessions",
+  "full": {
+    "n_event": 195,
+    "n_control": 388,
+    "mean_event": 0.0053352275059070685,
+    "mean_control": 0.004631362919991753,
+    "median_event": 0.004169920929063205,
+    "median_control": 0.0035280652601511336,
+    "diff_means": 0.0007038645859153156,
+    "ci95": [
+      -3.2598672769422205e-05,
+      0.0014403278446000535
+    ],
+    "cohens_d": 0.167896274679797,
+    "approx_p": 0.06103484740467957
+  },
+  "development_to_2018": {
+    "n_event": 133,
+    "n_control": 264,
+    "mean_event": 0.005239100579972553,
+    "mean_control": 0.0046823946341458395,
+    "median_event": 0.004090815401262334,
+    "median_control": 0.0034979911471244734,
+    "diff_means": 0.0005567059458267132,
+    "ci95": [
+      -0.0002977860129930517,
+      0.001411197904646478
+    ],
+    "cohens_d": 0.1332642351227651,
+    "approx_p": 0.20161983940230432
+  },
+  "validation_2019_2024": {
+    "n_event": 47,
+    "n_control": 94,
+    "mean_event": 0.006035074212742404,
+    "mean_control": 0.004431246859280169,
+    "median_event": 0.004972662800366359,
+    "median_control": 0.0034254224973083213,
+    "diff_means": 0.0016038273534622347,
+    "ci95": [
+      -0.00012294760789610128,
+      0.003330602314820571
+    ],
+    "cohens_d": 0.3645111687773303,
+    "approx_p": 0.06869102087737344
+  },
+  "bootstrap_full": {
+    "boot_mean": 0.0007075753479929589,
+    "boot_ci95": [
+      -2.396375199439655e-05,
+      0.0014807184321941431
+    ]
+  },
+  "time_status": {
+    "UNVERIFIED": 148,
+    "CONVENTION_2PM_ET_NOT_PAGE_VERIFIED": 47
+  },
+  "matching": "DOW match, year +/-1, prior-20d median abs-ret within 75%, exclude event next and +/-3d buffer",
+  "no_lookahead": true,
+  "next_session_only": true,
+  "sealed_holdout_preserved": "post-2024 unused",
+  "multiple_testing_note": "Single primary hypothesis. Prior strategy rejections exist; interpret conservatively.",
+  "status": "HOLDOUT_CONTAMINATED",
+  "contamination_note": "Full-sample (195 events) and bootstrap included 15 post-2024 observations. Control matching used sessions outside designated periods. Do not treat post-2024 as sealed or untouched. Preserved for audit; superseded by period-bounded recompute.",
+  "exposed_post_2024_events": 15
+}
