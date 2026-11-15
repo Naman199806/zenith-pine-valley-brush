@@ -1,0 +1,240 @@
+{
+  "evaluatedAt": "2026-11-15T06:51:00.190Z",
+  "flags": {
+    "LIVE": false,
+    "PAPER_AUTO": false,
+    "strategyApproved": false
+  },
+  "agents": [
+    {
+      "role": "scout",
+      "state": "DETERMINISTIC",
+      "asOf": "2026-11-15T06:51:00.038Z",
+      "freshness": "FRESH",
+      "evidence": {
+        "scanned": [
+          {
+            "symbol": "BTC/USD",
+            "last": "2026-11-13T00:00:00.000Z",
+            "bars": 1048
+          },
+          {
+            "symbol": "ETH/USD",
+            "last": "2026-11-13T00:00:00.000Z",
+            "bars": 1048
+          },
+          {
+            "symbol": "SPY",
+            "last": "2026-11-11",
+            "bars": 8505
+          },
+          {
+            "symbol": "QQQ",
+            "last": "2026-11-11",
+            "bars": 6963
+          },
+          {
+            "symbol": "IWM",
+            "last": "2026-11-11",
+            "bars": 6655
+          },
+          {
+            "symbol": "GLD",
+            "last": "2026-11-11",
+            "bars": 5530
+          },
+          {
+            "symbol": "TLT",
+            "last": "2026-11-11",
+            "bars": 6112
+          },
+          {
+            "symbol": "BIL",
+            "last": "2026-11-11",
+            "bars": 4896
+          }
+        ]
+      },
+      "effect": "ADVISORY",
+      "modelCall": false,
+      "error": null
+    },
+    {
+      "role": "vector",
+      "state": "DETERMINISTIC",
+      "asOf": "2026-11-15T06:51:00.038Z",
+      "freshness": "FRESH",
+      "evidence": {
+        "signal": "WAIT",
+        "rsi": 12.53697329052909,
+        "bars": 1048,
+        "lastBar": "2026-11-13T00:00:00.000Z"
+      },
+      "effect": "ADVISORY",
+      "modelCall": false,
+      "error": null
+    },
+    {
+      "role": "atlas",
+      "state": "NOT_APPLICABLE",
+      "asOf": "2026-11-15T06:51:00.038Z",
+      "freshness": "NOT_APPLICABLE",
+      "evidence": {
+        "symbol": "BTC/USD"
+      },
+      "effect": "NONE",
+      "modelCall": false,
+      "error": "spot crypto has no equity fundamental statement"
+    },
+    {
+      "role": "oracle",
+      "state": "DETERMINISTIC",
+      "asOf": "2026-11-15T06:51:00.038Z",
+      "freshness": "UNAVAILABLE",
+      "evidence": {
+        "count": 5,
+        "latest": {
+          "source": "federal-reserve-rss",
+          "title": "Agencies extend comment period for proposed third-party risk management guidance",
+          "published": "<![CDATA[Fri, 13 Nov 2026 21:15:00 GMT]]>",
+          "url": "<![CDATA[https://www.federalreserve.gov/newsevents/pressreleases/bcreg20261113a.htm]]>"
+        }
+      },
+      "effect": "ADVISORY",
+      "modelCall": false,
+      "error": null
+    },
+    {
+      "role": "pulse",
+      "state": "DETERMINISTIC",
+      "asOf": "2026-11-15T06:51:00.038Z",
+      "freshness": "FRESH",
+      "evidence": {
+        "count": 5,
+        "latest": {
+          "source": "sec-press-rss",
+          "title": "SEC Proposes Executive and Director Compensation Disclosure Reforms",
+          "published": "Fri, 13 Nov 2026 11:57:00 -0500",
+          "url": "https://www.sec.gov/newsroom/press-releases/2026-114-sec-proposes-executive-director-compensation-disclosure-reforms"
+        },
+        "kind": "sec-press-release"
+      },
+      "effect": "ADVISORY",
+      "modelCall": false,
+      "error": null
+    },
+    {
+      "role": "volta",
+      "state": "DETERMINISTIC",
+      "asOf": "2026-11-15T06:51:00.038Z",
+      "freshness": "FRESH",
+      "evidence": {
+        "count": 1,
+        "latest": {
+          "source": "yahoo-vix",
+          "title": "VIX 19.3",
+          "published": "2026-11-13T21:15:01.000Z",
+          "url": "https://finance.yahoo.com/quote/%5EVIX"
+        },
+        "limitation": "VIX index only; not options positioning"
+      },
+      "effect": "ADVISORY",
+      "modelCall": false,
+      "error": null
+    },
+    {
+      "role": "bull",
+      "state": "BLOCKED",
+      "asOf": "2026-11-15T06:51:00.038Z",
+      "freshness": "UNAVAILABLE",
+      "evidence": {},
+      "effect": "NONE",
+      "modelCall": false,
+      "error": "paid Bull call blocked"
+    },
+    {
+      "role": "bear",
+      "state": "BLOCKED",
+      "asOf": "2026-11-15T06:51:00.038Z",
+      "freshness": "UNAVAILABLE",
+      "evidence": {},
+      "effect": "NONE",
+      "modelCall": false,
+      "error": "paid Bear call blocked"
+    },
+    {
+      "role": "sigma",
+      "state": "DETERMINISTIC",
+      "asOf": "2026-11-15T06:51:00.038Z",
+      "freshness": "FRESH",
+      "evidence": {
+        "selected": "NO_WINNER",
+        "signal": "WAIT"
+      },
+      "effect": "VETO",
+      "modelCall": false,
+      "error": null
+    },
+    {
+      "role": "sentinel",
+      "state": "DETERMINISTIC",
+      "asOf": "2026-11-15T06:51:00.038Z",
+      "freshness": "FRESH",
+      "evidence": {
+        "reasons": [
+          "strategyApproved=false",
+          "no frozen candidate passed independent validation",
+          "XAI_BILLING_LOCK active"
+        ]
+      },
+      "effect": "VETO",
+      "modelCall": false,
+      "error": null
+    },
+    {
+      "role": "allocator",
+      "state": "DETERMINISTIC",
+      "asOf": "2026-11-15T06:51:00.038Z",
+      "freshness": "FRESH",
+      "evidence": {
+        "skipped": true,
+        "maxUsd": 25
+      },
+      "effect": "SIZE",
+      "modelCall": false,
+      "error": "no eligible BUY after Sigma/Sentinel"
+    },
+    {
+      "role": "pilot",
+      "state": "DETERMINISTIC",
+      "asOf": "2026-11-15T06:51:00.038Z",
+      "freshness": "FRESH",
+      "evidence": {
+        "action": "NO_TRADE",
+        "qty": 0,
+        "reason": "fresh risk verdict failed",
+        "brokerWrites": 0
+      },
+      "effect": "PLAN",
+      "modelCall": false,
+      "error": null
+    },
+    {
+      "role": "hermes",
+      "state": "DETERMINISTIC",
+      "asOf": "2026-11-15T06:51:00.038Z",
+      "freshness": "FRESH",
+      "evidence": {
+        "journal": true,
+        "decision": "NO_TRADE"
+      },
+      "effect": "JOURNAL",
+      "modelCall": false,
+      "error": null
+    }
+  ],
+  "decision": "NO_TRADE",
+  "selected": "NO_WINNER",
+  "brokerWrites": 0,
+  "aiModelCalls": 0
+}
