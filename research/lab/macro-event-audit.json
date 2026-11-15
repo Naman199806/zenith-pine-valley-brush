@@ -1,0 +1,60 @@
+{
+  "retrievedUtc": "2026-11-15T07:56:54.377629+00:00",
+  "baseline": "e15ff5ba",
+  "fomc": {
+    "total": 310,
+    "scheduled": 264,
+    "unscheduled": 40,
+    "canceled": 1,
+    "notationVote": 5,
+    "withStatementUrl": 134,
+    "timeStatus": {
+      "UNVERIFIED": 256,
+      "CONVENTION_2PM_ET_NOT_PAGE_VERIFIED": 48,
+      "NOT_APPLICABLE": 6
+    },
+    "samplePageVerification": {
+      "monetary20260128a.htm": "2:00 p.m. confirmed",
+      "monetary20250319a.htm": "2:00 p.m. confirmed",
+      "monetary20241218a.htm": "2:00 p.m. confirmed",
+      "monetary20150128a.htm": "time string not found in page"
+    },
+    "coverageNextSession": {
+      "eligibleAll3": 303,
+      "missing": 1,
+      "missingDetail": "2026-12-09 statement (future relative to market data ending 2026-11-11)"
+    },
+    "years": "1994-2026"
+  },
+  "cpi": {
+    "total": 227,
+    "withTime": 227,
+    "timeStatus": "SCHEDULE_TIME (08:30 AM ET from BLS schedule pages)",
+    "originalValues": "NOT_RETRIEVED",
+    "originalValueNote": "BLS schedule pages list date and time only. Originally published headline values require parsing individual news-release archives; not retrieved in this pass.",
+    "coverageNextSession": {
+      "eligibleAll3": 226,
+      "missing": 1,
+      "missingDetail": "2026-12-10 release (future relative to market data ending 2026-11-11)"
+    },
+    "earliest": "2008-01-16"
+  },
+  "marketData": {
+    "SPY": "1993-01-29 to 2026-11-11 (8505 bars)",
+    "QQQ": "1999-03-10 to 2026-11-11",
+    "TLT": "2002-07-30 to 2026-11-11",
+    "source": "research/data/raw/yahoo/20261112/"
+  },
+  "backtesterTemporal": {
+    "status": "NO_MISALIGNMENT_FOUND",
+    "note": "FMZ engine fills at next bar open then marks equity at next bar close (post-fill). Main daily engine closes positions by day end. No use of pre-fill price for post-fill mark."
+  },
+  "methodology": "Executable next-session event study only. Use the first daily bar strictly after the statement date as the post-event observation. Do not use the statement-day close for FOMC (14:00 ET is during the session). Do not infer any intraday execution price from daily OHLC. CPI 08:30 ET is pre-open so statement-day open is post-event, but still not a precise 08:30 fill.",
+  "verdict": "TESTABLE_NEXT_SESSION",
+  "notTestable": [
+    "intraday reaction window",
+    "same-session FOMC fill at announcement time",
+    "originally published CPI surprise magnitude",
+    "pre-event fill using statement-day close for FOMC"
+  ]
+}
