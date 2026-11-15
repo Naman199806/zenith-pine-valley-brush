@@ -8,7 +8,6 @@ export interface SerializedOrder {
 
 export function serializeOrder(input: { symbol: string; qty: number; side: "buy" | "sell"; clientOrderId: string }): SerializedOrder {
   if (!(input.qty > 0)) throw new Error("quantity must be positive");
-  if (input.symbol === "BTC/USD" && input.qty * 65000 < 1 && input.qty < 0.0001) throw new Error("below minimum notional");
   const qty = Math.floor(input.qty * 1e8) / 1e8;
   const url = `${PAPER_TRADING_ORIGIN}/v2/orders`;
   assertPaperUrl(url);

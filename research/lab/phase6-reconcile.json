@@ -1,0 +1,13 @@
+{
+  "checkedAt": "2026-11-15T07:15:51.742Z",
+  "mode": "READ_ONLY",
+  "accountStatus": "ACTIVE",
+  "positions": 0,
+  "openOrders": 0,
+  "recentOrders": 20,
+  "reconciliation": {
+    "ok": true,
+    "entriesBlocked": false,
+    "notes": []
+  }
+}
