@@ -1,0 +1,97 @@
+{
+  "audit": {
+    "equities": {
+      "symbols": [
+        "SPY",
+        "QQQ",
+        "IWM",
+        "GLD",
+        "TLT",
+        "BIL"
+      ],
+      "timeframe": "daily",
+      "source": "Yahoo chart API, split-adjusted OHLC, adjclose separate",
+      "feasibility": 1
+    },
+    "crypto": {
+      "symbols": [
+        "BTC-USD",
+        "ETH-USD"
+      ],
+      "timeframe": "daily",
+      "source": "Coinbase public candles from 2024-01-01",
+      "feasibility": 2
+    },
+    "volatility": {
+      "symbols": [
+        "^VIX"
+      ],
+      "timeframe": "daily index level",
+      "source": "Yahoo chart API fetched 2026-11-15",
+      "note": "not a tradable fill",
+      "feasibility": 1
+    },
+    "missing": [
+      "options chains",
+      "VIX futures",
+      "funding rates",
+      "perp basis",
+      "order book",
+      "historical announcement timestamps"
+    ]
+  },
+  "hypotheses": [
+    {
+      "rank": 1,
+      "id": "spy-vix-regime-v1",
+      "status": "TESTABLE",
+      "mechanism": "equity returns have historically been weaker in high-implied-vol regimes; the premium is paid by hedgers who buy protection"
+    },
+    {
+      "rank": 2,
+      "id": "macro-event-v1",
+      "status": "NOT_TESTABLE",
+      "reason": "no historical point-in-time announcement timestamps aligned to prices"
+    },
+    {
+      "rank": 3,
+      "id": "crypto-funding-basis-v1",
+      "status": "NOT_TESTABLE",
+      "reason": "no historical funding, basis, or executable order-book data"
+    }
+  ],
+  "frozen": {
+    "id": "spy-vix-regime-v1",
+    "frozen": true,
+    "rules": "Long SPY only when the prior completed VIX close is below its own 20-session average. Otherwise cash. Fill SPY at the next open. VIX is a signal only, never a fill. No shorting.",
+    "costsBps": 5,
+    "development": [
+      "1993-01-29",
+      "2023-12-31"
+    ],
+    "validation": [
+      "2024-01-01",
+      "2025-11-10"
+    ],
+    "holdout": "2025-11-11 onward sealed",
+    "fail": "Reject unless validation beats SPY buy-and-hold after costs, has at least 8 trades, and positive net."
+  },
+  "holdoutUsed": false,
+  "multipleTesting": "Ten prior rejected tests plus this one. A single validation window is not statistical proof.",
+  "development": {
+    "trades": 1255,
+    "net": 0.09305507379060063,
+    "maxDd": 0.5185624573472207,
+    "bench": 9.817866231774538,
+    "decision": "REJECTED"
+  },
+  "validation": {
+    "trades": 72,
+    "net": 0.15297305755755142,
+    "maxDd": 0.14445342908320596,
+    "bench": 0.4417433856788522,
+    "decision": "REJECTED"
+  },
+  "selected": "NO_WINNER",
+  "diagnosis": "statistical evidence"
+}
