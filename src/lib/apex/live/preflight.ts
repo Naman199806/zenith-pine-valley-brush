@@ -54,19 +54,28 @@ export interface AssetSchema {
   min_trade_increment?: string;
 }
 
+function finiteNumber(value: unknown, field: string): number {
+  const n = typeof value === "string" || typeof value === "number" ? Number(value) : NaN;
+  if (!Number.isFinite(n)) throw new Error(`${field} is not a finite number`);
+  return n;
+}
+
 function requireAccount(body: unknown): AccountSchema {
   if (!body || typeof body !== "object") throw new Error("account response malformed");
   const a = body as Record<string, unknown>;
   if (typeof a.status !== "string") throw new Error("account status missing");
   if (typeof a.trading_blocked !== "boolean") throw new Error("trading_blocked missing");
-  if (typeof a.buying_power !== "string") throw new Error("buying_power missing");
+  if (a.crypto_status === undefined || a.crypto_status === null) throw new Error("crypto_status missing; fail closed");
+  if (typeof a.crypto_status !== "string") throw new Error("crypto_status malformed");
+  const buyingPower = finiteNumber(a.buying_power, "buying_power");
+  const cash = finiteNumber(a.cash, "cash");
   return {
     status: a.status,
     trading_blocked: a.trading_blocked,
     account_blocked: Boolean(a.account_blocked),
-    buying_power: a.buying_power,
-    cash: String(a.cash ?? "0"),
-    crypto_status: typeof a.crypto_status === "string" ? a.crypto_status : undefined,
+    buying_power: String(buyingPower),
+    cash: String(cash),
+    crypto_status: a.crypto_status,
   };
 }
 
@@ -143,12 +152,12 @@ export async function strictLivePreflight(
     result.accountBlocked = account.account_blocked;
     result.buyingPower = Number(account.buying_power);
     result.cash = Number(account.cash);
-    result.cryptoPermitted = account.crypto_status === "ACTIVE" || account.crypto_status === undefined;
+    result.cryptoPermitted = account.crypto_status === "ACTIVE";
     if (!result.accountActive) blockers.push("account not ACTIVE");
     if (result.tradingBlocked) blockers.push("trading_blocked");
     if (result.accountBlocked) blockers.push("account_blocked");
     if (result.buyingPower != null && result.buyingPower < opts.maxNotional) blockers.push("insufficient buying power");
-    if (result.cryptoPermitted === false) blockers.push("crypto not permitted");
+    if (!result.cryptoPermitted) blockers.push("crypto permission not ACTIVE");
 
     const posUrl = `${LIVE_ORIGIN}/v2/positions`;
     assertStrictLiveGet(posUrl);
