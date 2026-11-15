@@ -63,21 +63,22 @@ export interface EquityAdapterResult {
 const HARD_MAX = 25;
 const COST_BUFFER_BPS = 10;
 
-export function proposedBrokerBody(id: EquityIdentity, clientOrderId: string): Record<string, unknown> {
-  return {
+/** Supported Alpaca order fields only. Journal/auth fields stay off the wire. */
+export function alpacaOrderPayload(id: EquityIdentity, clientOrderId: string): Record<string, unknown> {
+  const body: Record<string, unknown> = {
     symbol: id.symbol,
     side: id.side,
     type: id.orderType,
     qty: id.qty,
     time_in_force: id.timeInForce,
-    limit_price: id.limitPrice,
-    extended_hours: id.extendedHours,
-    session: id.session,
-    expiry: id.expiry,
-    single_use_id: id.singleUseId,
     client_order_id: clientOrderId,
   };
+  if (id.orderType === "limit") body.limit_price = id.limitPrice;
+  if (id.extendedHours) body.extended_hours = true;
+  return body;
 }
+
+export const proposedBrokerBody = alpacaOrderPayload;
 
 export function identityMatches(persisted: EquityIdentity, proposed: Record<string, unknown>): boolean {
   return (
@@ -86,11 +87,12 @@ export function identityMatches(persisted: EquityIdentity, proposed: Record<stri
     persisted.orderType === proposed.type &&
     persisted.qty === proposed.qty &&
     persisted.timeInForce === proposed.time_in_force &&
-    persisted.extendedHours === proposed.extended_hours &&
-    persisted.limitPrice === proposed.limit_price &&
-    persisted.session === proposed.session &&
-    persisted.expiry === proposed.expiry &&
-    persisted.singleUseId === proposed.single_use_id
+    persisted.limitPrice === (proposed.limit_price ?? null) &&
+    persisted.extendedHours === (proposed.extended_hours === true) &&
+    !("session" in proposed) &&
+    !("expiry" in proposed) &&
+    !("single_use_id" in proposed) &&
+    !("worstCaseNotional" in proposed)
   );
 }
 
@@ -188,7 +190,7 @@ export function prepareEquityTicket(
     worstCaseNotional: worst,
   };
   const clientOrderId = `apex-eq-${ticket.singleUseId}-${now.getTime()}-${Math.random().toString(36).slice(2, 6)}`;
-  const proposed = proposedBrokerBody(identity, clientOrderId);
+  const proposed = alpacaOrderPayload(identity, clientOrderId);
   if (!identityMatches(identity, proposed)) return fail("persisted identity does not match proposed broker order");
   const auth: TicketAuthorization = {
     category: ticket.category,

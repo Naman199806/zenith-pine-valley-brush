@@ -14,6 +14,8 @@ export interface AssetEligibility {
   tradable: boolean;
   fractionable: boolean;
   overnightEligible: boolean;
+  fractionalEhEnabled: boolean;
+  overnightHalted: boolean;
   minOrderSize: number | null;
   tickSize: number | null;
   blockers: string[];
@@ -21,8 +23,10 @@ export interface AssetEligibility {
 
 export interface RawAsset {
   symbol?: string;
+  status?: string;
   tradable?: boolean;
   fractionable?: boolean;
+  attributes?: string[];
   overnight_tradable?: boolean;
   min_order_size?: string;
   min_trade_increment?: string;
@@ -31,16 +35,25 @@ export interface RawAsset {
 export function evaluateAsset(raw: RawAsset): AssetEligibility {
   const blockers: string[] = [];
   if (!raw.symbol) blockers.push("symbol missing");
+  if (raw.status != null && raw.status !== "active") blockers.push("asset not active");
   if (raw.tradable !== true) blockers.push("not tradable");
+  const attrs = new Set(raw.attributes ?? []);
+  const overnight = attrs.has("overnight_tradable") || raw.overnight_tradable === true;
+  const halted = attrs.has("overnight_halted");
+  const fractionalEh = attrs.has("fractional_eh_enabled");
+  if (halted) blockers.push("overnight halted");
+  // Equities do not use crypto min_order_size. Absence is not a blocker.
   const min = raw.min_order_size != null ? Number(raw.min_order_size) : null;
-  if (min == null || !Number.isFinite(min) || min < 0) blockers.push("minimum ambiguous");
+  if (min != null && (!Number.isFinite(min) || min < 0)) blockers.push("minimum invalid");
   const tick = raw.min_trade_increment != null ? Number(raw.min_trade_increment) : null;
   if (tick != null && (!Number.isFinite(tick) || tick <= 0)) blockers.push("tick size invalid");
   return {
     symbol: raw.symbol ?? "",
-    tradable: raw.tradable === true,
+    tradable: raw.tradable === true && (raw.status == null || raw.status === "active"),
     fractionable: raw.fractionable === true,
-    overnightEligible: raw.overnight_tradable === true,
+    overnightEligible: overnight && !halted,
+    fractionalEhEnabled: fractionalEh,
+    overnightHalted: halted,
     minOrderSize: min,
     tickSize: tick,
     blockers,
@@ -126,6 +139,27 @@ export function validateEquityQuote(
   const spreadBps = ((quote.ask - quote.bid) / mid) * 10000;
   if (spreadBps > maxSpreadBps) return { ok: false, reason: `spread ${spreadBps.toFixed(1)} bps`, spreadBps };
   return { ok: true, reason: null, spreadBps };
+}
+
+export interface OvernightQuote {
+  bid: number;
+  ask: number;
+  timestamp: string;
+  feed: "overnight";
+}
+
+export function readOvernightQuote(body: unknown): OvernightQuote | { error: string } {
+  if (!body || typeof body !== "object") return { error: "overnight quote malformed" };
+  const q = body as Record<string, unknown>;
+  const bid = Number(q.bp ?? q.bid);
+  const ask = Number(q.ap ?? q.ask);
+  const ts = typeof q.t === "string" ? q.t : typeof q.timestamp === "string" ? q.timestamp : "";
+  if (!(bid > 0) || !(ask > bid) || !ts) return { error: "overnight quote invalid" };
+  return { bid, ask, timestamp: ts, feed: "overnight" };
+}
+
+export function overnightQuoteUrl(symbol: string): string {
+  return `https://data.alpaca.markets/v2/stocks/${encodeURIComponent(symbol)}/quotes/latest?feed=overnight`;
 }
 
 /** Worst-case BUY notional = qty × limit × (1 + cost buffer). Never trust maxNotional alone. */

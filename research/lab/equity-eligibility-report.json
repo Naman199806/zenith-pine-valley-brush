@@ -1,48 +1,23 @@
 {
   "report": "GET-only Alpaca equity preflight for SPY, QQQ, IWM",
-  "status": "NOT_INITIATED",
-  "reason": "No operator-initiated LIVE read authorization. Credentials were not accessed. Unperformed checks are UNKNOWN, not PASS.",
-  "symbols": {
-    "SPY": {
-      "accountActive": "UNKNOWN",
-      "tradingBlocked": "UNKNOWN",
-      "accountBlocked": "UNKNOWN",
-      "buyingPower": "UNKNOWN",
-      "positions": "UNKNOWN",
-      "openOrders": "UNKNOWN",
-      "tradable": "UNKNOWN",
-      "fractionable": "UNKNOWN",
-      "overnightEligible": "UNKNOWN",
-      "minOrderSize": "UNKNOWN",
-      "quoteFreshness": "UNKNOWN"
-    },
-    "QQQ": {
-      "accountActive": "UNKNOWN",
-      "tradingBlocked": "UNKNOWN",
-      "accountBlocked": "UNKNOWN",
-      "buyingPower": "UNKNOWN",
-      "positions": "UNKNOWN",
-      "openOrders": "UNKNOWN",
-      "tradable": "UNKNOWN",
-      "fractionable": "UNKNOWN",
-      "overnightEligible": "UNKNOWN",
-      "minOrderSize": "UNKNOWN",
-      "quoteFreshness": "UNKNOWN"
-    },
-    "IWM": {
-      "accountActive": "UNKNOWN",
-      "tradingBlocked": "UNKNOWN",
-      "accountBlocked": "UNKNOWN",
-      "buyingPower": "UNKNOWN",
-      "positions": "UNKNOWN",
-      "openOrders": "UNKNOWN",
-      "tradable": "UNKNOWN",
-      "fractionable": "UNKNOWN",
-      "overnightEligible": "UNKNOWN",
-      "minOrderSize": "UNKNOWN",
-      "quoteFreshness": "UNKNOWN"
-    }
+  "status": "OPERATOR_REPORTED",
+  "source": "Operator-supplied LIVE read evidence. This process did not access credentials.",
+  "account": {
+    "status": "ACTIVE",
+    "trading_blocked": false,
+    "account_blocked": false,
+    "cash": 100,
+    "buying_power": 100
   },
+  "symbols": {
+    "SPY": { "status": "active", "tradable": true, "fractionable": true, "overnight_tradable": true, "fractional_eh_enabled": true, "overnight_halted": false },
+    "QQQ": { "status": "active", "tradable": true, "fractionable": true, "overnight_tradable": true, "fractional_eh_enabled": true, "overnight_halted": false },
+    "IWM": { "status": "active", "tradable": true, "fractionable": true, "overnight_tradable": true, "fractional_eh_enabled": true, "overnight_halted": false }
+  },
+  "quoteFreshness": "UNKNOWN",
+  "openOrders": "UNKNOWN",
+  "positions": "UNKNOWN",
   "canSubmit": false,
-  "hardDisable": true
+  "hardDisable": true,
+  "note": "Unperformed checks remain UNKNOWN. Real-money transport remains disabled."
 }

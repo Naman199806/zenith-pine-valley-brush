@@ -118,6 +118,15 @@ export interface GateProof {
   proof: string;
 }
 
+const GATE_KEY = "apex-sigma-sentinel-issuer-v1";
+
+function issuerDigest(material: string): string {
+  let h = 2166136261;
+  const s = `${GATE_KEY}|${material}`;
+  for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619) >>> 0;
+  return h.toString(16).padStart(8, "0");
+}
+
 function proofMaterial(p: Omit<GateProof, "proof">): string {
   return [p.singleUseId, p.symbol, p.side, String(p.qty), String(p.limitPrice), p.computedAt, String(p.sigmaApproved), String(p.sentinelApproved), String(p.sigmaVeto), String(p.sentinelVeto)].join("|");
 }
@@ -127,8 +136,12 @@ export function issueGateProof(
   opts: { dataIntegrityOk: boolean; riskOk: boolean; notional: number },
   now = new Date(),
 ): GateProof {
-  const sigmaVeto = !opts.dataIntegrityOk;
-  const sentinelVeto = !opts.riskOk || opts.notional > HARD_MAX;
+  const sigma = !opts.dataIntegrityOk
+    ? { sigmaVeto: true, sigmaApproved: false }
+    : { sigmaVeto: false, sigmaApproved: true };
+  const sentinel = !opts.riskOk || opts.notional > HARD_MAX
+    ? { sentinelVeto: true, sentinelApproved: false }
+    : { sentinelVeto: false, sentinelApproved: true };
   const base = {
     singleUseId: bind.singleUseId,
     symbol: bind.symbol,
@@ -136,12 +149,10 @@ export function issueGateProof(
     qty: bind.qty,
     limitPrice: bind.limitPrice,
     computedAt: now.toISOString(),
-    sigmaApproved: !sigmaVeto,
-    sentinelApproved: !sentinelVeto,
-    sigmaVeto,
-    sentinelVeto,
+    ...sigma,
+    ...sentinel,
   };
-  return { ...base, proof: proofMaterial(base) };
+  return { ...base, proof: issuerDigest(proofMaterial(base)) };
 }
 
 export function verifyGateProof(
@@ -151,7 +162,7 @@ export function verifyGateProof(
   maxAgeMs = 30_000,
 ): string | null {
   if (!proof) return "missing ticket-bound gate proof";
-  if (proof.proof !== proofMaterial({ ...proof })) return "gate proof is not independently computed";
+  if (proof.proof !== issuerDigest(proofMaterial({ ...proof }))) return "gate proof was not issued by Sigma/Sentinel";
   if (proof.singleUseId !== bind.singleUseId || proof.symbol !== bind.symbol || proof.side !== bind.side) return "gate proof not bound to ticket";
   if (proof.qty !== bind.qty || proof.limitPrice !== bind.limitPrice) return "gate proof quantity or price mismatch";
   const age = now - Date.parse(proof.computedAt);
