@@ -6,6 +6,7 @@ import { classifyBrokerResponse, staleCandleError } from "../src/lib/apex/runtim
 import { completedBars } from "../src/lib/apex/research/fmz-bb-rsi.ts";
 import { oracleFeed, pulseFeed, voltaFeed } from "../src/lib/apex/research/public-feeds.ts";
 import { decide, candleCloseMs } from "../src/lib/apex/runtime/decision.ts";
+import { assertProductionIsolation } from "../src/lib/apex/runtime/execution-safety.ts";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const dir = join(root, "research/lab/windows");
@@ -13,6 +14,7 @@ mkdirSync(dir, { recursive: true });
 const lockPath = join(dir, "runtime.lock");
 const heartbeatPath = join(root, "research/lab/paper-runtime-heartbeat.json");
 const config = JSON.parse(readFileSync(join(root, "research/lab/paper-runtime-disabled.json"), "utf8"));
+assertProductionIsolation(config);
 const lock = acquireLock(lockPath);
 if (!lock.acquired) {
   console.log(JSON.stringify({ status: "LOCKED", existingPid: lock.existingPid }));
