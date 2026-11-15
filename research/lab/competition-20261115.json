@@ -1,10 +1,29 @@
 {
   "frozenManifest": "research/lab/strategies/competition-20261115.json",
+  "windows": {
+    "btcDevelopment": [
+      "2024-01-01",
+      "2025-06-30"
+    ],
+    "btcValidation": [
+      "2025-07-01",
+      "2026-09-13"
+    ],
+    "etfDevelopment": [
+      "1993-01-29",
+      "2023-12-31"
+    ],
+    "etfValidation": [
+      "2024-01-01",
+      "2025-11-10"
+    ]
+  },
   "holdouts": {
     "btcFrom": "2026-09-14",
     "equityFrom": "2025-11-11",
     "used": false
   },
+  "priceOnly": true,
   "candidates": [
     {
       "development": {
@@ -15,20 +34,20 @@
         "profitFactor": 3.2484234073940828,
         "maxDrawdown": 0.04995442940169833,
         "expectancy": 1262.4681536042237,
-        "benchmark": 0.7678900928869177,
+        "benchmark": 0.2668622499055626,
         "decision": "INSUFFICIENT_EVIDENCE",
         "reason": "too few trades",
         "holdoutUsed": false
       },
       "validation": {
         "id": "btc-donchian-breakout-v1",
-        "trades": 7,
-        "wins": 2,
-        "netReturn": -0.0022127594303165132,
-        "profitFactor": 0.4274073034969315,
-        "maxDrawdown": 0.052124022928366154,
-        "expectancy": -31.610849004521565,
-        "benchmark": -0.20435259349445078,
+        "trades": 6,
+        "wins": 1,
+        "netReturn": -0.016455992158231125,
+        "profitFactor": 0.06409176522212894,
+        "maxDrawdown": 0.05117184718333639,
+        "expectancy": -274.2665359705182,
+        "benchmark": 0.2668622499055626,
         "decision": "INSUFFICIENT_EVIDENCE",
         "reason": "too few trades",
         "holdoutUsed": false
@@ -43,20 +62,20 @@
         "profitFactor": 0.47841923584397833,
         "maxDrawdown": 0.0688037867425487,
         "expectancy": -145.8994802762441,
-        "benchmark": 0.6050753727828289,
+        "benchmark": 0.15018993896343447,
         "decision": "REJECTED",
         "reason": "fails return, profit factor, drawdown, or benchmark gate",
         "holdoutUsed": false
       },
       "validation": {
         "id": "btc-mean-revert-regime-v1",
-        "trades": 13,
-        "wins": 5,
-        "netReturn": -0.022827569805952463,
-        "profitFactor": 0.518908107907871,
-        "maxDrawdown": 0.030779938958314743,
-        "expectancy": -175.59669081501937,
-        "benchmark": -0.3482156307193023,
+        "trades": 16,
+        "wins": 8,
+        "netReturn": -0.016220029589377516,
+        "profitFactor": 0.7085685030831842,
+        "maxDrawdown": 0.03281446942864664,
+        "expectancy": -101.37518493360949,
+        "benchmark": 0.15018993896343447,
         "decision": "INSUFFICIENT_EVIDENCE",
         "reason": "too few trades",
         "holdoutUsed": false
@@ -65,156 +84,1292 @@
     {
       "development": {
         "id": "etf-defensive-rs-v1",
-        "trades": 141,
-        "wins": 0,
-        "netReturn": 12.653237374909233,
-        "profitFactor": null,
-        "maxDrawdown": 0.693056485398463,
-        "expectancy": 8973.927216247683,
-        "benchmark": 14.13260241368841,
+        "trades": 129,
+        "wins": 70,
+        "netReturn": 22.42340513977579,
+        "profitFactor": 1.6681250668775887,
+        "maxDrawdown": 0.6930564853984628,
+        "expectancy": 17382.48460447736,
+        "benchmark": 14.509303042763158,
         "decision": "REJECTED",
         "reason": "fails return, profit factor, drawdown, or benchmark gate",
-        "holdoutUsed": false
+        "holdoutUsed": false,
+        "tradesDetail": [
+          {
+            "entryDate": "1993-05-26",
+            "exitDate": "1999-07-02",
+            "asset": "SPY",
+            "entryPrice": 45.178828124999995,
+            "exitPrice": 138.0559375,
+            "realizedPnl": 205576.62345297943,
+            "qty": 2213.426158892872
+          },
+          {
+            "entryDate": "1999-07-02",
+            "exitDate": "2000-05-02",
+            "asset": "QQQ",
+            "entryPrice": 58.028999999999996,
+            "exitPrice": 94.8275625,
+            "realizedPnl": 193778.63614181586,
+            "qty": 5265.929508572945
+          },
+          {
+            "entryDate": "2000-05-02",
+            "exitDate": "2000-09-05",
+            "asset": "SPY",
+            "entryPrice": 145.57274999999998,
+            "exitPrice": 151.79906250000002,
+            "realizedPnl": 21357.993819281633,
+            "qty": 3430.279771418726
+          },
+          {
+            "entryDate": "2000-09-05",
+            "exitDate": "2001-02-02",
+            "asset": "QQQ",
+            "entryPrice": 101.67581249999999,
+            "exitPrice": 64.90753244018555,
+            "realizedPnl": -188301.7235036692,
+            "qty": 5121.3089977921445
+          },
+          {
+            "entryDate": "2001-02-02",
+            "exitDate": "2001-07-03",
+            "asset": "IWM",
+            "entryPrice": 50.925451526641844,
+            "exitPrice": 49.600187500000004,
+            "realizedPnl": -8650.54760291666,
+            "qty": 6527.41448421926
+          },
+          {
+            "entryDate": "2001-07-03",
+            "exitDate": "2001-08-02",
+            "asset": "QQQ",
+            "entryPrice": 45.272625,
+            "exitPrice": 43.76810591506958,
+            "realizedPnl": -10759.362348382478,
+            "qty": 7151.363153947692
+          },
+          {
+            "entryDate": "2001-08-02",
+            "exitDate": "2001-12-04",
+            "asset": "IWM",
+            "entryPrice": 49.24961097335815,
+            "exitPrice": 45.477250000000005,
+            "realizedPnl": -23974.912134237064,
+            "qty": 6355.41304333203
+          },
+          {
+            "entryDate": "2001-12-04",
+            "exitDate": "2002-02-04",
+            "asset": "QQQ",
+            "entryPrice": 39.35967015266418,
+            "exitPrice": 37.941019084930424,
+            "realizedPnl": -10417.46656079567,
+            "qty": 7343.2197654051715
+          },
+          {
+            "entryDate": "2002-02-04",
+            "exitDate": "2002-11-04",
+            "asset": "IWM",
+            "entryPrice": 47.6488125,
+            "exitPrice": 38.675652194976806,
+            "realizedPnl": -52467.317718011065,
+            "qty": 5847.13923907497
+          },
+          {
+            "entryDate": "2002-11-04",
+            "exitDate": "2003-02-04",
+            "asset": "QQQ",
+            "entryPrice": 26.063024236679077,
+            "exitPrice": 24.167910305023195,
+            "realizedPnl": -16443.399121751892,
+            "qty": 8676.7338084968
+          },
+          {
+            "entryDate": "2003-02-04",
+            "exitDate": "2003-05-02",
+            "asset": "TLT",
+            "entryPrice": 88.41418774795532,
+            "exitPrice": 89.01546755981445,
+            "realizedPnl": 1426.1001828397566,
+            "qty": 2371.7745959744166
+          },
+          {
+            "entryDate": "2003-05-02",
+            "exitDate": "2003-06-03",
+            "asset": "QQQ",
+            "entryPrice": 27.62380561065674,
+            "exitPrice": 29.42528053379059,
+            "realizedPnl": 13768.404044195398,
+            "qty": 7642.850792640419
+          },
+          {
+            "entryDate": "2003-06-03",
+            "exitDate": "2003-09-03",
+            "asset": "IWM",
+            "entryPrice": 44.23210408401489,
+            "exitPrice": 50.86455438995362,
+            "realizedPnl": 33721.92816893759,
+            "qty": 5084.384595952842
+          },
+          {
+            "entryDate": "2003-09-03",
+            "exitDate": "2003-10-02",
+            "asset": "QQQ",
+            "entryPrice": 34.11704847335815,
+            "exitPrice": 33.08344847488404,
+            "realizedPnl": -7834.92215581215,
+            "qty": 7580.226555126447
+          },
+          {
+            "entryDate": "2003-10-02",
+            "exitDate": "2003-11-04",
+            "asset": "IWM",
+            "entryPrice": 49.87492347335815,
+            "exitPrice": 53.57319847488404,
+            "realizedPnl": 18595.58809301912,
+            "qty": 5028.178836172721
+          },
+          {
+            "entryDate": "2003-11-04",
+            "exitDate": "2003-12-02",
+            "asset": "QQQ",
+            "entryPrice": 35.70784362602234,
+            "exitPrice": 35.80208969497681,
+            "realizedPnl": 710.9808641190175,
+            "qty": 7543.878190426019
+          },
+          {
+            "entryDate": "2003-12-02",
+            "exitDate": "2004-03-02",
+            "asset": "IWM",
+            "entryPrice": 55.45271173667908,
+            "exitPrice": 59.17040076255799,
+            "realizedPnl": 18107.284042104206,
+            "qty": 4870.5752191910115
+          },
+          {
+            "entryDate": "2004-03-02",
+            "exitDate": "2004-04-02",
+            "asset": "SPY",
+            "entryPrice": 115.99797244262695,
+            "exitPrice": 114.75259255981446,
+            "realizedPnl": -3094.1133063634625,
+            "qty": 2484.473492036748
+          },
+          {
+            "entryDate": "2004-04-02",
+            "exitDate": "2004-08-03",
+            "asset": "IWM",
+            "entryPrice": 60.31013877868652,
+            "exitPrice": 54.6876426525116,
+            "realizedPnl": -26578.82089742506,
+            "qty": 4727.227960850027
+          },
+          {
+            "entryDate": "2004-08-03",
+            "exitDate": "2004-10-04",
+            "asset": "TLT",
+            "entryPrice": 84.53224286270141,
+            "exitPrice": 86.9565,
+            "realizedPnl": 7413.990748883807,
+            "qty": 3058.2526229644836
+          },
+          {
+            "entryDate": "2004-10-04",
+            "exitDate": "2004-11-02",
+            "asset": "IWM",
+            "entryPrice": 58.82939923667907,
+            "exitPrice": 58.60568082237244,
+            "realizedPnl": -1011.3063332121237,
+            "qty": 4520.442970000711
+          },
+          {
+            "entryDate": "2004-11-02",
+            "exitDate": "2005-01-04",
+            "asset": "QQQ",
+            "entryPrice": 37.108545152664185,
+            "exitPrice": 39.65016316986084,
+            "realizedPnl": 18145.00375683856,
+            "qty": 7139.154520494022
+          },
+          {
+            "entryDate": "2005-01-04",
+            "exitDate": "2005-03-02",
+            "asset": "IWM",
+            "entryPrice": 64.06702116394042,
+            "exitPrice": 63.323322042465215,
+            "realizedPnl": -3285.9011746547767,
+            "qty": 4418.320635012767
+          },
+          {
+            "entryDate": "2005-03-02",
+            "exitDate": "2005-05-03",
+            "asset": "TLT",
+            "entryPrice": 89.4947219467163,
+            "exitPrice": 92.02396469497681,
+            "realizedPnl": 7907.0413539316505,
+            "qty": 3126.2485023905756
+          },
+          {
+            "entryDate": "2005-05-03",
+            "exitDate": "2005-06-02",
+            "asset": "GLD",
+            "entryPrice": 42.771375,
+            "exitPrice": 41.899038169860845,
+            "realizedPnl": -5867.531551862776,
+            "qty": 6726.222428241189
+          },
+          {
+            "entryDate": "2005-06-02",
+            "exitDate": "2005-08-02",
+            "asset": "TLT",
+            "entryPrice": 95.77786835861205,
+            "exitPrice": 92.22386164474487,
+            "realizedPnl": -10457.511601641425,
+            "qty": 2942.456906690084
+          },
+          {
+            "entryDate": "2005-08-02",
+            "exitDate": "2005-10-04",
+            "asset": "IWM",
+            "entryPrice": 68.06401377868652,
+            "exitPrice": 66.84655725479126,
+            "realizedPnl": -4853.883176928095,
+            "qty": 3986.9047326619034
+          },
+          {
+            "entryDate": "2005-10-04",
+            "exitDate": "2006-08-02",
+            "asset": "GLD",
+            "entryPrice": 46.69333316802978,
+            "exitPrice": 64.70762786483765,
+            "realizedPnl": 102819.92663195368,
+            "qty": 5707.6853888802725
+          },
+          {
+            "entryDate": "2006-08-02",
+            "exitDate": "2006-09-05",
+            "asset": "TLT",
+            "entryPrice": 85.41268774795532,
+            "exitPrice": 87.46624713516236,
+            "realizedPnl": 8879.742747719749,
+            "qty": 4324.073997098601
+          },
+          {
+            "entryDate": "2006-09-05",
+            "exitDate": "2006-10-03",
+            "asset": "SPY",
+            "entryPrice": 131.57574950408934,
+            "exitPrice": 132.8235543899536,
+            "realizedPnl": 3586.7775223436765,
+            "qty": 2874.469849394252
+          },
+          {
+            "entryDate": "2006-10-03",
+            "exitDate": "2007-01-04",
+            "asset": "QQQ",
+            "entryPrice": 40.04001045799255,
+            "exitPrice": 43.27834923744202,
+            "realizedPnl": 30878.83834331599,
+            "qty": 9535.394671883436
+          },
+          {
+            "entryDate": "2007-01-04",
+            "exitDate": "2007-02-02",
+            "asset": "GLD",
+            "entryPrice": 62.101034694671625,
+            "exitPrice": 64.72762213516236,
+            "realizedPnl": 17454.298041119706,
+            "qty": 6645.237760620171
+          },
+          {
+            "entryDate": "2007-02-02",
+            "exitDate": "2007-03-02",
+            "asset": "IWM",
+            "entryPrice": 80.44020152664184,
+            "exitPrice": 78.1409103050232,
+            "realizedPnl": -12294.786975167808,
+            "qty": 5347.207373980477
+          },
+          {
+            "entryDate": "2007-03-02",
+            "exitDate": "2007-05-02",
+            "asset": "GLD",
+            "entryPrice": 64.62229133605956,
+            "exitPrice": 66.30682633972168,
+            "realizedPnl": 10891.88833559351,
+            "qty": 6465.813005912601
+          },
+          {
+            "entryDate": "2007-05-02",
+            "exitDate": "2007-10-02",
+            "asset": "QQQ",
+            "entryPrice": 46.113045152664185,
+            "exitPrice": 52.01398091506958,
+            "realizedPnl": 54862.86289475707,
+            "qty": 9297.315731563454
+          },
+          {
+            "entryDate": "2007-10-02",
+            "exitDate": "2008-05-02",
+            "asset": "GLD",
+            "entryPrice": 72.4862219467163,
+            "exitPrice": 83.91801908493042,
+            "realizedPnl": 76267.0096036871,
+            "qty": 6671.480317713328
+          },
+          {
+            "entryDate": "2008-05-02",
+            "exitDate": "2008-07-02",
+            "asset": "QQQ",
+            "entryPrice": 49.18457984733581,
+            "exitPrice": 45.92702576255799,
+            "realizedPnl": -37080.03213722131,
+            "qty": 11382.78326996689
+          },
+          {
+            "entryDate": "2008-07-02",
+            "exitDate": "2008-09-03",
+            "asset": "GLD",
+            "entryPrice": 92.32613877868651,
+            "exitPrice": 79.15040744018555,
+            "realizedPnl": -74604.8129629299,
+            "qty": 5662.290088211364
+          },
+          {
+            "entryDate": "2008-09-03",
+            "exitDate": "2009-02-03",
+            "asset": "TLT",
+            "entryPrice": 94.31713164138793,
+            "exitPrice": 104.24785305023194,
+            "realizedPnl": 47188.42519632465,
+            "qty": 4751.762057719194
+          },
+          {
+            "entryDate": "2009-02-03",
+            "exitDate": "2009-05-04",
+            "asset": "GLD",
+            "entryPrice": 89.38466633605957,
+            "exitPrice": 87.50622805023194,
+            "realizedPnl": -10410.119455361913,
+            "qty": 5541.901234607391
+          },
+          {
+            "entryDate": "2009-05-04",
+            "exitDate": "2009-06-02",
+            "asset": "QQQ",
+            "entryPrice": 34.69734030532837,
+            "exitPrice": 36.17190362739563,
+            "realizedPnl": 20609.382864276937,
+            "qty": 13976.600771124346
+          },
+          {
+            "entryDate": "2009-06-02",
+            "exitDate": "2009-08-04",
+            "asset": "IWM",
+            "entryPrice": 51.98597908401489,
+            "exitPrice": 56.18189408493042,
+            "realizedPnl": 40804.999731589865,
+            "qty": 9724.934781254267
+          },
+          {
+            "entryDate": "2009-08-04",
+            "exitDate": "2009-09-02",
+            "asset": "QQQ",
+            "entryPrice": 39.86992347335815,
+            "exitPrice": 39.05046469497681,
+            "realizedPnl": -11229.612853882485,
+            "qty": 13703.69462154536
+          },
+          {
+            "entryDate": "2009-09-02",
+            "exitDate": "2009-10-02",
+            "asset": "TLT",
+            "entryPrice": 96.52824335861206,
+            "exitPrice": 100.22985877990723,
+            "realizedPnl": 20521.10635940195,
+            "qty": 5543.82452627174
+          },
+          {
+            "entryDate": "2009-10-02",
+            "exitDate": "2009-11-03",
+            "asset": "IWM",
+            "entryPrice": 57.80888877868652,
+            "exitPrice": 55.85206106758118,
+            "realizedPnl": -18808.950457260362,
+            "qty": 9611.96039411965
+          },
+          {
+            "entryDate": "2009-11-03",
+            "exitDate": "2010-01-05",
+            "asset": "GLD",
+            "entryPrice": 103.79186786270141,
+            "exitPrice": 109.82505725479126,
+            "realizedPnl": 31205.763151352177,
+            "qty": 5172.349336864219
+          },
+          {
+            "entryDate": "2010-01-05",
+            "exitDate": "2010-02-02",
+            "asset": "QQQ",
+            "entryPrice": 46.41319438934326,
+            "exitPrice": 43.30833683013916,
+            "realizedPnl": -38000.517297054525,
+            "qty": 12239.05334542806
+          },
+          {
+            "entryDate": "2010-02-02",
+            "exitDate": "2010-06-02",
+            "asset": "IWM",
+            "entryPrice": 60.96046530532836,
+            "exitPrice": 64.59768225479127,
+            "realizedPnl": 31625.70870941528,
+            "qty": 8695.0295098799
+          },
+          {
+            "entryDate": "2010-06-02",
+            "exitDate": "2010-07-02",
+            "asset": "GLD",
+            "entryPrice": 119.40967347335815,
+            "exitPrice": 118.15089408493043,
+            "realizedPnl": -5921.041547359899,
+            "qty": 4703.796075621738
+          },
+          {
+            "entryDate": "2010-07-02",
+            "exitDate": "2010-10-04",
+            "asset": "TLT",
+            "entryPrice": 101.16055561065673,
+            "exitPrice": 104.56769274520875,
+            "realizedPnl": 18718.192349703982,
+            "qty": 5493.818302727364
+          },
+          {
+            "entryDate": "2010-10-04",
+            "exitDate": "2010-11-02",
+            "asset": "QQQ",
+            "entryPrice": 48.894433931350704,
+            "exitPrice": 52.62367652511597,
+            "realizedPnl": 43816.030559465755,
+            "qty": 11749.310874202598
+          },
+          {
+            "entryDate": "2010-11-02",
+            "exitDate": "2010-12-02",
+            "asset": "GLD",
+            "entryPrice": 132.50622244262695,
+            "exitPrice": 135.55218511962892,
+            "realizedPnl": 14212.87334502698,
+            "qty": 4666.13509493696
+          },
+          {
+            "entryDate": "2010-12-02",
+            "exitDate": "2011-05-03",
+            "asset": "IWM",
+            "entryPrice": 74.50723622131348,
+            "exitPrice": 85.24735591506959,
+            "realizedPnl": 91174.73270077724,
+            "qty": 8489.172867764464
+          },
+          {
+            "entryDate": "2011-05-03",
+            "exitDate": "2011-06-02",
+            "asset": "GLD",
+            "entryPrice": 150.50520767211913,
+            "exitPrice": 150.07491889953613,
+            "realizedPnl": -2068.9728030428523,
+            "qty": 4808.335552477563
+          },
+          {
+            "entryDate": "2011-06-02",
+            "exitDate": "2011-08-02",
+            "asset": "TLT",
+            "entryPrice": 96.53824286270141,
+            "exitPrice": 99.17039122009278,
+            "realizedPnl": 19674.960048205103,
+            "qty": 7474.867437830988
+          },
+          {
+            "entryDate": "2011-08-02",
+            "exitDate": "2011-10-04",
+            "asset": "GLD",
+            "entryPrice": 159.4096668319702,
+            "exitPrice": 160.86952194976809,
+            "realizedPnl": 6788.606321647298,
+            "qty": 4650.191816217785
+          },
+          {
+            "entryDate": "2011-10-04",
+            "exitDate": "2012-01-04",
+            "asset": "TLT",
+            "entryPrice": 124.43218774795531,
+            "exitPrice": 119.20037213516235,
+            "realizedPnl": -31453.163421573932,
+            "qty": 6011.902129093373
+          },
+          {
+            "entryDate": "2012-01-04",
+            "exitDate": "2012-03-02",
+            "asset": "IWM",
+            "entryPrice": 74.6172918319702,
+            "exitPrice": 81.37928816986084,
+            "realizedPnl": 64941.895675600856,
+            "qty": 9603.95309765269
+          },
+          {
+            "entryDate": "2012-03-02",
+            "exitDate": "2012-06-04",
+            "asset": "QQQ",
+            "entryPrice": 64.86241683197021,
+            "exitPrice": 60.54971183013917,
+            "realizedPnl": -51966.15003123216,
+            "qty": 12049.54895110352
+          },
+          {
+            "entryDate": "2012-06-04",
+            "exitDate": "2012-09-05",
+            "asset": "TLT",
+            "entryPrice": 129.37465255737305,
+            "exitPrice": 126.75658969497681,
+            "realizedPnl": -14764.330034427461,
+            "qty": 5639.410056378111
+          },
+          {
+            "entryDate": "2012-09-05",
+            "exitDate": "2012-10-02",
+            "asset": "QQQ",
+            "entryPrice": 68.09402755737304,
+            "exitPrice": 68.73561164474488,
+            "realizedPnl": 6735.173419116531,
+            "qty": 10497.725164453812
+          },
+          {
+            "entryDate": "2012-10-02",
+            "exitDate": "2013-01-03",
+            "asset": "GLD",
+            "entryPrice": 172.55623622131347,
+            "exitPrice": 162.39875572967532,
+            "realizedPnl": -42474.89731567458,
+            "qty": 4181.637104854965
+          },
+          {
+            "entryDate": "2013-01-03",
+            "exitDate": "2013-05-02",
+            "asset": "IWM",
+            "entryPrice": 86.89342347335815,
+            "exitPrice": 92.29382633972169,
+            "realizedPnl": 42205.42609326483,
+            "qty": 7815.236592096069
+          },
+          {
+            "entryDate": "2013-05-02",
+            "exitDate": "2013-06-04",
+            "asset": "TLT",
+            "entryPrice": 123.65179133605956,
+            "exitPrice": 113.90301908493042,
+            "realizedPnl": -56867.5206177471,
+            "qty": 5833.300763710058
+          },
+          {
+            "entryDate": "2013-06-04",
+            "exitDate": "2013-07-02",
+            "asset": "QQQ",
+            "entryPrice": 73.56676377868652,
+            "exitPrice": 71.64416030502319,
+            "realizedPnl": -17364.31579762115,
+            "qty": 9031.66775442013
+          },
+          {
+            "entryDate": "2013-07-02",
+            "exitDate": "2013-09-04",
+            "asset": "IWM",
+            "entryPrice": 98.20908366394042,
+            "exitPrice": 101.10942366027832,
+            "realizedPnl": 19109.353861749638,
+            "qty": 6588.659910864935
+          },
+          {
+            "entryDate": "2013-09-04",
+            "exitDate": "2014-02-04",
+            "asset": "QQQ",
+            "entryPrice": 76.19808366394042,
+            "exitPrice": 84.67764122009278,
+            "realizedPnl": 74134.07430138311,
+            "qty": 8742.681892358294
+          },
+          {
+            "entryDate": "2014-02-04",
+            "exitDate": "2014-03-04",
+            "asset": "TLT",
+            "entryPrice": 108.57425664138793,
+            "exitPrice": 108.29582347488405,
+            "realizedPnl": -1898.4865743902046,
+            "qty": 6818.464187396658
+          },
+          {
+            "entryDate": "2014-03-04",
+            "exitDate": "2014-04-02",
+            "asset": "GLD",
+            "entryPrice": 128.60426328277586,
+            "exitPrice": 124.34779866027833,
+            "realizedPnl": -24439.478473904543,
+            "qty": 5741.731845891485
+          },
+          {
+            "entryDate": "2014-04-02",
+            "exitDate": "2014-05-02",
+            "asset": "TLT",
+            "entryPrice": 107.44369438934325,
+            "exitPrice": 111.48423091506959,
+            "realizedPnl": 26849.67983786727,
+            "qty": 6645.07786698963
+          },
+          {
+            "entryDate": "2014-05-02",
+            "exitDate": "2014-06-03",
+            "asset": "SPY",
+            "entryPrice": 188.40415255737304,
+            "exitPrice": 192.33377767944336,
+            "realizedPnl": 15451.62527845474,
+            "qty": 3932.086343725859
+          },
+          {
+            "entryDate": "2014-06-03",
+            "exitDate": "2014-07-02",
+            "asset": "TLT",
+            "entryPrice": 112.46620866394042,
+            "exitPrice": 111.57418225479127,
+            "realizedPnl": -5998.384003172861,
+            "qty": 6724.446654998031
+          },
+          {
+            "entryDate": "2014-07-02",
+            "exitDate": "2014-10-02",
+            "asset": "QQQ",
+            "entryPrice": 95.0475,
+            "exitPrice": 97.12141316986084,
+            "realizedPnl": 16370.808805655455,
+            "qty": 7893.680913725998
+          },
+          {
+            "entryDate": "2014-10-02",
+            "exitDate": "2014-11-04",
+            "asset": "TLT",
+            "entryPrice": 117.8889168319702,
+            "exitPrice": 119.36028816986085,
+            "realizedPnl": 9568.500288893003,
+            "qty": 6503.117223018892
+          },
+          {
+            "entryDate": "2014-11-04",
+            "exitDate": "2014-12-02",
+            "asset": "QQQ",
+            "entryPrice": 101.43068725204468,
+            "exitPrice": 104.86753816986085,
+            "realizedPnl": 26301.030626124004,
+            "qty": 7652.653913436568
+          },
+          {
+            "entryDate": "2014-12-02",
+            "exitDate": "2015-01-05",
+            "asset": "TLT",
+            "entryPrice": 120.90041633605956,
+            "exitPrice": 127.94598950958253,
+            "realizedPnl": 46767.2333992013,
+            "qty": 6637.818137344887
+          },
+          {
+            "entryDate": "2015-01-05",
+            "exitDate": "2015-02-03",
+            "asset": "IWM",
+            "entryPrice": 118.28911835861206,
+            "exitPrice": 117.27133683013916,
+            "realizedPnl": -7307.381757138646,
+            "qty": 7179.7154425693925
+          },
+          {
+            "entryDate": "2015-02-03",
+            "exitDate": "2015-03-03",
+            "asset": "TLT",
+            "entryPrice": 135.71781889343262,
+            "exitPrice": 126.82655438995361,
+            "realizedPnl": -55160.19165462267,
+            "qty": 6203.863537412404
+          },
+          {
+            "entryDate": "2015-03-03",
+            "exitDate": "2015-05-04",
+            "asset": "IWM",
+            "entryPrice": 123.25159744262695,
+            "exitPrice": 122.06893225479126,
+            "realizedPnl": -7549.908471818198,
+            "qty": 6383.808832349965
+          },
+          {
+            "entryDate": "2015-05-04",
+            "exitDate": "2015-09-02",
+            "asset": "QQQ",
+            "entryPrice": 109.45470152664184,
+            "exitPrice": 102.82855725479126,
+            "realizedPnl": -47174.95403031842,
+            "qty": 7119.518093007535
+          },
+          {
+            "entryDate": "2015-09-02",
+            "exitDate": "2015-11-03",
+            "asset": "TLT",
+            "entryPrice": 121.48070816802978,
+            "exitPrice": 121.58917652511597,
+            "realizedPnl": 653.6723090191372,
+            "qty": 6026.387110295202
+          },
+          {
+            "entryDate": "2015-11-03",
+            "exitDate": "2016-02-02",
+            "asset": "QQQ",
+            "entryPrice": 114.43718725204467,
+            "exitPrice": 103.8780353050232,
+            "realizedPnl": -67610.4470234114,
+            "qty": 6403.018666899948
+          },
+          {
+            "entryDate": "2016-02-02",
+            "exitDate": "2016-03-02",
+            "asset": "TLT",
+            "entryPrice": 128.1640561065674,
+            "exitPrice": 128.25584732055665,
+            "realizedPnl": 476.36886120808776,
+            "qty": 5189.699977861988
+          },
+          {
+            "entryDate": "2016-03-02",
+            "exitDate": "2016-05-03",
+            "asset": "GLD",
+            "entryPrice": 118.39916633605957,
+            "exitPrice": 123.66813835525514,
+            "realizedPnl": 29620.792478833464,
+            "qty": 5621.74032637125
+          },
+          {
+            "entryDate": "2016-05-03",
+            "exitDate": "2016-07-05",
+            "asset": "IWM",
+            "entryPrice": 112.60627805328369,
+            "exitPrice": 114.96248664474489,
+            "realizedPnl": 14547.210914727417,
+            "qty": 6173.991117529201
+          },
+          {
+            "entryDate": "2016-07-05",
+            "exitDate": "2016-08-02",
+            "asset": "GLD",
+            "entryPrice": 128.8644030532837,
+            "exitPrice": 129.97497328948975,
+            "realizedPnl": 6116.953978954931,
+            "qty": 5507.939776822936
+          },
+          {
+            "entryDate": "2016-08-02",
+            "exitDate": "2016-11-02",
+            "asset": "QQQ",
+            "entryPrice": 115.72783316802978,
+            "exitPrice": 115.97198377990723,
+            "realizedPnl": 1510.319797706441,
+            "qty": 6186.016844653474
+          },
+          {
+            "entryDate": "2016-11-02",
+            "exitDate": "2016-12-02",
+            "asset": "BIL",
+            "entryPrice": 91.52574335861206,
+            "exitPrice": 91.39428244018555,
+            "realizedPnl": -1030.4278345822822,
+            "qty": 7838.282638792487
+          },
+          {
+            "entryDate": "2016-12-02",
+            "exitDate": "2017-03-02",
+            "asset": "IWM",
+            "entryPrice": 131.00547244262694,
+            "exitPrice": 140.25983683013916,
+            "realizedPnl": 50605.42831863591,
+            "qty": 5468.277042010861
+          },
+          {
+            "entryDate": "2017-03-02",
+            "exitDate": "2017-07-05",
+            "asset": "QQQ",
+            "entryPrice": 131.47570866394042,
+            "exitPrice": 136.5516851196289,
+            "realizedPnl": 29611.330206140177,
+            "qty": 5833.622449717187
+          },
+          {
+            "entryDate": "2017-07-05",
+            "exitDate": "2017-08-02",
+            "asset": "IWM",
+            "entryPrice": 141.7708469467163,
+            "exitPrice": 141.5192013397217,
+            "realizedPnl": -1413.9622070692712,
+            "qty": 5618.8630668191845
+          },
+          {
+            "entryDate": "2017-08-02",
+            "exitDate": "2017-09-05",
+            "asset": "QQQ",
+            "entryPrice": 144.56225049591063,
+            "exitPrice": 145.49722232055666,
+            "realizedPnl": 5142.892427461455,
+            "qty": 5500.585463533609
+          },
+          {
+            "entryDate": "2017-09-05",
+            "exitDate": "2017-10-03",
+            "asset": "GLD",
+            "entryPrice": 126.71332652664184,
+            "exitPrice": 120.65964122009278,
+            "realizedPnl": -38235.00644158723,
+            "qty": 6315.988444299126
+          },
+          {
+            "entryDate": "2017-10-03",
+            "exitDate": "2018-01-03",
+            "asset": "IWM",
+            "entryPrice": 150.18505561065672,
+            "exitPrice": 153.7930601196289,
+            "realizedPnl": 18308.11822746636,
+            "qty": 5074.305805865474
+          },
+          {
+            "entryDate": "2018-01-03",
+            "exitDate": "2018-04-03",
+            "asset": "QQQ",
+            "entryPrice": 158.71931938934324,
+            "exitPrice": 156.7915601196289,
+            "realizedPnl": -9478.429469085531,
+            "qty": 4916.811771051786
+          },
+          {
+            "entryDate": "2018-04-03",
+            "exitDate": "2018-05-02",
+            "asset": "GLD",
+            "entryPrice": 126.6032709159851,
+            "exitPrice": 123.83805152511597,
+            "realizedPnl": -16838.01653083705,
+            "qty": 6089.215411419742
+          },
+          {
+            "entryDate": "2018-05-02",
+            "exitDate": "2018-07-03",
+            "asset": "IWM",
+            "entryPrice": 153.8568887786865,
+            "exitPrice": 164.66762500000002,
+            "realizedPnl": 52985.101764614694,
+            "qty": 4901.155728890502
+          },
+          {
+            "entryDate": "2018-07-03",
+            "exitDate": "2018-11-02",
+            "asset": "QQQ",
+            "entryPrice": 173.5367219467163,
+            "exitPrice": 171.44423377990722,
+            "realizedPnl": -9731.467686001793,
+            "qty": 4650.667965707844
+          },
+          {
+            "entryDate": "2018-11-02",
+            "exitDate": "2019-01-03",
+            "asset": "GLD",
+            "entryPrice": 116.66830561065673,
+            "exitPrice": 121.71910877990723,
+            "realizedPnl": 34518.01164035278,
+            "qty": 6834.162901159947
+          },
+          {
+            "entryDate": "2019-01-03",
+            "exitDate": "2019-03-04",
+            "asset": "TLT",
+            "entryPrice": 122.3511459159851,
+            "exitPrice": 119.23035591506958,
+            "realizedPnl": -21217.811899400316,
+            "qty": 6798.859228969538
+          },
+          {
+            "entryDate": "2019-03-04",
+            "exitDate": "2019-04-02",
+            "asset": "GLD",
+            "entryPrice": 121.62077755737305,
+            "exitPrice": 121.65914122009278,
+            "realizedPnl": 255.70262005145196,
+            "qty": 6665.229592896568
+          },
+          {
+            "entryDate": "2019-04-02",
+            "exitDate": "2019-06-04",
+            "asset": "QQQ",
+            "entryPrice": 182.33112549591064,
+            "exitPrice": 171.94398377990723,
+            "realizedPnl": -46195.014151368756,
+            "qty": 4447.326840664578
+          },
+          {
+            "entryDate": "2019-06-04",
+            "exitDate": "2019-07-02",
+            "asset": "TLT",
+            "entryPrice": 131.45569438934325,
+            "exitPrice": 132.50372232055665,
+            "realizedPnl": 6096.48466844752,
+            "qty": 5817.101326096435
+          },
+          {
+            "entryDate": "2019-07-02",
+            "exitDate": "2019-10-02",
+            "asset": "GLD",
+            "entryPrice": 131.33563927459716,
+            "exitPrice": 140.71959828948977,
+            "realizedPnl": 55072.93442068936,
+            "qty": 5868.837910873968
+          },
+          {
+            "entryDate": "2019-10-02",
+            "exitDate": "2019-11-04",
+            "asset": "TLT",
+            "entryPrice": 143.5317367172241,
+            "exitPrice": 138.90051622009278,
+            "realizedPnl": -26647.361929743085,
+            "qty": 5753.852995392678
+          },
+          {
+            "entryDate": "2019-11-04",
+            "exitDate": "2019-12-03",
+            "asset": "QQQ",
+            "entryPrice": 200.29009744262694,
+            "exitPrice": 200.10990171051026,
+            "realizedPnl": -719.0310492492281,
+            "qty": 3990.277909488284
+          },
+          {
+            "entryDate": "2019-12-03",
+            "exitDate": "2020-01-03",
+            "asset": "IWM",
+            "entryPrice": 158.89941732788085,
+            "exitPrice": 163.6581354904175,
+            "realizedPnl": 23913.29393577692,
+            "qty": 5025.154488878137
+          },
+          {
+            "entryDate": "2020-01-03",
+            "exitDate": "2020-03-03",
+            "asset": "QQQ",
+            "entryPrice": 213.4066530532837,
+            "exitPrice": 217.0014456100464,
+            "realizedPnl": 13853.289055887144,
+            "qty": 3853.7102870722497
+          },
+          {
+            "entryDate": "2020-03-03",
+            "exitDate": "2020-06-02",
+            "asset": "TLT",
+            "entryPrice": 153.88690255737305,
+            "exitPrice": 161.58916316986085,
+            "realizedPnl": 41856.04992644652,
+            "qty": 5434.255218342609
+          },
+          {
+            "entryDate": "2020-06-02",
+            "exitDate": "2020-11-03",
+            "asset": "QQQ",
+            "entryPrice": 234.61724999999998,
+            "exitPrice": 271.82401145935063,
+            "realizedPnl": 139256.08866848203,
+            "qty": 3742.7629604533836
+          },
+          {
+            "entryDate": "2020-11-03",
+            "exitDate": "2020-12-02",
+            "asset": "BIL",
+            "entryPrice": 91.56575664138794,
+            "exitPrice": 91.46424713516235,
+            "realizedPnl": -1127.8562926986488,
+            "qty": 11110.844044421501
+          },
+          {
+            "entryDate": "2020-12-02",
+            "exitDate": "2021-05-04",
+            "asset": "IWM",
+            "entryPrice": 182.0409719467163,
+            "exitPrice": 224.48770610046387,
+            "realizedPnl": 236959.18713143922,
+            "qty": 5582.506919687682
+          },
+          {
+            "entryDate": "2021-05-04",
+            "exitDate": "2021-06-02",
+            "asset": "SPY",
+            "entryPrice": 416.2780423278808,
+            "exitPrice": 420.15981011962896,
+            "realizedPnl": 11686.053789508529,
+            "qty": 3010.497901072499
+          },
+          {
+            "entryDate": "2021-06-02",
+            "exitDate": "2021-07-02",
+            "asset": "GLD",
+            "entryPrice": 178.42916633605955,
+            "exitPrice": 167.26633110046387,
+            "realizedPnl": -79133.70599243673,
+            "qty": 7089.032877606039
+          },
+          {
+            "entryDate": "2021-07-02",
+            "exitDate": "2021-10-04",
+            "asset": "QQQ",
+            "entryPrice": 356.69824900817866,
+            "exitPrice": 358.34072901916505,
+            "realizedPnl": 5460.025072209537,
+            "qty": 3324.256633680694
+          },
+          {
+            "entryDate": "2021-10-04",
+            "exitDate": "2021-11-02",
+            "asset": "SPY",
+            "entryPrice": 433.2165,
+            "exitPrice": 459.9898912200928,
+            "realizedPnl": 73618.86401400599,
+            "qty": 2749.702621114236
+          },
+          {
+            "entryDate": "2021-11-02",
+            "exitDate": "2021-12-02",
+            "asset": "QQQ",
+            "entryPrice": 386.9933877868652,
+            "exitPrice": 385.6070877990723,
+            "realizedPnl": -4530.933520285413,
+            "qty": 3268.3643945631025
+          },
+          {
+            "entryDate": "2021-12-02",
+            "exitDate": "2022-01-04",
+            "asset": "TLT",
+            "entryPrice": 153.00645767211913,
+            "exitPrice": 143.5381956100464,
+            "realizedPnl": -77989.47337798332,
+            "qty": 8236.9365007743
+          },
+          {
+            "entryDate": "2022-01-04",
+            "exitDate": "2022-02-02",
+            "asset": "QQQ",
+            "entryPrice": 402.44111022949215,
+            "exitPrice": 369.5751297607422,
+            "realizedPnl": -96555.59732376738,
+            "qty": 2937.8584161082777
+          },
+          {
+            "entryDate": "2022-02-02",
+            "exitDate": "2022-06-02",
+            "asset": "GLD",
+            "entryPrice": 168.42416633605956,
+            "exitPrice": 173.57317366027834,
+            "realizedPnl": 33193.47366898297,
+            "qty": 6446.577287403467
+          },
+          {
+            "entryDate": "2022-06-02",
+            "exitDate": "2022-08-02",
+            "asset": "BIL",
+            "entryPrice": 91.47571530532836,
+            "exitPrice": 91.33430725479127,
+            "realizedPnl": -1729.7371738180518,
+            "qty": 12232.239729266268
+          },
+          {
+            "entryDate": "2022-08-02",
+            "exitDate": "2022-09-02",
+            "asset": "TLT",
+            "entryPrice": 120.21007652664184,
+            "exitPrice": 109.6251603050232,
+            "realizedPnl": -98375.39163935138,
+            "qty": 9293.922557311265
+          },
+          {
+            "entryDate": "2022-09-02",
+            "exitDate": "2022-12-02",
+            "asset": "BIL",
+            "entryPrice": 91.47571530532836,
+            "exitPrice": 91.40427194976807,
+            "realizedPnl": -795.7292472317349,
+            "qty": 11137.904161853237
+          },
+          {
+            "entryDate": "2022-12-02",
+            "exitDate": "2023-04-04",
+            "asset": "GLD",
+            "entryPrice": 166.26308267211914,
+            "exitPrice": 184.62764122009278,
+            "realizedPnl": 112448.75075894955,
+            "qty": 6123.139331947473
+          },
+          {
+            "entryDate": "2023-04-04",
+            "exitDate": "2023-05-02",
+            "asset": "QQQ",
+            "entryPrice": 320.7603061065674,
+            "exitPrice": 321.9589351196289,
+            "realizedPnl": 4224.497228847118,
+            "qty": 3524.4409928448135
+          },
+          {
+            "entryDate": "2023-05-02",
+            "exitDate": "2023-06-02",
+            "asset": "GLD",
+            "entryPrice": 184.7423188934326,
+            "exitPrice": 183.43823377990725,
+            "realizedPnl": -8009.958627996501,
+            "qty": 6142.205401258618
+          },
+          {
+            "entryDate": "2023-06-02",
+            "exitDate": "2023-10-03",
+            "asset": "QQQ",
+            "entryPrice": 353.97688778686523,
+            "exitPrice": 358.60060877990725,
+            "realizedPnl": 14717.393743081018,
+            "qty": 3183.0194263945823
+          },
+          {
+            "entryDate": "2023-10-03",
+            "exitDate": "2023-11-02",
+            "asset": "BIL",
+            "entryPrice": 91.50572908401489,
+            "exitPrice": 91.42426622009278,
+            "realizedPnl": -1016.1590752638876,
+            "qty": 12473.893334212718
+          }
+        ],
+        "priceOnly": true,
+        "equityReconciled": true
       },
       "validation": {
         "id": "etf-defensive-rs-v1",
-        "trades": 10,
-        "wins": 0,
-        "netReturn": 0.1695511798024094,
-        "profitFactor": null,
-        "maxDrawdown": 0.16983188103805247,
-        "expectancy": 1695.5117980240932,
-        "benchmark": 0.340731100909631,
-        "decision": "INSUFFICIENT_EVIDENCE",
-        "reason": "too few trades",
-        "holdoutUsed": false
+        "trades": 12,
+        "wins": 7,
+        "netReturn": 0.16895557113880777,
+        "profitFactor": 1.5309506162686797,
+        "maxDrawdown": 0.1698318810380526,
+        "expectancy": 1407.963092823399,
+        "benchmark": 0.4417433856788522,
+        "decision": "REJECTED",
+        "reason": "fails return, profit factor, drawdown, or benchmark gate",
+        "holdoutUsed": false,
+        "tradesDetail": [
+          {
+            "entryDate": "2024-01-03",
+            "exitDate": "2024-02-02",
+            "asset": "IWM",
+            "entryPrice": 197.4986938934326,
+            "exitPrice": 193.1433854904175,
+            "realizedPnl": -2205.2340282134537,
+            "qty": 506.33246240078194
+          },
+          {
+            "entryDate": "2024-02-02",
+            "exitDate": "2024-05-02",
+            "asset": "QQQ",
+            "entryPrice": 424.0118877868652,
+            "exitPrice": 425.0873377990723,
+            "realizedPnl": 248.0434754013695,
+            "qty": 230.64156640095027
+          },
+          {
+            "entryDate": "2024-05-02",
+            "exitDate": "2024-07-02",
+            "asset": "GLD",
+            "entryPrice": 212.0059438934326,
+            "exitPrice": 215.22233683013917,
+            "realizedPnl": 1487.4309371218114,
+            "qty": 462.4531163922005
+          },
+          {
+            "entryDate": "2024-07-02",
+            "exitDate": "2024-08-02",
+            "asset": "QQQ",
+            "entryPrice": 480.6502086639404,
+            "exitPrice": 450.6645696411133,
+            "realizedPnl": -6209.251148179144,
+            "qty": 207.07416451762947
+          },
+          {
+            "entryDate": "2024-08-02",
+            "exitDate": "2024-09-04",
+            "asset": "IWM",
+            "entryPrice": 208.95443110656737,
+            "exitPrice": 212.65361450958252,
+            "realizedPnl": 1652.089657573204,
+            "qty": 446.60928577550294
+          },
+          {
+            "entryDate": "2024-09-04",
+            "exitDate": "2024-12-03",
+            "asset": "GLD",
+            "entryPrice": 229.90488828277586,
+            "exitPrice": 244.83752671051028,
+            "realizedPnl": 6168.631985519314,
+            "qty": 413.09725775334476
+          },
+          {
+            "entryDate": "2024-12-03",
+            "exitDate": "2025-01-03",
+            "asset": "IWM",
+            "entryPrice": 241.66076328277586,
+            "exitPrice": 221.95897232055665,
+            "realizedPnl": -8245.744233506237,
+            "qty": 418.5276480355795
+          },
+          {
+            "entryDate": "2025-01-03",
+            "exitDate": "2025-03-04",
+            "asset": "QQQ",
+            "entryPrice": 513.6066505737305,
+            "exitPrice": 493.9329026794434,
+            "realizedPnl": -3558.3881675643934,
+            "qty": 180.8698671287576
+          },
+          {
+            "entryDate": "2025-03-04",
+            "exitDate": "2025-07-02",
+            "asset": "GLD",
+            "entryPrice": 269.1445147705078,
+            "exitPrice": 307.8859885406494,
+            "realizedPnl": 12859.520678883142,
+            "qty": 331.9316336590705
+          },
+          {
+            "entryDate": "2025-07-02",
+            "exitDate": "2025-09-03",
+            "asset": "QQQ",
+            "entryPrice": 546.4330531311035,
+            "exitPrice": 568.9453654785157,
+            "realizedPnl": 4210.384060846045,
+            "qty": 187.02583705622922
+          },
+          {
+            "entryDate": "2025-09-03",
+            "exitDate": "2025-10-02",
+            "asset": "IWM",
+            "entryPrice": 233.38663927459714,
+            "exitPrice": 242.8785,
+            "realizedPnl": 4327.604244973205,
+            "qty": 455.9279123629916
+          }
+        ],
+        "priceOnly": true,
+        "equityReconciled": true
       }
     }
   ],
   "selected": "NO_WINNER",
-  "agents": [
-    {
-      "role": "scout",
-      "state": "DETERMINISTIC",
-      "asOf": "2026-11-15T06:13:37.215Z",
-      "input": {
-        "symbol": "BTC/USD"
-      },
-      "output": {
-        "scanned": [
-          "BTC/USD"
-        ],
-        "candidates": [
-          "BTC/USD"
-        ]
-      },
-      "effect": "ADVISORY",
-      "modelCall": false,
-      "error": null
-    },
-    {
-      "role": "vector",
-      "state": "DETERMINISTIC",
-      "asOf": "2026-11-15T06:13:37.215Z",
-      "input": {
-        "bars": 300,
-        "latest": "2026-09-13T00:00:00Z"
-      },
-      "output": {
-        "signal": "WAIT",
-        "rsi": 19.39530859450113,
-        "lower": 57088.61836431428,
-        "upper": 83185.33863568562,
-        "atr14": 2127.849925226468,
-        "reason": "no simultaneous cross"
-      },
-      "effect": "ADVISORY",
-      "modelCall": false,
-      "error": null
-    },
-    {
-      "role": "atlas",
-      "state": "NOT_APPLICABLE",
-      "asOf": "2026-11-15T06:13:37.215Z",
-      "input": {
-        "symbol": "BTC/USD"
-      },
-      "output": {
-        "stance": "UNAVAILABLE"
-      },
-      "effect": "NONE",
-      "modelCall": false,
-      "error": "spot crypto has no equity fundamental statement"
-    },
-    {
-      "role": "oracle",
-      "state": "UNAVAILABLE",
-      "asOf": "2026-11-15T06:13:37.215Z",
-      "input": {},
-      "output": {
-        "stance": "UNAVAILABLE"
-      },
-      "effect": "NONE",
-      "modelCall": false,
-      "error": "no macro feed configured"
-    },
-    {
-      "role": "pulse",
-      "state": "UNAVAILABLE",
-      "asOf": "2026-11-15T06:13:37.215Z",
-      "input": {
-        "billingLocked": true
-      },
-      "output": {
-        "stance": "UNAVAILABLE"
-      },
-      "effect": "NONE",
-      "modelCall": false,
-      "error": "billing lock blocks paid sentiment"
-    },
-    {
-      "role": "volta",
-      "state": "UNAVAILABLE",
-      "asOf": "2026-11-15T06:13:37.215Z",
-      "input": {
-        "symbol": "BTC/USD"
-      },
-      "output": {
-        "stance": "UNAVAILABLE"
-      },
-      "effect": "NONE",
-      "modelCall": false,
-      "error": "no derivatives feed"
-    },
-    {
-      "role": "bull",
-      "state": "BLOCKED",
-      "asOf": "2026-11-15T06:13:37.215Z",
-      "input": {
-        "billingLocked": true
-      },
-      "output": {
-        "stance": "UNAVAILABLE"
-      },
-      "effect": "NONE",
-      "modelCall": false,
-      "error": "paid Bull call blocked"
-    },
-    {
-      "role": "bear",
-      "state": "BLOCKED",
-      "asOf": "2026-11-15T06:13:37.215Z",
-      "input": {
-        "billingLocked": true
-      },
-      "output": {
-        "stance": "UNAVAILABLE"
-      },
-      "effect": "NONE",
-      "modelCall": false,
-      "error": "paid Bear call blocked"
-    }
-  ],
   "aiModelCalls": 0,
   "brokerWrites": 0
 }
