@@ -1,0 +1,29 @@
+{
+  "study": "track-c-liquid-etf-v1",
+  "strategyApproved": false,
+  "promotion": false,
+  "livePilot": "NO-GO",
+  "standingRule": "A candidate that underperforms SPY on validation is not promoted, even if a cash-relative gate passes.",
+  "ranked": [
+    {
+      "id": "vol-regime-spy-tlt-v1",
+      "writtenGate": "PASS_GATE",
+      "pilot": "NO-GO",
+      "reason": "Positive after costs, but underperformed SPY in development, validation and holdout. Validation drawdown was worse than SPY."
+    },
+    {
+      "id": "dual-mom-spy-tlt-v1",
+      "writtenGate": "NO_WINNER",
+      "pilot": "NO-GO",
+      "reason": "Validation Sharpe below gate. Holdout is one uninterrupted SPY hold, not evidence of a repeatable edge."
+    },
+    {
+      "id": "spy-mr-2atr-v1",
+      "writtenGate": "NO_WINNER",
+      "pilot": "NO-GO",
+      "reason": "Validation lost money. Holdout gain does not repair a failed validation."
+    }
+  ],
+  "rejectedNotReopened": ["etf-xs-breakout-20-v1", "etf-weekly-momentum-v1", "etf-xs-rs-60-v1"],
+  "executorTouched": false
+}

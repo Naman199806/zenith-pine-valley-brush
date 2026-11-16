@@ -11,6 +11,12 @@
       "verdict": "NO_WINNER",
       "strategyApproved": false,
       "note": "Rejected after cost and dividend-timing correction. Parameters unchanged."
+    },
+    {
+      "name": "track-c-liquid-etf-v1",
+      "verdict": "NO_WINNER",
+      "strategyApproved": false,
+      "note": "Three pre-registered hypotheses. None qualify for a LIVE pilot."
     }
   ],
   "promotion": false

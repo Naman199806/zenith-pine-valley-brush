@@ -1,0 +1,266 @@
+{
+  "spec": {
+    "study": "track-c-liquid-etf-v1",
+    "frozenBeforeResults": true,
+    "universe": [
+      "SPY",
+      "QQQ",
+      "IWM",
+      "TLT",
+      "GLD",
+      "BIL"
+    ],
+    "data": "research/data/raw/yahoo/20261112",
+    "signal": "completed daily close only",
+    "fill": "next session adjusted open",
+    "costs": {
+      "commissionBps": 5,
+      "slippageBps": 1
+    },
+    "splits": {
+      "development": [
+        "2010-01-04",
+        "2017-12-29"
+      ],
+      "validation": [
+        "2018-01-02",
+        "2022-12-30"
+      ],
+      "holdout": [
+        "2023-01-03",
+        "2026-11-11"
+      ]
+    },
+    "hypotheses": [
+      {
+        "id": "dual-mom-spy-tlt-v1",
+        "idea": "Monthly dual momentum between SPY and TLT, else cash.",
+        "lookbackMonths": 12
+      },
+      {
+        "id": "spy-mr-2atr-v1",
+        "idea": "Buy SPY after a 2-ATR down close. Exit after 5 sessions.",
+        "atr": 14,
+        "shock": 2.0,
+        "holdSessions": 5
+      },
+      {
+        "id": "vol-regime-spy-tlt-v1",
+        "idea": "Hold TLT when SPY 20-day vol is above its trailing 75th percentile, else SPY.",
+        "volWindow": 20,
+        "rankWindow": 252,
+        "percentile": 0.75
+      }
+    ],
+    "promotionGate": {
+      "validationExcessVsBil": "> 0",
+      "validationSharpe": "> 0.4",
+      "validationProfitFactor": "> 1.15",
+      "minEvents": 8,
+      "maxDdNotWorseThanSpyBy": 0.1,
+      "twoXCostsValidationPositive": true,
+      "holdoutNetPositive": true,
+      "holdoutExcessVsBilPositive": true
+    },
+    "rejectedNotReopened": [
+      "etf-xs-breakout-20-v1",
+      "etf-weekly-momentum-v1",
+      "etf-xs-rs-60-v1"
+    ]
+  },
+  "checksums": {
+    "SPY": "b7d2529962e3d4339fb0fe1e11bbc75bfba8df20d1b7e951b5a155497951a28b",
+    "QQQ": "bfd2870cb767de364fcaf18e770dab3718582152899ea0837b3d2be23aa6940c",
+    "IWM": "0ef7a4ccbb5b989cfccb72aea8c81f1f99e4c9a3a77149e4a231df27990354ce",
+    "TLT": "70de432580987764f7629985471621a052270846a1eaf904cab695a80cd4c45e",
+    "GLD": "1d10160ff7036ba8d36c77062a9d5fe0b5d5ac5bbcfa152a3f6c26318bcdc5d7",
+    "BIL": "a06e2f0c96745b32495fd5f43df3183c6226769e948403fe842e324c498441ef"
+  },
+  "candidates": {
+    "dual-mom-spy-tlt-v1": {
+      "development": {
+        "start": "2010-01-04",
+        "end": "2017-12-29",
+        "totalReturn": 0.44054865480965977,
+        "cagr": 0.046779929353581995,
+        "maxDrawdown": -0.27349754252354563,
+        "sharpe": 0.3899968222822627,
+        "trades": 15,
+        "profitFactor": 1.958786074225035,
+        "expectancy": 2.9312288374451594,
+        "winRate": 0.4666666666666667,
+        "twoXCostTotal": 0.41567772874801645,
+        "spyTotal": 1.8110889950790798,
+        "bilTotal": 0.004410376887441281,
+        "spyMaxDd": -0.20149914550075676
+      },
+      "validation": {
+        "start": "2018-01-02",
+        "end": "2022-12-30",
+        "totalReturn": 0.20332702648939938,
+        "cagr": 0.03777282325431375,
+        "maxDrawdown": -0.19018695168000443,
+        "sharpe": 0.3079851074359451,
+        "trades": 9,
+        "profitFactor": 2.257148775176442,
+        "expectancy": 2.251167003038952,
+        "winRate": 0.4444444444444444,
+        "twoXCostTotal": 0.19110453099758207,
+        "spyTotal": 0.5478657139136229,
+        "bilTotal": 0.05566685709651109,
+        "spyMaxDd": -0.3204897132381268
+      },
+      "holdout": {
+        "start": "2023-01-03",
+        "end": "2026-11-11",
+        "totalReturn": 0.9013501376464708,
+        "cagr": 0.18208416070397893,
+        "maxDrawdown": -0.1976622770871055,
+        "sharpe": 1.228812927392714,
+        "trades": 1,
+        "profitFactor": null,
+        "expectancy": 90.02093275638828,
+        "winRate": 1.0,
+        "twoXCostTotal": 0.9002086426668954,
+        "spyTotal": 1.0642737960742301,
+        "bilTotal": 0.18573486300873476,
+        "spyMaxDd": -0.19766227708710538
+      },
+      "gate": {
+        "excessVsBil": true,
+        "sharpe": false,
+        "profitFactor": true,
+        "events": true,
+        "drawdown": true,
+        "twoX": true,
+        "holdoutNet": true,
+        "holdoutExcess": true
+      },
+      "verdict": "NO_WINNER"
+    },
+    "spy-mr-2atr-v1": {
+      "development": {
+        "start": "2010-01-04",
+        "end": "2017-12-29",
+        "totalReturn": 0.10917072346422363,
+        "cagr": 0.01306189965337956,
+        "maxDrawdown": -0.1119951013810968,
+        "sharpe": 0.3596402832534483,
+        "trades": 15,
+        "profitFactor": 2.4032508761719478,
+        "expectancy": 0.7278048230948239,
+        "winRate": 0.6,
+        "twoXCostTotal": 0.0893665984499965,
+        "spyTotal": 1.8110889950790798,
+        "bilTotal": 0.004410376887441281,
+        "spyMaxDd": -0.20149914550075676
+      },
+      "validation": {
+        "start": "2018-01-02",
+        "end": "2022-12-30",
+        "totalReturn": -0.20267324705972511,
+        "cagr": -0.04435632207602824,
+        "maxDrawdown": -0.2440890821380669,
+        "sharpe": -0.42086864093021864,
+        "trades": 14,
+        "profitFactor": 0.36732534716551435,
+        "expectancy": -1.4476660504266081,
+        "winRate": 0.5,
+        "twoXCostTotal": -0.21596831094904123,
+        "spyTotal": 0.5478657139136229,
+        "bilTotal": 0.05566685709651109,
+        "spyMaxDd": -0.3204897132381268
+      },
+      "holdout": {
+        "start": "2023-01-03",
+        "end": "2026-11-11",
+        "totalReturn": 0.15342667229634532,
+        "cagr": 0.03785788687407643,
+        "maxDrawdown": -0.07001388578628898,
+        "sharpe": 0.5307726585491783,
+        "trades": 8,
+        "profitFactor": 58.74312760042732,
+        "expectancy": 1.9091827036620952,
+        "winRate": 0.875,
+        "twoXCostTotal": 0.14308313853827648,
+        "spyTotal": 1.0642737960742301,
+        "bilTotal": 0.18573486300873476,
+        "spyMaxDd": -0.19766227708710538
+      },
+      "gate": {
+        "excessVsBil": false,
+        "sharpe": false,
+        "profitFactor": false,
+        "events": true,
+        "drawdown": true,
+        "twoX": false,
+        "holdoutNet": true,
+        "holdoutExcess": false
+      },
+      "verdict": "NO_WINNER"
+    },
+    "vol-regime-spy-tlt-v1": {
+      "development": {
+        "start": "2010-01-04",
+        "end": "2017-12-29",
+        "totalReturn": 1.5916464856138988,
+        "cagr": 0.12667782681318762,
+        "maxDrawdown": -0.24192310771600234,
+        "sharpe": 0.9764671366113478,
+        "trades": 57,
+        "profitFactor": 3.2721714523722794,
+        "expectancy": 2.7896342065307547,
+        "winRate": 0.5964912280701754,
+        "twoXCostTotal": 1.4216092668347087,
+        "spyTotal": 1.8110889950790798,
+        "bilTotal": 0.004410376887441281,
+        "spyMaxDd": -0.20149914550075676
+      },
+      "validation": {
+        "start": "2018-01-02",
+        "end": "2022-12-30",
+        "totalReturn": 0.4071934539918556,
+        "cagr": 0.07082359624223056,
+        "maxDrawdown": -0.40412350239790906,
+        "sharpe": 0.4896553351117746,
+        "trades": 37,
+        "profitFactor": 1.3778279212887015,
+        "expectancy": 1.09596034712624,
+        "winRate": 0.4864864864864865,
+        "twoXCostTotal": 0.34764462484253533,
+        "spyTotal": 0.5478657139136229,
+        "bilTotal": 0.05566685709651109,
+        "spyMaxDd": -0.3204897132381268
+      },
+      "holdout": {
+        "start": "2023-01-03",
+        "end": "2026-11-11",
+        "totalReturn": 0.5857593424893113,
+        "cagr": 0.127529430659858,
+        "maxDrawdown": -0.1458999822234699,
+        "sharpe": 0.9901183327542462,
+        "trades": 30,
+        "profitFactor": 2.365785209785366,
+        "expectancy": 1.9461900071722908,
+        "winRate": 0.6666666666666666,
+        "twoXCostTotal": 0.5314760727826409,
+        "spyTotal": 1.0642737960742301,
+        "bilTotal": 0.18573486300873476,
+        "spyMaxDd": -0.19766227708710538
+      },
+      "gate": {
+        "excessVsBil": true,
+        "sharpe": true,
+        "profitFactor": true,
+        "events": true,
+        "drawdown": true,
+        "twoX": true,
+        "holdoutNet": true,
+        "holdoutExcess": true
+      },
+      "verdict": "PASS_GATE"
+    }
+  },
+  "promotion": false,
+  "strategyApproved": false
+}

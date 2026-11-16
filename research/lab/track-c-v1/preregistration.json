@@ -1,0 +1,46 @@
+{
+  "study": "track-c-liquid-etf-v1",
+  "frozenBeforeResults": true,
+  "universe": ["SPY", "QQQ", "IWM", "TLT", "GLD", "BIL"],
+  "data": "research/data/raw/yahoo/20261112",
+  "signal": "completed daily close only",
+  "fill": "next session adjusted open",
+  "costs": {"commissionBps": 5, "slippageBps": 1},
+  "splits": {
+    "development": ["2010-01-04", "2017-12-29"],
+    "validation": ["2018-01-02", "2022-12-30"],
+    "holdout": ["2023-01-03", "2026-11-11"]
+  },
+  "hypotheses": [
+    {
+      "id": "dual-mom-spy-tlt-v1",
+      "idea": "Monthly dual momentum between SPY and TLT, else cash.",
+      "lookbackMonths": 12
+    },
+    {
+      "id": "spy-mr-2atr-v1",
+      "idea": "Buy SPY after a 2-ATR down close. Exit after 5 sessions.",
+      "atr": 14,
+      "shock": 2.0,
+      "holdSessions": 5
+    },
+    {
+      "id": "vol-regime-spy-tlt-v1",
+      "idea": "Hold TLT when SPY 20-day vol is above its trailing 75th percentile, else SPY.",
+      "volWindow": 20,
+      "rankWindow": 252,
+      "percentile": 0.75
+    }
+  ],
+  "promotionGate": {
+    "validationExcessVsBil": "> 0",
+    "validationSharpe": "> 0.4",
+    "validationProfitFactor": "> 1.15",
+    "minEvents": 8,
+    "maxDdNotWorseThanSpyBy": 0.10,
+    "twoXCostsValidationPositive": true,
+    "holdoutNetPositive": true,
+    "holdoutExcessVsBilPositive": true
+  },
+  "rejectedNotReopened": ["etf-xs-breakout-20-v1", "etf-weekly-momentum-v1", "etf-xs-rs-60-v1"]
+}
