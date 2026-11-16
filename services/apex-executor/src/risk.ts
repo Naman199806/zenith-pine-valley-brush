@@ -61,7 +61,7 @@ export function assessRisk(
   }
   if (local.conflict) return "duplicate order";
 
-  if (instruction.purpose === "ENTRY") {
+  if (instruction.side === "buy") {
     if (snapshot.openOrderSymbols.includes(instruction.symbol)) return "duplicate order";
     if (kill) return "kill switch blocks new entries";
     if (minuteEt(now) >= PAPER_RISK.entryCutoffMinute) return "no new entries after the cutoff";
@@ -75,12 +75,8 @@ export function assessRisk(
     return null;
   }
 
-  if (!(local.ownedQty > 0) || instruction.qty > local.ownedQty + 1e-8) return "sell exceeds owned quantity";
   const brokerQty = snapshot.positionQty[instruction.symbol] ?? 0;
-  if (!(brokerQty > 0) || instruction.qty > brokerQty + 1e-8) return "broker position does not confirm the journal";
-  if (instruction.purpose === "STOP") {
-    if (instruction.stopPrice == null) return "stop price invalid";
-    if (instruction.orderType === "stop_limit" && instruction.stopPrice > instruction.limitPrice) return "stop price above limit";
-  }
+  if (!(brokerQty > 0) || instruction.qty > brokerQty + 1e-8) return "sell exceeds broker-owned quantity";
+  void local;
   return null;
 }

@@ -5,7 +5,7 @@
 
 import { closeSync, existsSync, fsyncSync, mkdirSync, openSync, readFileSync, writeSync } from "node:fs";
 import { dirname } from "node:path";
-import type { LifecycleState } from "./lifecycle.ts";
+import type { PositionState } from "./lifecycle.ts";
 
 export interface JournalRecord {
   seq: number;
@@ -23,7 +23,7 @@ export interface JournalRecord {
   stopPrice: number | null;
   expiresAt: string | null;
   linkedEntryId: string | null;
-  state: LifecycleState | null;
+  state: PositionState | null;
   filledQty: number | null;
   avgPrice: number | null;
   submitCount: number | null;

@@ -7,7 +7,7 @@
 import type { IntentRecord } from "../../../src/lib/apex/live/executor.ts";
 import { HermesJournal } from "../../../src/lib/apex/live/journal.ts";
 import { worstCaseNotional } from "../../../src/lib/apex/live/equity.ts";
-import type { LifecycleState } from "./lifecycle.ts";
+import type { PositionState } from "./lifecycle.ts";
 
 export interface ReportOrder {
   clientOrderId: string;
@@ -17,30 +17,26 @@ export interface ReportOrder {
   limitPrice: number;
   expiresAt: string;
   linkedEntryId: string | null;
-  state: LifecycleState;
+  state: PositionState;
   filledQty: number;
   avgPrice: number | null;
   purpose: "ENTRY" | "EXIT" | "STOP";
   orderType: "limit" | "stop" | "stop_limit";
 }
 
-function hermesStatus(state: LifecycleState): IntentRecord["status"] {
+function hermesStatus(state: PositionState): IntentRecord["status"] {
   switch (state) {
-    case "authorized":
+    case "PROPOSED":
+    case "SUBMISSION_ATTEMPTED":
+    case "EXIT_PENDING":
       return "PERSISTED";
-    case "submitted":
-    case "accepted":
-      return "SUBMITTED";
-    case "partial_fill":
+    case "PARTIAL":
       return "PARTIAL";
-    case "filled":
+    case "OPEN":
+    case "FLAT":
+    case "CLOSED":
       return "FILLED";
-    case "cancelled":
-    case "expired":
-      return "CANCELED";
-    case "rejected":
-      return "REJECTED";
-    case "unknown":
+    case "UNKNOWN":
       return "UNKNOWN";
   }
 }

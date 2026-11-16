@@ -1,517 +1,397 @@
 /**
- * Apex Executor process core.
- * Apex Quant X proposes a signed instruction. This service verifies it,
- * checks the broker, journals the decision, and does not invent a side.
- * Alpaca POST stays disabled. Uncertain submits are reconciled by
- * client_order_id and are never retried blindly.
+ * Apex Executor runtime.
+ * PAPER read-only. POST is hard-disabled.
+ * One writer lock. Crash-safe snapshot plus an append-only journal.
+ * Broker lookups fail closed. Accepting a proposal stays PROPOSED.
  */
 
-import { redactSecrets } from "../../../src/lib/apex/broker/allowlist.ts";
-import { orderFromBroker, resolveUnknownOrder, type BrokerOrder } from "../../../src/lib/apex/broker/client.ts";
-import { mapBrokerStatus } from "../../../src/lib/apex/broker/machine.ts";
-import { alpacaOrderPayload, type EquityIdentity } from "../../../src/lib/apex/live/equity-adapter.ts";
+import { closeSync, fsyncSync, mkdirSync, openSync, writeSync } from "node:fs";
+import { dirname } from "node:path";
+import { PAPER_TRADING_ORIGIN, assertPaperUrl, redactSecrets } from "../../../src/lib/apex/broker/allowlist.ts";
+import { assertPaperCreds, type PaperCreds } from "../../../src/lib/apex/broker/paper-read.ts";
 import { HermesJournal } from "../../../src/lib/apex/live/journal.ts";
-import {
-  verifyOperatorApproval,
-  verifyProtectiveApproval,
-  type OperatorApproval,
-  type ProtectiveApproval,
-  type PostEnableGrant,
-} from "../../../src/lib/apex/broker/paper-equity-transport.ts";
-import type { EvidenceSource, ExecutorTransport } from "./broker.ts";
-import { paperLookupUrl, paperOrderUrl } from "./broker.ts";
-import { reportReconcile, reportToHermes } from "./hermes-report.ts";
-import { paperTicket, parseInstruction, type TradeInstruction } from "./instruction.ts";
-import { OrderJournal, type JournalRecord } from "./journal.ts";
-import { fromMachine, isTerminalState, nextLifecycle, type LifecycleState } from "./lifecycle.ts";
-import { MODE_GATE, postDecision } from "./mode.ts";
-import { assessRisk, type MarketSnapshot } from "./risk.ts";
+import type { IntentRecord } from "../../../src/lib/apex/live/executor.ts";
+import { verifyApproval } from "./approval.ts";
+import { verifyInstruction, type TradeInstruction } from "./instruction.ts";
+import { OrderJournal } from "./journal.ts";
+import { reconcileRecord, type LifecycleRecord, type LookupFacts } from "./lifecycle.ts";
+import { acquireWriterLock, releaseWriterLock } from "./lock.ts";
+import { MODE_GATE } from "./mode.ts";
+import { atomicWrite, readRequiredJson } from "./persist.ts";
+import { assessRisk, flatSnapshot, type MarketSnapshot } from "./risk.ts";
 
-const RECONCILE_CREDS = { keyId: "PKEXECUTORMOCK", secret: "mock-only-not-a-broker-secret" };
+export const POST_ENABLED = false;
+export const PAPER_POST_ENABLED = false;
+export const LIVE_POST_ENABLED = false;
+export const STRATEGY_APPROVED = false;
 
-export interface OrderRecord {
-  clientOrderId: string;
-  nonce: string;
-  decisionId: string;
-  purpose: TradeInstruction["purpose"];
-  symbol: "SPY";
-  side: "buy" | "sell";
-  orderType: TradeInstruction["orderType"];
-  qty: number;
-  limitPrice: number;
-  stopPrice: number | null;
-  expiresAt: string;
-  linkedEntryId: string | null;
-  state: LifecycleState;
-  filledQty: number;
-  avgPrice: number | null;
-  submitCount: number;
-  approval: OperatorApproval | ProtectiveApproval | null;
-}
-
-export interface ExecutorOptions {
+export interface ExecutorConfig {
+  mode: "PAPER" | "LIVE";
+  postEnabled: false;
+  liveCredentialsLoaded: false;
+  statePath: string;
+  lockPath: string;
+  inboxPath: string;
   journalPath: string;
   hermesPath: string;
-  evidence: EvidenceSource;
-  operatorSecret: string | null;
-  gateSecret: string | null;
-  killSwitch?: boolean;
-  redact?: string[];
 }
 
-export interface HandleResult {
-  accepted: boolean;
-  reason: string;
-  submitted: false;
+interface Snapshot {
+  nonces: string[];
+  clientOrderIds: string[];
+  records: LifecycleRecord[];
+  entriesBlocked?: boolean;
 }
 
-export interface SubmitResult {
-  submitted: boolean;
-  reason: string;
-  state: LifecycleState | null;
-  paperTestsPassed: boolean;
-}
-
-function blank(reason: string, kind: JournalRecord["kind"]): Omit<JournalRecord, "seq" | "at"> {
+export function loadConfig(env: NodeJS.ProcessEnv = process.env): ExecutorConfig {
+  const root = env.APEX_EXECUTOR_DATA || "services/apex-executor/data";
   return {
-    kind,
-    clientOrderId: null,
-    nonce: null,
-    decisionId: null,
-    purpose: null,
-    symbol: null,
-    side: null,
-    orderType: null,
-    qty: null,
-    limitPrice: null,
-    stopPrice: null,
-    expiresAt: null,
-    linkedEntryId: null,
-    state: null,
-    filledQty: null,
-    avgPrice: null,
-    submitCount: null,
-    reason,
+    mode: "PAPER",
+    postEnabled: false,
+    liveCredentialsLoaded: false,
+    statePath: env.APEX_EXECUTOR_STATE || `${root}/state.json`,
+    lockPath: env.APEX_EXECUTOR_LOCK || `${root}/writer.lock`,
+    inboxPath: env.APEX_EXECUTOR_INBOX || `${root}/inbox.jsonl`,
+    journalPath: env.APEX_EXECUTOR_JOURNAL || `${root}/journal.jsonl`,
+    hermesPath: env.APEX_EXECUTOR_HERMES || `${root}/hermes.json`,
   };
 }
 
-function orderFromEvent(event: JournalRecord): OrderRecord {
+function blankRecord(msg: TradeInstruction): LifecycleRecord {
   return {
-    clientOrderId: event.clientOrderId ?? "",
-    nonce: event.nonce ?? "",
-    decisionId: event.decisionId ?? "",
-    purpose: event.purpose ?? "ENTRY",
-    symbol: "SPY",
-    side: event.side ?? "buy",
-    orderType: event.orderType ?? "limit",
-    qty: event.qty ?? 0,
-    limitPrice: event.limitPrice ?? 0,
-    stopPrice: event.stopPrice,
-    expiresAt: event.expiresAt ?? "",
-    linkedEntryId: event.linkedEntryId,
-    state: "authorized",
+    clientOrderId: msg.clientOrderId,
+    symbol: msg.symbol,
+    side: msg.side,
+    qty: msg.qty,
+    state: "PROPOSED",
     filledQty: 0,
-    avgPrice: null,
-    submitCount: 0,
-    approval: null,
+    linkedExitId: null,
+    unknown: false,
+    alerted: false,
+    submitted: false,
+    expiresAt: msg.expiresAt,
   };
-}
-
-function payload(order: OrderRecord): Record<string, unknown> {
-  if (order.orderType === "limit") {
-    const identity: EquityIdentity = {
-      symbol: order.symbol,
-      side: order.side,
-      orderType: "limit",
-      qty: order.qty,
-      limitPrice: order.limitPrice,
-      timeInForce: "day",
-      session: "REGULAR",
-      extendedHours: false,
-      singleUseId: order.clientOrderId,
-      expiry: order.expiresAt,
-      worstCaseNotional: order.qty * order.limitPrice,
-    };
-    return alpacaOrderPayload(identity, order.clientOrderId);
-  }
-  const body: Record<string, unknown> = {
-    symbol: order.symbol,
-    side: order.side,
-    type: order.orderType,
-    qty: order.qty,
-    time_in_force: "day",
-    client_order_id: order.clientOrderId,
-    stop_price: order.stopPrice,
-  };
-  if (order.orderType === "stop_limit") body.limit_price = order.limitPrice;
-  return body;
-}
-
-function statusWord(state: LifecycleState): string {
-  switch (state) {
-    case "partial_fill":
-      return "partially_filled";
-    case "cancelled":
-      return "canceled";
-    case "authorized":
-    case "submitted":
-      return "accepted";
-    default:
-      return state;
-  }
 }
 
 export class Executor {
-  private journal: OrderJournal;
-  private hermes: HermesJournal;
-  private orders = new Map<string, OrderRecord>();
+  entriesBlocked = false;
+  alerts: string[] = [];
+  pollFailures = 0;
+  ready = false;
   private nonces = new Set<string>();
   private ids = new Set<string>();
-  private evidence: EvidenceSource;
-  private operatorSecret: string | null;
-  private gateSecret: string | null;
-  private redact: string[];
-  private kill: boolean;
-  private reconciled = false;
-  private reconcileError: string | null = null;
-  paperMockFilled = false;
+  private records = new Map<string, LifecycleRecord>();
+  private config: ExecutorConfig;
+  private creds: PaperCreds | null;
+  private lockFd: number | null = null;
+  private journal: OrderJournal;
+  private hermes: HermesJournal;
+  private market: MarketSnapshot | null = null;
+  private marketAt = 0;
+  readonly redact: string[];
 
-  constructor(options: ExecutorOptions) {
-    this.journal = new OrderJournal(options.journalPath);
-    this.hermes = new HermesJournal(options.hermesPath);
-    this.evidence = options.evidence;
-    this.operatorSecret = options.operatorSecret;
-    this.gateSecret = options.gateSecret;
-    this.redact = [...(options.redact ?? []), RECONCILE_CREDS.keyId, RECONCILE_CREDS.secret];
-    let journalKill = false;
-    for (const event of this.journal.replay()) {
-      if (event.kind === "kill") journalKill = event.reason !== "off";
-      if (event.kind === "accept" && event.clientOrderId && event.nonce) {
-        if (this.orders.has(event.clientOrderId)) throw new Error("corrupt journal; duplicate accept");
-        this.orders.set(event.clientOrderId, orderFromEvent(event));
-        this.nonces.add(event.nonce);
-        this.ids.add(event.clientOrderId);
-      }
-      if (event.kind === "state" && event.clientOrderId) {
-        const order = this.orders.get(event.clientOrderId);
-        if (!order || !event.state) throw new Error("corrupt journal; state without order");
-        order.state = event.state;
-        if (event.filledQty != null) order.filledQty = event.filledQty;
-        if (event.avgPrice != null) order.avgPrice = event.avgPrice;
-        if (event.submitCount != null) order.submitCount = event.submitCount;
-      }
+  constructor(config: ExecutorConfig, creds: PaperCreds | null) {
+    this.config = { ...config, postEnabled: false, liveCredentialsLoaded: false, mode: config.mode === "LIVE" ? "LIVE" : "PAPER" };
+    this.creds = creds;
+    this.redact = creds ? [creds.keyId, creds.secret] : [];
+    this.journal = new OrderJournal(config.journalPath);
+    this.hermes = new HermesJournal(config.hermesPath);
+    try {
+      this.lockFd = acquireWriterLock(config.lockPath);
+      this.restore();
+      this.journal.replay();
+    } catch (error) {
+      this.release();
+      throw error;
     }
-    this.kill = options.killSwitch === true || journalKill;
+  }
+
+  private restore(): void {
+    const parsed = readRequiredJson(this.config.statePath);
+    if (parsed == null) return;
+    const snap = parsed as Snapshot;
+    if (!snap || !Array.isArray(snap.nonces) || !Array.isArray(snap.clientOrderIds) || !Array.isArray(snap.records)) {
+      throw new Error("executor state corrupt; fail closed");
+    }
+    if (snap.entriesBlocked != null && typeof snap.entriesBlocked !== "boolean") throw new Error("executor state corrupt; fail closed");
+    for (const nonce of snap.nonces) {
+      if (typeof nonce !== "string") throw new Error("executor state corrupt; fail closed");
+      this.nonces.add(nonce);
+    }
+    for (const id of snap.clientOrderIds) {
+      if (typeof id !== "string") throw new Error("executor state corrupt; fail closed");
+      this.ids.add(id);
+    }
+    for (const rec of snap.records) {
+      if (!rec || typeof rec.clientOrderId !== "string" || typeof rec.state !== "string") throw new Error("executor state corrupt; fail closed");
+      this.records.set(rec.clientOrderId, rec);
+    }
+    this.entriesBlocked = snap.entriesBlocked === true;
+  }
+
+  private save(): void {
+    const snap: Snapshot = {
+      nonces: [...this.nonces],
+      clientOrderIds: [...this.ids],
+      records: [...this.records.values()],
+      entriesBlocked: this.entriesBlocked,
+    };
+    atomicWrite(this.config.statePath, JSON.stringify(snap));
+  }
+
+  private audit(kind: "accept" | "reject" | "state" | "recovery", reason: string, rec: LifecycleRecord | null): void {
+    this.journal.append({
+      kind,
+      clientOrderId: rec?.clientOrderId ?? null,
+      nonce: null,
+      decisionId: null,
+      purpose: rec?.side === "sell" ? "EXIT" : rec ? "ENTRY" : null,
+      symbol: rec?.symbol === "SPY" ? "SPY" : null,
+      side: rec?.side ?? null,
+      orderType: "limit",
+      qty: rec?.qty ?? null,
+      limitPrice: null,
+      stopPrice: null,
+      expiresAt: rec?.expiresAt ?? null,
+      linkedEntryId: rec?.linkedExitId ?? null,
+      state: rec?.state ?? null,
+      filledQty: rec?.filledQty ?? null,
+      avgPrice: null,
+      submitCount: rec?.submitted ? 1 : 0,
+      reason,
+    });
+  }
+
+  private report(rec: LifecycleRecord, note: string): void {
+    const nowIso = new Date().toISOString();
+    if (!this.hermes.get(rec.clientOrderId)) {
+      const intent: IntentRecord = {
+        clientOrderId: rec.clientOrderId,
+        ticket: {
+          category: "CONNECTIVITY_TEST",
+          symbol: rec.symbol,
+          side: rec.side,
+          orderType: "limit",
+          maxNotional: 25,
+          expiry: rec.expiresAt,
+          singleUseId: rec.clientOrderId,
+          readAuthorized: true,
+          orderAuthorized: false,
+          confirmed: false,
+        },
+        createdAt: nowIso,
+        status: "PERSISTED",
+        filledQty: rec.filledQty,
+        avgPrice: null,
+        paperState: "PROPOSED",
+      };
+      this.hermes.persist(intent);
+    }
+    const status: IntentRecord["status"] = rec.unknown
+      ? "UNKNOWN"
+      : rec.state === "PARTIAL"
+        ? "PARTIAL"
+        : rec.state === "FLAT" || rec.state === "CLOSED" || rec.state === "OPEN"
+          ? "FILLED"
+          : "PERSISTED";
+    this.hermes.updateStatus(rec.clientOrderId, status, rec.filledQty, null, `${note}; audience=hermes,pilot; postEnabled=false`);
   }
 
   health(): {
     ok: true;
-    service: "apex-executor";
-    mode: typeof MODE_GATE.mode;
-    paperPost: typeof MODE_GATE.paperPost;
-    livePost: typeof MODE_GATE.livePost;
-    autonomousStrategyTrading: typeof MODE_GATE.autonomousStrategyTrading;
+    mode: "PAPER_READ_ONLY";
+    paperPost: "DISABLED";
+    livePost: "DISABLED";
+    autonomousStrategyTrading: "DISABLED";
     strategyApproved: false;
-    accepting: boolean;
-    killSwitch: boolean;
-    reconciliation: "clean" | "blocked";
+    postEnabled: false;
+    unknown: number;
+    ready: boolean;
+    alerts: number;
+    host: "127.0.0.1";
   } {
     return {
       ok: true,
-      service: "apex-executor",
       mode: MODE_GATE.mode,
       paperPost: MODE_GATE.paperPost,
       livePost: MODE_GATE.livePost,
       autonomousStrategyTrading: MODE_GATE.autonomousStrategyTrading,
       strategyApproved: false,
-      accepting: this.reconciled && this.evidence.kind !== "unconfigured",
-      killSwitch: this.kill,
-      reconciliation: this.reconciled ? "clean" : "blocked",
+      postEnabled: false,
+      unknown: [...this.records.values()].filter((rec) => rec.unknown).length,
+      ready: this.ready,
+      alerts: this.alerts.length,
+      host: "127.0.0.1",
     };
   }
 
-  setKill(enabled: boolean, reason = "operator kill switch"): void {
-    this.kill = enabled;
-    this.journal.append({ ...blank(enabled ? reason : "off", "kill"), reason: enabled ? "on" : "off" });
+  observeMarket(snapshot: MarketSnapshot, now = Date.now()): void {
+    this.market = snapshot;
+    this.marketAt = now;
+    this.ready = true;
+    this.pollFailures = 0;
   }
 
-  get(clientOrderId: string): OrderRecord | undefined {
-    const order = this.orders.get(clientOrderId);
-    return order ? { ...order, approval: null } : undefined;
+  notePoll(failure: string | null): void {
+    if (!failure) return;
+    this.pollFailures += 1;
+    this.ready = false;
+    this.alerts.push(redactSecrets(failure, this.redact));
   }
 
-  hasOpenBrokerOrder(): boolean {
-    return [...this.orders.values()].some((order) => order.state !== "authorized" && !isTerminalState(order.state));
+  accept(msg: TradeInstruction, now = Date.now()): { accepted: boolean; reason: string; state: "PROPOSED" | null } {
+    if (this.config.mode === "LIVE") return { accepted: false, reason: "LIVE submission disabled", state: null };
+    const verified = verifyInstruction(msg, { operator: process.env.APEX_OPERATOR_SECRET ?? null, gate: process.env.APEX_GATE_SECRET ?? null }, now);
+    if (verified) return this.reject(verified);
+    if (msg.side === "sell") return this.reject("sell requires authorizeExit");
+    if (this.nonces.has(msg.nonce) || this.ids.has(msg.clientOrderId)) return this.reject("duplicate or replay");
+    if (this.entriesBlocked) return this.reject("kill switch blocks new entries");
+    if (!this.creds || assertPaperCreds(this.creds)) return this.reject("PAPER credentials rejected");
+    if (!this.market || now - this.marketAt > 5_000 || now < this.marketAt) return this.reject("broker evidence missing");
+    const risk = assessRisk(msg, this.market, { conflict: false, ownedQty: 0 }, this.entriesBlocked, now);
+    if (risk) return this.reject(risk);
+    const rec = blankRecord(msg);
+    this.nonces.add(msg.nonce);
+    this.ids.add(msg.clientOrderId);
+    this.records.set(msg.clientOrderId, rec);
+    this.audit("accept", "VALIDATED/PROPOSED; POST disabled; no order transmitted", rec);
+    this.report(rec, "VALIDATED/PROPOSED");
+    this.save();
+    return { accepted: true, reason: "VALIDATED/PROPOSED; POST disabled; no order transmitted", state: "PROPOSED" };
   }
 
-  async recover(lookup: (clientOrderId: string) => Promise<BrokerOrder | null>): Promise<void> {
-    this.journal.append(blank("replay", "recovery"));
-    for (const order of this.orders.values()) {
-      this.syncHermes(order, "startup replay", null);
-      if (order.state === "authorized" || isTerminalState(order.state)) continue;
-      try {
-        const remote = await lookup(order.clientOrderId);
-        if (!remote) {
-          this.commit(order, "unknown", order.filledQty, order.avgPrice, "startup reconcile found nothing; not resubmitted", "unknown");
-        } else {
-          this.commit(order, fromMachine(remote.state), remote.filledQty, order.avgPrice, "startup reconcile by client_order_id; not resubmitted", statusWord(fromMachine(remote.state)));
-        }
-      } catch (error) {
-        this.reconciled = false;
-        this.reconcileError = this.safe(error);
-        return;
-      }
-    }
-    this.reconciled = true;
-    this.reconcileError = null;
+  /** Does not transmit. POST stays disabled, so this cannot mark SUBMISSION_ATTEMPTED. */
+  submit(): { submitted: false; reason: string } {
+    return { submitted: false, reason: "PAPER POST DISABLED" };
   }
 
-  async handle(input: unknown, now = Date.now()): Promise<HandleResult> {
-    if (!this.reconciled) {
-      return { accepted: false, reason: this.reconcileError ?? "reconciliation incomplete", submitted: false };
-    }
-    if (this.evidence.kind === "unconfigured") {
-      return { accepted: false, reason: "broker verification unavailable", submitted: false };
-    }
-    const parsed = parseInstruction(input, now, { operator: this.operatorSecret, gate: this.gateSecret });
-    if (!parsed.ok) {
-      this.journal.append(blank(parsed.reason, "reject"));
-      return { accepted: false, reason: parsed.reason, submitted: false };
-    }
-    const msg = parsed.value;
-    if (this.nonces.has(msg.nonce) || this.ids.has(msg.clientOrderId)) {
-      return { accepted: false, reason: "replay", submitted: false };
-    }
-    let snapshot: MarketSnapshot;
+  ingest(raw: string, now = Date.now()): { accepted: boolean; reason: string; state: "PROPOSED" | null } {
+    mkdirSync(dirname(this.config.inboxPath), { recursive: true });
+    const fd = openSync(this.config.inboxPath, "a");
     try {
-      snapshot = await this.evidence.load(now);
-    } catch (error) {
-      return { accepted: false, reason: `broker verification failed: ${this.safe(error)}`, submitted: false };
+      writeSync(fd, `${raw}\n`);
+      fsyncSync(fd);
+    } finally {
+      closeSync(fd);
     }
-    const entry = msg.linkedEntryId ? this.orders.get(msg.linkedEntryId) : undefined;
-    const ownedQty = entry && (entry.state === "filled" || entry.state === "partial_fill") ? entry.filledQty : 0;
-    const conflict = [...this.orders.values()].some((order) => {
-      if (order.symbol !== msg.symbol || isTerminalState(order.state)) return false;
-      return order.purpose === msg.purpose;
-    });
-    const risk = assessRisk(msg, snapshot, { conflict, ownedQty }, this.kill, now);
-    if (risk) {
-      this.journal.append(blank(risk, "reject"));
-      return { accepted: false, reason: risk, submitted: false };
-    }
-    const order: OrderRecord = {
-      clientOrderId: msg.clientOrderId,
-      nonce: msg.nonce,
-      decisionId: msg.decisionId,
-      purpose: msg.purpose,
-      symbol: msg.symbol,
-      side: msg.side,
-      orderType: msg.orderType,
-      qty: msg.qty,
-      limitPrice: msg.limitPrice,
-      stopPrice: msg.stopPrice,
-      expiresAt: msg.expiresAt,
-      linkedEntryId: msg.linkedEntryId,
-      state: "authorized",
-      filledQty: 0,
-      avgPrice: null,
-      submitCount: 0,
-      approval: msg.approval,
-    };
-    this.orders.set(order.clientOrderId, order);
-    this.nonces.add(order.nonce);
-    this.ids.add(order.clientOrderId);
-    this.journal.append({
-      ...blank("authorized; POST not attempted", "accept"),
-      clientOrderId: order.clientOrderId,
-      nonce: order.nonce,
-      decisionId: order.decisionId,
-      purpose: order.purpose,
-      symbol: order.symbol,
-      side: order.side,
-      orderType: order.orderType,
-      qty: order.qty,
-      limitPrice: order.limitPrice,
-      stopPrice: order.stopPrice,
-      expiresAt: order.expiresAt,
-      linkedEntryId: order.linkedEntryId,
-      state: "authorized",
-      filledQty: 0,
-      submitCount: 0,
-    });
-    this.syncHermes(order, "authorized; no order submitted", null);
-    return { accepted: true, reason: "validated; POST disabled; no order submitted", submitted: false };
-  }
-
-  async submit(clientOrderId: string, transport: ExecutorTransport, grant: PostEnableGrant | null, now = Date.now()): Promise<SubmitResult> {
-    const order = this.orders.get(clientOrderId);
-    if (!order) return { submitted: false, reason: "unknown instruction", state: null, paperTestsPassed: this.paperMockFilled };
-    if (order.submitCount > 0 || order.state === "unknown" || isTerminalState(order.state) || order.state !== "authorized") {
-      return { submitted: false, reason: "no blind retry; reconcile by client_order_id", state: order.state, paperTestsPassed: this.paperMockFilled };
-    }
-    if (this.kill && order.purpose === "ENTRY") {
-      return { submitted: false, reason: "kill switch blocks new entries", state: order.state, paperTestsPassed: this.paperMockFilled };
-    }
-    const decision = postDecision({
-      venue: "PAPER",
-      transportKind: transport.kind,
-      grant,
-      operatorSecret: this.operatorSecret,
-      now,
-      paperTestsPassed: this.paperMockFilled,
-    });
-    if (!decision.allowed) return { submitted: false, reason: decision.reason, state: order.state, paperTestsPassed: this.paperMockFilled };
-    const sigErr = this.reverify(order, now);
-    if (sigErr) return { submitted: false, reason: sigErr, state: order.state, paperTestsPassed: this.paperMockFilled };
-
-    const lookupUrl = paperLookupUrl(order.clientOrderId);
-    let prior: { status: number; body: unknown };
+    let parsed: TradeInstruction;
     try {
-      prior = await transport.call({ method: "GET", url: lookupUrl, headers: {} });
-    } catch (error) {
-      this.commit(order, "unknown", order.filledQty, order.avgPrice, "pre-submit lookup failed; not submitted", "unknown");
-      return { submitted: false, reason: `lookup failed; not submitted: ${this.safe(error)}`, state: order.state, paperTestsPassed: this.paperMockFilled };
+      parsed = JSON.parse(raw) as TradeInstruction;
+    } catch {
+      return this.reject("rejected message");
     }
-    if (prior.status === 200) {
-      const mapped = orderFromBroker(prior.body);
-      this.commit(order, fromMachine(mapped.state), mapped.filledQty, order.avgPrice, "broker already has this client_order_id; not submitted again", statusWord(fromMachine(mapped.state)));
-      return { submitted: false, reason: "broker already has this client_order_id; not submitted again", state: order.state, paperTestsPassed: this.paperMockFilled };
-    }
-    if (prior.status !== 404) {
-      this.commit(order, "unknown", order.filledQty, order.avgPrice, "pre-submit lookup inconclusive; not submitted", "unknown");
-      return { submitted: false, reason: "lookup inconclusive; not submitted", state: order.state, paperTestsPassed: this.paperMockFilled };
-    }
+    return this.accept(parsed, now);
+  }
 
-    order.submitCount = 1;
-    this.commit(order, "submitted", 0, null, "submit attempt", null);
+  async reconcile(get: (url: string) => Promise<{ status: number; body: unknown }>, clientOrderId: string): Promise<LifecycleRecord> {
+    const rec = this.records.get(clientOrderId);
+    if (!rec) throw new Error("unknown instruction");
+    const positionsUrl = assertPaperUrl(`${PAPER_TRADING_ORIGIN}/v2/positions`).toString();
+    const ordersUrl = assertPaperUrl(`${PAPER_TRADING_ORIGIN}/v2/orders?status=open`).toString();
+    const orderUrl = assertPaperUrl(`${PAPER_TRADING_ORIGIN}/v2/orders:by_client_order_id?client_order_id=${encodeURIComponent(clientOrderId)}`).toString();
+    let positions: { status: number; body: unknown };
+    let open: { status: number; body: unknown };
+    let order: { status: number; body: unknown };
     try {
-      const response = await transport.call({ method: "POST", url: paperOrderUrl(), headers: {}, body: payload(order) });
-      if (response.status < 200 || response.status >= 300) {
-        this.commit(order, "rejected", 0, null, "broker rejected", "rejected");
-        return { submitted: true, reason: "rejected", state: order.state, paperTestsPassed: this.paperMockFilled };
-      }
-      const mapped = orderFromBroker(response.body);
-      this.commit(order, fromMachine(mapped.state), mapped.filledQty, order.avgPrice, "broker acknowledged", statusWord(fromMachine(mapped.state)));
-      if (transport.kind === "mock") this.paperMockFilled = true;
-      return { submitted: true, reason: "broker acknowledged", state: order.state, paperTestsPassed: this.paperMockFilled };
+      [positions, open, order] = await Promise.all([get(positionsUrl), get(ordersUrl), get(orderUrl)]);
     } catch (error) {
-      this.commit(order, "unknown", order.filledQty, order.avgPrice, "uncertain outcome; not retried", null);
-      const recovered = await resolveUnknownOrder(transport, RECONCILE_CREDS, {
-        clientOrderId: order.clientOrderId,
-        brokerId: null,
-        symbol: order.symbol,
-        side: order.side,
-        qty: order.qty,
-        filledQty: order.filledQty,
-        state: "unknown_pending_reconciliation",
-        reason: "",
-        theoretical: true,
-      });
-      this.commit(
-        order,
-        fromMachine(recovered.state),
-        recovered.filledQty,
-        order.avgPrice,
-        this.safeMessage(recovered.reason || this.safe(error)),
-        statusWord(fromMachine(recovered.state)),
-      );
-      if (transport.kind === "mock") this.paperMockFilled = true;
-      return { submitted: false, reason: recovered.reason, state: order.state, paperTestsPassed: this.paperMockFilled };
+      const unknown = { ...rec, state: "UNKNOWN" as const, unknown: true, alerted: true };
+      this.store(unknown, redactSecrets(error instanceof Error ? error.message : "broker lookup failed", this.redact));
+      return unknown;
     }
+    const next = reconcileRecord(rec, {
+      orderStatus: order.status,
+      orderBody: order.body,
+      positionsStatus: positions.status,
+      positions: positions.body,
+      openStatus: open.status,
+      openOrders: open.body,
+    } satisfies LookupFacts);
+    this.store(next, next.unknown ? `unknown broker outcome ${clientOrderId}; not resubmitted` : `reconciled ${next.state}`);
+    return next;
   }
 
-  submitLive(grant: PostEnableGrant | null, now = Date.now()): SubmitResult {
-    const decision = postDecision({
-      venue: "LIVE",
-      transportKind: "alpaca-live",
-      grant,
-      operatorSecret: this.operatorSecret,
-      now,
-      paperTestsPassed: this.paperMockFilled,
-    });
-    return { submitted: false, reason: decision.reason, state: null, paperTestsPassed: this.paperMockFilled };
+  async authorizeExit(
+    entryId: string,
+    sell: TradeInstruction,
+    get: (url: string) => Promise<{ status: number; body: unknown }>,
+    now = Date.now(),
+  ): Promise<{ ok: boolean; reason: string }> {
+    const rec = this.records.get(entryId);
+    if (!rec) return { ok: false, reason: "unknown entry" };
+    if (rec.linkedExitId) return { ok: false, reason: "duplicate exit" };
+    if (sell.side !== "sell" || sell.linkedEntryId !== entryId) return { ok: false, reason: "exit not linked to entry" };
+    if (!(rec.filledQty > 0) && rec.state !== "PARTIAL" && rec.state !== "OPEN" && rec.state !== "EXIT_PENDING") {
+      return { ok: false, reason: "no owned quantity" };
+    }
+    const proof = verifyApproval(sell, sell.operatorProof, process.env.APEX_OPERATOR_SECRET ?? null, now);
+    if (proof) return { ok: false, reason: proof };
+    const gate = verifyInstruction(sell, { operator: process.env.APEX_OPERATOR_SECRET ?? null, gate: process.env.APEX_GATE_SECRET ?? null }, now);
+    if (gate) return { ok: false, reason: gate };
+    let positions: { status: number; body: unknown };
+    try {
+      positions = await get(assertPaperUrl(`${PAPER_TRADING_ORIGIN}/v2/positions`).toString());
+    } catch {
+      return { ok: false, reason: "owned quantity unresolved" };
+    }
+    if (positions.status !== 200 || !Array.isArray(positions.body)) return { ok: false, reason: "owned quantity unresolved" };
+    const owned = Number((positions.body as { symbol?: string; qty?: string }[]).find((row) => row.symbol === sell.symbol)?.qty ?? Number.NaN);
+    if (!Number.isFinite(owned) || !(owned > 0) || sell.qty > owned + 1e-12) return { ok: false, reason: "sell exceeds broker-owned quantity" };
+    const next: LifecycleRecord = { ...rec, state: "EXIT_PENDING", linkedExitId: sell.clientOrderId };
+    this.nonces.add(sell.nonce);
+    this.ids.add(sell.clientOrderId);
+    this.store(next, "exit authorized; POST disabled");
+    return { ok: true, reason: "exit authorized; POST disabled" };
   }
 
-  onBroker(clientOrderId: string, status: string, filledQty: number, avgPrice: number | null = null): OrderRecord {
-    const order = this.orders.get(clientOrderId);
-    if (!order) throw new Error("unknown instruction");
-    if (order.state === "authorized") throw new Error("not submitted");
-    this.commit(order, fromMachine(mapBrokerStatus(status)), filledQty, avgPrice, `broker ${status}`, status);
-    return { ...order, approval: null };
+  /** Labels an unconfirmed attempt without transmitting. Production submit() never calls this. */
+  noteUnconfirmedAttempt(clientOrderId: string): LifecycleRecord {
+    if (POST_ENABLED) throw new Error("POST is disabled");
+    const rec = this.records.get(clientOrderId);
+    if (!rec || rec.state !== "PROPOSED") throw new Error("not a proposal");
+    const next: LifecycleRecord = { ...rec, state: "SUBMISSION_ATTEMPTED", submitted: true };
+    this.store(next, "SUBMISSION_ATTEMPTED recorded without transmit; POST disabled");
+    return next;
   }
 
-  private reverify(order: OrderRecord, now: number): string | null {
-    if (order.purpose === "STOP") return verifyProtectiveApproval(order.approval as ProtectiveApproval | null, this.operatorSecret, now);
-    const ticket = paperTicket({
-      decisionId: order.decisionId,
-      clientOrderId: order.clientOrderId,
-      strategyId: "replay",
-      strategyVersion: "v1",
-      strategyApproved: false,
-      symbol: "SPY",
-      side: order.side,
-      orderType: "limit",
-      purpose: order.purpose,
-      qty: order.qty,
-      limitPrice: order.limitPrice,
-      stopPrice: order.stopPrice,
-      session: "REGULAR",
-      timeInForce: "day",
-      expiresAt: order.expiresAt,
-      nonce: order.nonce,
-      evidenceTimestamp: new Date(now).toISOString(),
-      category: "CONNECTIVITY_TEST",
-      sizedNotional: order.qty * order.limitPrice,
-      authorizationRef: "stored",
-      linkedEntryId: order.linkedEntryId,
-      approval: order.approval as OperatorApproval,
-      gateProof: {
-        singleUseId: order.clientOrderId,
-        symbol: "SPY",
-        side: order.side,
-        qty: order.qty,
-        limitPrice: order.limitPrice,
-        computedAt: new Date(now).toISOString(),
-        sigmaApproved: true,
-        sentinelApproved: true,
-        sigmaVeto: false,
-        sentinelVeto: false,
-        proof: "",
-      },
-    });
-    return verifyOperatorApproval(ticket, order.approval as OperatorApproval | null, this.operatorSecret, now);
+  private reject(reason: string): { accepted: false; reason: string; state: null } {
+    this.audit("reject", reason, null);
+    return { accepted: false, reason, state: null };
   }
 
-  private commit(order: OrderRecord, state: LifecycleState, filledQty: number, avgPrice: number | null, reason: string, reconcileStatus: string | null): void {
-    if (order.state !== state) order.state = nextLifecycle(order.state, state);
-    order.filledQty = filledQty;
-    if (avgPrice != null) order.avgPrice = avgPrice;
-    this.journal.append({
-      ...blank(reason, "state"),
-      clientOrderId: order.clientOrderId,
-      state: order.state,
-      filledQty: order.filledQty,
-      avgPrice: order.avgPrice,
-      submitCount: order.submitCount,
-      purpose: order.purpose,
-      side: order.side,
-      symbol: order.symbol,
-    });
-    this.syncHermes(order, reason, reconcileStatus);
+  private store(rec: LifecycleRecord, note: string): void {
+    this.records.set(rec.clientOrderId, rec);
+    if (rec.unknown) this.alerts.push(note);
+    this.audit("state", note, rec);
+    this.report(rec, note);
+    this.save();
   }
 
-  private syncHermes(order: OrderRecord, reason: string, reconcileStatus: string | null): void {
-    const nowIso = new Date().toISOString();
-    if (reconcileStatus) reportReconcile(this.hermes, order, reconcileStatus, nowIso);
-    else reportToHermes(this.hermes, order, nowIso, reason);
+  get(clientOrderId: string): LifecycleRecord | undefined {
+    return this.records.get(clientOrderId);
   }
 
-  private safe(error: unknown): string {
-    return redactSecrets(error instanceof Error ? error.message : "broker request failed", this.redact);
-  }
-
-  private safeMessage(message: string): string {
-    return redactSecrets(message, this.redact);
+  release(): void {
+    if (this.lockFd == null && this.config == null) return;
+    const fd = this.lockFd;
+    this.lockFd = null;
+    try {
+      releaseWriterLock(this.config.lockPath, fd);
+    } catch {
+      /* lock already gone */
+    }
   }
 }
 
+export function assertNoLiveCreds(env: NodeJS.ProcessEnv): void {
+  if (env.APEX_EXECUTOR_MODE === "LIVE" && env.APEX_EXECUTOR_ENABLE_LIVE === "I_ENABLE_LIVE") {
+    throw new Error("LIVE submission disabled");
+  }
+  if (env.APCA_LIVE_API_KEY_ID || env.APCA_LIVE_API_SECRET_KEY || env.APEX_EXECUTOR_LIVE_KEY_ID || env.APEX_EXECUTOR_LIVE_SECRET || env.LIVE_APCA_API_KEY_ID || env.LIVE_APCA_API_SECRET_KEY) {
+    throw new Error("LIVE credentials must not be loaded in PAPER mode");
+  }
+}
+
+export function openMarket(now: number): MarketSnapshot {
+  return flatSnapshot(now);
+}

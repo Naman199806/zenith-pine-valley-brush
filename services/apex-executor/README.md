@@ -1,8 +1,8 @@
 # Apex Executor
 
-Bot 2 execution service for Apex Quant X. Research still proposes. This process is the only one that may submit, and submission to Alpaca is disabled.
+Bot 2 for Apex Quant X. Research proposes. This process is the only one that may submit, and submission is disabled.
 
-Current gate, enforced in code:
+The gate reported by `/health` is fixed in code:
 
 - mode `PAPER_READ_ONLY`
 - PAPER POST `DISABLED`
@@ -10,63 +10,74 @@ Current gate, enforced in code:
 - autonomous strategy trading `DISABLED`
 - `strategyApproved=false`
 
-The executor does not generate a side, does not override Sigma or Sentinel, and does not mint operator authorization. A paper exercise cannot turn LIVE on.
+Accepting an instruction records `PROPOSED`. It does not transmit an order and it does not mark `SUBMISSION_ATTEMPTED`. Operator proofs use `src/approval.ts`, the same module `scripts/operator-sign-ticket.mjs` uses. The signer refuses a ticket that is missing nonce, category, or authorization fields. Sigma and Sentinel are checked from a signed gate proof.
 
-## What it does
-
-1. Checks the operator signature, the Sigma/Sentinel proof, expiry, and nonce.
-2. Reads account, positions, open orders, and the quote through the existing paper client before it will accept an instruction.
-3. Applies size, duplicate, position, session, halt, and kill-switch limits.
-4. Journals every decision in an append-only file and reports the outcome through Hermes.
-5. On restart, replays the journal and reconciles by `client_order_id` before it accepts anything new. An uncertain submit is not retried.
-
-Exits and stops are accepted only when they refer to a position this service already authorized. They are not new directional signals.
-
-## Run
-
-From the repository root, with Node 22:
+A mock lifecycle is not a broker fill:
 
 ```bash
-cp services/apex-executor/deploy/apex-executor.env.example /etc/apex-executor.env
-# edit the copy locally; do not commit it
-node --experimental-strip-types services/apex-executor/src/main.ts
+node --experimental-strip-types services/apex-executor/scripts/mock-lifecycle.mjs
 ```
 
-Health, on the same machine:
+## Windows tests
 
-```bash
-APEX_EXECUTOR_HEALTH_TOKEN=replace-with-a-local-token node services/apex-executor/deploy/healthcheck.mjs
+From the clone (this checkout is `C:\Users\sharm\apex-quant-x-clean` when that is the local path):
+
+```powershell
+cd C:\Users\sharm\apex-quant-x-clean
+node --experimental-strip-types --test services/apex-executor/test/*.test.ts
+node --experimental-strip-types services/apex-executor/scripts/mock-lifecycle.mjs
 ```
 
-The listener is `127.0.0.1:8787`. `GET /health` and `POST /instructions` require the header `x-executor-token`. There is no HTTP route that submits an order.
+The mock script prints `realFill: false`. Do not treat that output as a fill.
 
-Paper credentials are `APEX_EXECUTOR_PAPER_KEY_ID` and `APEX_EXECUTOR_PAPER_SECRET`, or a JSON file at `APEX_EXECUTOR_PAPER_SECRETS_FILE` with `keyId` and `secret`. Live variables are refused unless `APEX_EXECUTOR_MODE=LIVE` and `APEX_EXECUTOR_ENABLE_LIVE=I_ENABLE_LIVE` are both set, and even then this build does not load them.
+## Linux VM
 
-## Deploy
-
-One instance per account, on a Linux VM that does not host the research agents:
+Run one instance, as its own user, not on the research host.
 
 ```bash
 sudo useradd --system --home /opt/apex-quant-x --shell /usr/sbin/nologin apex-executor || true
-sudo mkdir -p /var/lib/apex-executor /etc/apex-executor
-sudo cp services/apex-executor/deploy/apex-executor.env.example /etc/apex-executor.env
-sudo cp services/apex-executor/deploy/apex-executor.service /etc/systemd/system/apex-executor.service
-# put the paper JSON at /etc/apex-executor/paper.json, mode 0600, owner apex-executor
+sudo mkdir -p /var/lib/apex-executor /etc/apex-executor /opt/apex-quant-x
+sudo rsync -a --exclude .git --exclude node_modules ./ /opt/apex-quant-x/
+sudo chown -R apex-executor:apex-executor /var/lib/apex-executor /opt/apex-quant-x
+sudo install -m 0600 -o apex-executor -g apex-executor services/apex-executor/deploy/apex-executor.env.example /etc/apex-executor/secrets.env
+# edit /etc/apex-executor/secrets.env on the VM. Do not commit it.
+sudo install -m 0644 services/apex-executor/deploy/apex-executor.service /etc/systemd/system/apex-executor.service
 sudo systemctl daemon-reload
 sudo systemctl enable --now apex-executor
 sudo systemctl status apex-executor
 ```
 
-Add `User=apex-executor` to the unit once that account exists. Keep `/etc/apex-executor.env` out of git. Do not point the research process at `APEX_EXECUTOR_PAPER_*` or any live key.
+Paper credentials belong in `/etc/apex-executor/secrets.env` or `/etc/apex-executor/paper.json` (mode `0600`, owner `apex-executor`):
 
-## Tests
-
-```bash
-node --experimental-strip-types --test services/apex-executor/test/*.test.ts
+```
+APEX_EXECUTOR_HEALTH_TOKEN=replace-with-a-local-token
+APEX_EXECUTOR_PAPER_KEY_ID=replace-with-paper-key-id
+APEX_EXECUTOR_PAPER_SECRET=replace-with-paper-secret
+APEX_OPERATOR_SECRET=replace-with-operator-secret
+APEX_GATE_SECRET=replace-with-gate-secret
 ```
 
-Broker calls in those tests are mocks. A read-only Alpaca paper check runs only when `APEX_EXECUTOR_PAPER_KEY_ID` and `APEX_EXECUTOR_PAPER_SECRET` are already in the environment. Otherwise that test is skipped.
+Do not set `APCA_LIVE_API_KEY_ID`, `APEX_EXECUTOR_LIVE_KEY_ID`, or `LIVE_APCA_API_KEY_ID` in this file. The process refuses to start in PAPER mode when those are present, and it does not load live secrets.
 
-## Authorization
+Health, on the VM only:
 
-Operator signatures are verified by `src/lib/apex/broker/paper-equity-transport.ts`. The minting tool is `scripts/operator-sign-ticket.mjs`, which this service does not call. Sigma and Sentinel proofs are verified by `verifyGateProof` in `src/lib/apex/live/executor.ts`. Outcomes are written with `HermesJournal`.
+```bash
+APEX_EXECUTOR_HEALTH_TOKEN=replace-with-a-local-token node /opt/apex-quant-x/services/apex-executor/deploy/healthcheck.mjs
+```
+
+The listener is `127.0.0.1:8787`. `POST /instructions` only ingests a signed proposal. It cannot submit.
+
+Copy from Windows:
+
+```powershell
+cd C:\Users\sharm\apex-quant-x-clean
+scp -r .\services .\scripts .\src .\package.json .\package-lock.json user@vm:/tmp/apex-quant-x/
+ssh user@vm "sudo rsync -a /tmp/apex-quant-x/ /opt/apex-quant-x/ && sudo systemctl restart apex-executor"
+```
+
+## Invariants
+
+- One writer lock. A live pid is never replaced. A dead pid can be recovered.
+- Unknown broker lookups are not treated as flat, and they are not resubmitted.
+- Exits use a separate signed sell ticket and the broker's position quantity.
+- Hermes receives the outcome notes. Pilot reads that telemetry. Neither can approve a trade.

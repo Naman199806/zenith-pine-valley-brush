@@ -1,17 +1,23 @@
 [Unit]
-Description=Apex Executor (PAPER read-only, POST disabled)
+Description=Apex Executor PAPER read-only
 After=network-online.target
 Wants=network-online.target
 
 [Service]
 Type=simple
+User=apex-executor
+Group=apex-executor
 WorkingDirectory=/opt/apex-quant-x
-Environment=APEX_EXECUTOR_MODE=PAPER_READ_ONLY
-EnvironmentFile=-/etc/apex-executor.env
+Environment=APEX_EXECUTOR_MODE=PAPER
+Environment=APEX_EXECUTOR_DATA=/var/lib/apex-executor
+EnvironmentFile=-/etc/apex-executor/secrets.env
 ExecStart=/usr/bin/node --experimental-strip-types services/apex-executor/src/main.ts
 Restart=on-failure
 RestartSec=3
 NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/apex-executor
 
 [Install]
 WantedBy=multi-user.target
