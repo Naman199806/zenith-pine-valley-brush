@@ -4,6 +4,26 @@
   "paperPostEnabled": false,
   "liveDisabled": true,
   "submitted": false,
+  "scan": [
+    {
+      "symbol": "SPY",
+      "signal": "EXIT",
+      "last": 754.27,
+      "rank60": -0.010949096535627256
+    },
+    {
+      "symbol": "QQQ",
+      "signal": "EXIT",
+      "last": 680.01,
+      "rank60": -0.043492326952020544
+    },
+    {
+      "symbol": "IWM",
+      "signal": "EXIT",
+      "last": 277.55,
+      "rank60": -0.06762295081967207
+    }
+  ],
   "data": {
     "SPY": {
       "dataOk": true,
@@ -50,21 +70,99 @@
       "recommendation": "NO_TRADE",
       "reason": "EXIT quantity not reconciled.",
       "executionAuthorized": false,
-      "decisionId": "etf-xs-breakout-20-v1:SPY:2026-11-13T21:00:00Z"
+      "decisionId": "etf-xs-breakout-20-v1:SPY:2026-11-13T21:00:00Z",
+      "proposal": {
+        "v": 1,
+        "source": "RESEARCH_PROPOSAL",
+        "decisionId": "2a7f5fad9d96e88f",
+        "strategyId": "etf-xs-breakout-20-v1",
+        "strategyVersion": "etf-xs-breakout-20-v1",
+        "strategyApproved": false,
+        "symbol": "SPY",
+        "side": null,
+        "orderType": "limit",
+        "qty": null,
+        "limitPrice": null,
+        "session": "REGULAR",
+        "timeInForce": "day",
+        "expiresAt": "2026-11-13T21:00:00Z",
+        "nonce": "8f409bd3-896c-43f0-8c87-c7447522c515",
+        "category": "CONNECTIVITY_TEST",
+        "recommendation": "NO_TRADE",
+        "sigmaVeto": false,
+        "sentinelVeto": true,
+        "sizedNotional": 25,
+        "provenance": "alpaca-iex-daily-shadow",
+        "asOf": "2026-11-13T21:00:00Z",
+        "executionAuthorized": false,
+        "operatorProof": null
+      }
     },
     {
       "symbol": "QQQ",
       "recommendation": "NO_TRADE",
       "reason": "EXIT quantity not reconciled.",
       "executionAuthorized": false,
-      "decisionId": "etf-xs-breakout-20-v1:QQQ:2026-11-13T21:00:00Z"
+      "decisionId": "etf-xs-breakout-20-v1:QQQ:2026-11-13T21:00:00Z",
+      "proposal": {
+        "v": 1,
+        "source": "RESEARCH_PROPOSAL",
+        "decisionId": "9d3aa318818f83cf",
+        "strategyId": "etf-xs-breakout-20-v1",
+        "strategyVersion": "etf-xs-breakout-20-v1",
+        "strategyApproved": false,
+        "symbol": "QQQ",
+        "side": null,
+        "orderType": "limit",
+        "qty": null,
+        "limitPrice": null,
+        "session": "REGULAR",
+        "timeInForce": "day",
+        "expiresAt": "2026-11-13T21:00:00Z",
+        "nonce": "c850e9ad-1c43-4aac-8a79-8fee61fe612c",
+        "category": "CONNECTIVITY_TEST",
+        "recommendation": "NO_TRADE",
+        "sigmaVeto": false,
+        "sentinelVeto": true,
+        "sizedNotional": 25,
+        "provenance": "alpaca-iex-daily-shadow",
+        "asOf": "2026-11-13T21:00:00Z",
+        "executionAuthorized": false,
+        "operatorProof": null
+      }
     },
     {
       "symbol": "IWM",
       "recommendation": "NO_TRADE",
       "reason": "EXIT quantity not reconciled.",
       "executionAuthorized": false,
-      "decisionId": "etf-xs-breakout-20-v1:IWM:2026-11-13T21:00:00Z"
+      "decisionId": "etf-xs-breakout-20-v1:IWM:2026-11-13T21:00:00Z",
+      "proposal": {
+        "v": 1,
+        "source": "RESEARCH_PROPOSAL",
+        "decisionId": "5f40cae97510a3ed",
+        "strategyId": "etf-xs-breakout-20-v1",
+        "strategyVersion": "etf-xs-breakout-20-v1",
+        "strategyApproved": false,
+        "symbol": "IWM",
+        "side": null,
+        "orderType": "limit",
+        "qty": null,
+        "limitPrice": null,
+        "session": "REGULAR",
+        "timeInForce": "day",
+        "expiresAt": "2026-11-13T21:00:00Z",
+        "nonce": "f243ddfc-8948-4654-835d-fa1d390fe1be",
+        "category": "CONNECTIVITY_TEST",
+        "recommendation": "NO_TRADE",
+        "sigmaVeto": false,
+        "sentinelVeto": true,
+        "sizedNotional": 25,
+        "provenance": "alpaca-iex-daily-shadow",
+        "asOf": "2026-11-13T21:00:00Z",
+        "executionAuthorized": false,
+        "operatorProof": null
+      }
     }
   ]
 }
