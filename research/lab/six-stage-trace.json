@@ -1,0 +1,29 @@
+{
+  "flow": ["Market Data", "Scanner", "13 Agents", "Decision Gates", "Execution", "Hermes"],
+  "preserved": true,
+  "strategyRegistryIsolated": true,
+  "liveAuthorizationIsolated": true,
+  "stages": [
+    { "stage": "Market Data", "status": "REAL_FOR_READS", "evidence": "Yahoo daily fixtures; operator overnight snapshot historical only" },
+    { "stage": "Scanner", "status": "DETERMINISTIC", "evidence": "Scout universe check SPY/QQQ/IWM" },
+    { "stage": "13 Agents", "status": "PARTIAL", "evidence": "Vector/Sigma/Sentinel/Allocator/Hermes run; Bull/Bear blocked; Atlas/Oracle/Pulse/Volta unavailable" },
+    { "stage": "Decision Gates", "status": "ACTIVE", "evidence": "Sigma and Sentinel independent vetoes; strategyApproved=false" },
+    { "stage": "Execution", "status": "BLOCKED", "evidence": "Pilot blocked; PAPER ticket prepared not authorized; LIVE disabled" },
+    { "stage": "Hermes", "status": "ACTIVE", "evidence": "durable journal; BTC PAPER verification recorded" }
+  ],
+  "agents": [
+    { "role": "Scout", "contribution": "ADVISORY_ONLY" },
+    { "role": "Vector", "contribution": "CHANGED_DECISION" },
+    { "role": "Atlas", "contribution": "UNAVAILABLE" },
+    { "role": "Oracle", "contribution": "UNAVAILABLE" },
+    { "role": "Pulse", "contribution": "UNAVAILABLE" },
+    { "role": "Volta", "contribution": "UNAVAILABLE" },
+    { "role": "Bull", "contribution": "BLOCKED" },
+    { "role": "Bear", "contribution": "BLOCKED" },
+    { "role": "Sigma", "contribution": "VETO" },
+    { "role": "Sentinel", "contribution": "VETO" },
+    { "role": "Allocator", "contribution": "CHANGED_DECISION" },
+    { "role": "Pilot", "contribution": "BLOCKED" },
+    { "role": "Hermes", "contribution": "ADVISORY_ONLY" }
+  ]
+}

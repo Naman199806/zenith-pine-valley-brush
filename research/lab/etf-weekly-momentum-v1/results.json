@@ -1,0 +1,58 @@
+{
+  "spec": {
+    "name": "etf-weekly-momentum-v1",
+    "universe": [
+      "SPY",
+      "QQQ",
+      "IWM"
+    ],
+    "rank_weeks": 12,
+    "trend_weeks": 40,
+    "start_capital": 100.0,
+    "position_cap": 25.0,
+    "slippage_bps": 2.0,
+    "development": [
+      "2017-01-03",
+      "2021-12-31"
+    ],
+    "validation": [
+      "2022-01-03",
+      "2024-12-31"
+    ],
+    "holdout": [
+      "2025-01-02",
+      "2026-11-11"
+    ]
+  },
+  "provenance": {
+    "SPY": "b7d2529962e3d4339fb0fe1e11bbc75bfba8df20d1b7e951b5a155497951a28b",
+    "QQQ": "bfd2870cb767de364fcaf18e770dab3718582152899ea0837b3d2be23aa6940c",
+    "IWM": "0ef7a4ccbb5b989cfccb72aea8c81f1f99e4c9a3a77149e4a231df27990354ce"
+  },
+  "segments": {
+    "development": {
+      "total": 0.2072,
+      "cagr": 0.0384,
+      "max_dd": -0.0607,
+      "sharpe": 0.96,
+      "end": 120.7201,
+      "trades": 113
+    },
+    "validation": {
+      "total": 0.0553,
+      "cagr": 0.0182,
+      "max_dd": -0.0525,
+      "sharpe": 0.518,
+      "end": 105.5317,
+      "trades": 69
+    },
+    "holdout": {
+      "total": 0.0105,
+      "cagr": 0.0056,
+      "max_dd": -0.0479,
+      "sharpe": 0.159,
+      "end": 101.0534,
+      "trades": 27
+    }
+  }
+}
