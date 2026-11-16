@@ -1,64 +1,70 @@
 /**
- * Research-side proposal. Not an operator signature and not an order.
- * Compatible with the Executor v1 field set. Cursor owns verification.
+ * Research-side proposal. Explicitly non-executable.
+ * Quantity is never invented from an assumed price.
  */
 
-import { createHash, randomUUID } from "node:crypto";
+import { createHash } from "node:crypto";
 import type { DecisionTrace } from "./canonical-decision.ts";
 
 export interface ResearchProposal {
   v: 1;
   source: "RESEARCH_PROPOSAL";
+  executable: false;
   decisionId: string;
   strategyId: string;
   strategyVersion: string;
   strategyApproved: false;
   symbol: string;
   side: "buy" | "sell" | null;
-  orderType: "limit";
-  qty: number | null;
+  orderType: "limit" | null;
+  qty: null;
   limitPrice: null;
   session: "REGULAR";
-  timeInForce: "day";
-  expiresAt: string;
+  timeInForce: "day" | null;
+  dataAsOf: string;
+  validUntil: string | null;
   nonce: string;
   category: "CONNECTIVITY_TEST";
   recommendation: "BUY" | "EXIT" | "NO_TRADE";
   sigmaVeto: boolean;
   sentinelVeto: boolean;
-  sizedNotional: number;
+  sizedNotional: number | null;
   provenance: string;
-  asOf: string;
   executionAuthorized: false;
   operatorProof: null;
 }
 
-export function buildProposal(trace: DecisionTrace, sizedNotional = 25): ResearchProposal {
-  const side = trace.researchRecommendation === "BUY" ? "buy" : trace.researchRecommendation === "EXIT" ? "sell" : null;
-  const decisionId = createHash("sha256").update(`${trace.strategyVersion}|${trace.symbol}|${trace.asOf}|${trace.researchRecommendation}`).digest("hex").slice(0, 16);
+export function decisionId(trace: DecisionTrace): string {
+  return createHash("sha256").update(`${trace.strategyVersion}|${trace.symbol}|${trace.asOf}|${trace.researchRecommendation}|${trace.provenance}`).digest("hex").slice(0, 16);
+}
+
+export function buildProposal(trace: DecisionTrace, sizedNotional: number | null = null, validForMs = 15 * 60 * 1000): ResearchProposal {
+  const actionable = trace.researchRecommendation !== "NO_TRADE";
+  const asOfMs = Date.parse(trace.asOf);
   return {
     v: 1,
     source: "RESEARCH_PROPOSAL",
-    decisionId,
+    executable: false,
+    decisionId: decisionId(trace),
     strategyId: trace.strategyVersion,
     strategyVersion: trace.strategyVersion,
     strategyApproved: false,
     symbol: trace.symbol,
-    side,
-    orderType: "limit",
-    qty: side ? Math.floor((Math.min(25, sizedNotional) / 100) * 1000) / 1000 : null,
+    side: trace.researchRecommendation === "BUY" ? "buy" : trace.researchRecommendation === "EXIT" ? "sell" : null,
+    orderType: actionable ? "limit" : null,
+    qty: null,
     limitPrice: null,
     session: "REGULAR",
-    timeInForce: "day",
-    expiresAt: trace.asOf,
-    nonce: randomUUID(),
+    timeInForce: actionable ? "day" : null,
+    dataAsOf: trace.asOf,
+    validUntil: actionable && Number.isFinite(asOfMs) ? new Date(asOfMs + validForMs).toISOString() : null,
+    nonce: decisionId(trace),
     category: "CONNECTIVITY_TEST",
     recommendation: trace.researchRecommendation,
     sigmaVeto: trace.quantRejects,
     sentinelVeto: trace.riskRejects,
-    sizedNotional: Math.min(25, sizedNotional),
+    sizedNotional: actionable ? sizedNotional : null,
     provenance: trace.provenance,
-    asOf: trace.asOf,
     executionAuthorized: false,
     operatorProof: null,
   };
