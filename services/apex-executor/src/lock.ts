@@ -8,13 +8,23 @@
 import { closeSync, fsyncSync, mkdirSync, openSync, readFileSync, renameSync, unlinkSync, writeSync } from "node:fs";
 import { dirname } from "node:path";
 
+/**
+ * ESRCH is the only code that proves the pid is gone.
+ * Windows process.kill(pid, 0) raises EPERM when the process exists but
+ * cannot be signaled. EPERM, EINVAL, and a missing code stay "alive" so a
+ * lock is never stolen (fail closed).
+ */
+export function pidAliveFromKillError(error: unknown): boolean {
+  return (error as NodeJS.ErrnoException).code !== "ESRCH";
+}
+
 export function isPidAlive(pid: number): boolean {
   if (!Number.isInteger(pid) || pid <= 1) return false;
   try {
     process.kill(pid, 0);
     return true;
   } catch (error) {
-    return (error as NodeJS.ErrnoException).code !== "ESRCH";
+    return pidAliveFromKillError(error);
   }
 }
 

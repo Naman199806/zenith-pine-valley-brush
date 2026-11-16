@@ -18,7 +18,7 @@ import { OrderJournal } from "./journal.ts";
 import { markUnknown, reconcileRecord, type LifecycleRecord, type LookupFacts } from "./lifecycle.ts";
 import { acquireWriterLock, releaseWriterLock } from "./lock.ts";
 import { MODE_GATE } from "./mode.ts";
-import { atomicWrite, readRequiredJson } from "./persist.ts";
+import { atomicWrite, directoryFsyncSupported, durabilityLevel, FILE_ONLY_DURABILITY_WARNING, readRequiredJson, type DurabilityLevel } from "./persist.ts";
 import { fillsFromExecutions, toResearchOutcome, trustedEvidence, type FillEvent, type FillProvenance, type IncompleteFill } from "./fill-event.ts";
 import { assessRisk, flatSnapshot, type MarketSnapshot } from "./risk.ts";
 
@@ -240,7 +240,11 @@ export class Executor {
     ready: boolean;
     alerts: number;
     host: "127.0.0.1";
+    directoryFsyncSupported: boolean;
+    durability: DurabilityLevel;
+    durabilityWarning: string | null;
   } {
+    const directoriesSynced = directoryFsyncSupported();
     return {
       ok: true,
       mode: MODE_GATE.mode,
@@ -253,6 +257,9 @@ export class Executor {
       ready: this.ready,
       alerts: this.alerts.length,
       host: "127.0.0.1",
+      directoryFsyncSupported: directoriesSynced,
+      durability: durabilityLevel(),
+      durabilityWarning: directoriesSynced ? null : FILE_ONLY_DURABILITY_WARNING,
     };
   }
 
