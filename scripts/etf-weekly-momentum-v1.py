@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 """
-Frozen weekly ETF momentum rotation. Independent of etf-xs-breakout-20-v1.
-Universe SPY, QQQ, IWM. Friday close rank, next session open fill.
-Hold the highest trailing 12-week return if it is above its 40-week SMA.
-Else cash. One position. $100 capital, $25 cap. 2 bps slippage.
-Development 2017-2021, validation 2022-2024, holdout 2025-2026 evaluated once.
+Corrected weekly ETF momentum. Frozen parameters unchanged.
+Signal at the last daily bar of each ISO week. Fill at the next daily open.
+Dividends credited on the daily ex-date while the position is held.
+No parameter was tuned on the holdout.
 """
 
 from __future__ import annotations
 
+import datetime as dt
 import hashlib
 import json
 from pathlib import Path
@@ -27,89 +27,90 @@ SPEC = {
     "development": ["2017-01-03", "2021-12-31"],
     "validation": ["2022-01-03", "2024-12-31"],
     "holdout": ["2025-01-02", "2026-11-11"],
+    "execution": "signal on last daily bar of ISO week; fill next daily open",
+    "dividends": "credited on daily ex-date while held",
 }
 
 
 def load(symbol: str) -> dict:
     raw = (DATA / f"{symbol}.json").read_bytes()
     doc = json.loads(raw)
-    return {"bars": doc["bars"], "divs": {d["exDate"]: d["amount"] for d in doc.get("dividends", [])}, "checksum": hashlib.sha256(raw).hexdigest()}
+    bars = [b for b in doc["bars"] if b["date"] >= "2016-01-01"]
+    return {
+        "bars": bars,
+        "by_date": {b["date"]: b for b in bars},
+        "divs": {d["exDate"]: d["amount"] for d in doc.get("dividends", [])},
+        "checksum": hashlib.sha256(raw).hexdigest(),
+    }
 
 
-def weekly(bars: list[dict]) -> list[dict]:
-    out = []
+def week_key(date: str) -> tuple[int, int]:
+    y, m, d = map(int, date.split("-"))
+    return dt.date(y, m, d).isocalendar()[:2]
+
+
+def week_ends(bars: list[dict]) -> list[dict]:
+    last = {}
     for b in bars:
-        if len(b["date"]) < 10:
-            continue
-        # Friday or last available in week is approximated by weekday via date; use ISO week end by keeping last bar of each week.
-        out.append(b)
-    weeks = {}
-    for b in out:
-        y, m, d = map(int, b["date"].split("-"))
-        import datetime
-        dt = datetime.date(y, m, d)
-        key = dt.isocalendar()[:2]
-        weeks[key] = b
-    return [weeks[k] for k in sorted(weeks)]
+        last[week_key(b["date"])] = b
+    return [last[k] for k in sorted(last)]
 
 
 def metrics(equity: list[float]) -> dict:
     if len(equity) < 2:
-        return {"total": 0, "cagr": 0, "max_dd": 0, "sharpe": 0}
-    rets = [equity[i] / equity[i - 1] - 1 for i in range(1, len(equity))]
+        return {"total": 0, "cagr": 0, "max_dd": 0, "sharpe": 0, "end": equity[-1] if equity else 0}
+    rets = [equity[i] / equity[i - 1] - 1 for i in range(1, len(equity)) if equity[i - 1]]
     peak = equity[0]
-    dd = 0
+    dd = 0.0
     for e in equity:
         peak = max(peak, e)
-        dd = min(dd, e / peak - 1)
-    years = len(rets) / 52
-    total = equity[-1] / equity[0] - 1
-    cagr = (equity[-1] / equity[0]) ** (1 / years) - 1 if years and equity[-1] > 0 else -1
+        dd = min(dd, e / peak - 1 if peak else 0)
+    years = max(len(rets), 1) / 252
+    total = equity[-1] / SPEC["start_capital"] - 1
+    cagr = (equity[-1] / SPEC["start_capital"]) ** (1 / years) - 1 if equity[-1] > 0 else -1
     mean = sum(rets) / len(rets)
     var = sum((r - mean) ** 2 for r in rets) / len(rets)
     std = var ** 0.5
-    sharpe = (mean / std) * (52 ** 0.5) if std else 0
-    return {"total": round(total, 4), "cagr": round(cagr, 4), "max_dd": round(dd, 4), "sharpe": round(sharpe, 3), "end": round(equity[-1], 4)}
+    return {"total": round(total, 4), "cagr": round(cagr, 4), "max_dd": round(dd, 4), "sharpe": round((mean / std) * (252 ** 0.5) if std else 0, 3), "end": round(equity[-1], 4)}
 
 
 def run(books: dict, start: str, end: str) -> dict:
-    weeks = {s: [w for w in weekly(books[s]["bars"]) if "2016-01-01" <= w["date"] <= end] for s in SPEC["universe"]}
-    spy = [w for w in weeks["SPY"] if start <= w["date"] <= end]
+    dates = [b["date"] for b in books["SPY"]["bars"] if start <= b["date"] <= end]
+    ends = [w for w in week_ends(books["SPY"]["bars"]) if w["date"] <= end]
     cash = SPEC["start_capital"]
     pos = None
-    equity = [cash]
+    equity = []
     trades = 0
     slip = SPEC["slippage_bps"] / 10000
-    for i, w in enumerate(spy[:-1]):
-        date = w["date"]
-        for s in SPEC["universe"]:
-            if pos and pos["symbol"] == s:
-                cash += pos["qty"] * books[s]["divs"].get(date, 0)
-        mtm = cash + (pos["qty"] * next(x["close"] for x in weeks[pos["symbol"]] if x["date"] == date) if pos else 0)
-        # rank at this week's close
+    end_dates = {w["date"] for w in ends}
+    for i, date in enumerate(dates):
+        if pos and date in books[pos["symbol"]]["divs"]:
+            cash += pos["qty"] * books[pos["symbol"]]["divs"][date]
+        mark = books[pos["symbol"]]["by_date"].get(date) if pos else None
+        equity.append(cash + (pos["qty"] * mark["close"] if mark else 0))
+        if date not in end_dates or i + 1 >= len(dates):
+            continue
         ranks = []
         for s in SPEC["universe"]:
-            series = [x for x in weeks[s] if x["date"] <= date]
+            series = week_ends([b for b in books[s]["bars"] if b["date"] <= date])
             if len(series) < SPEC["trend_weeks"] + 1:
                 continue
             last = series[-1]["close"]
             sma = sum(x["close"] for x in series[-SPEC["trend_weeks"]:]) / SPEC["trend_weeks"]
-            ret = last / series[-SPEC["rank_weeks"] - 1]["close"] - 1
+            prev = series[-SPEC["rank_weeks"] - 1]["close"]
             if last > sma:
-                ranks.append((ret, s, last))
+                ranks.append((last / prev - 1, s))
         ranks.sort(reverse=True)
-        nxt = spy[i + 1]
-        if pos:
-            held = next((x for x in weeks[pos["symbol"]] if x["date"] == nxt["date"]), None)
-            still = ranks and ranks[0][1] == pos["symbol"]
-            if held and not still:
-                px = held["open"] * (1 - slip)
-                cash += pos["qty"] * px
+        nxt = dates[i + 1]
+        if pos and (not ranks or ranks[0][1] != pos["symbol"]):
+            nb = books[pos["symbol"]]["by_date"].get(nxt)
+            if nb:
+                cash += pos["qty"] * nb["open"] * (1 - slip)
                 pos = None
                 trades += 1
         if pos is None and ranks:
             sym = ranks[0][1]
-            nb = next((x for x in weeks[sym] if x["date"] == nxt["date"]), None)
+            nb = books[sym]["by_date"].get(nxt)
             if nb:
                 px = nb["open"] * (1 + slip)
                 notional = min(SPEC["position_cap"], cash)
@@ -117,19 +118,42 @@ def run(books: dict, start: str, end: str) -> dict:
                 cash -= qty * px
                 pos = {"symbol": sym, "qty": qty}
                 trades += 1
-        mark = next((x for x in weeks[pos["symbol"]] if x["date"] == nxt["date"]), None) if pos else None
-        equity.append(cash + (pos["qty"] * mark["close"] if mark else 0))
     return {**metrics(equity), "trades": trades}
+
+
+def capped_spy(books: dict, start: str, end: str) -> dict:
+    bars = [b for b in books["SPY"]["bars"] if start <= b["date"] <= end]
+    cash = SPEC["start_capital"]
+    px = bars[0]["open"]
+    qty = min(SPEC["position_cap"], cash) / px
+    cash -= qty * px
+    equity = []
+    for b in bars:
+        cash += qty * books["SPY"]["divs"].get(b["date"], 0)
+        equity.append(cash + qty * b["close"])
+    return metrics(equity)
 
 
 def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
+    prior = {}
+    prior_path = OUT / "results.json"
+    if prior_path.exists():
+        prior = json.loads(prior_path.read_text()).get("segments", {})
     books = {s: load(s) for s in SPEC["universe"]}
-    result = {"spec": SPEC, "provenance": {s: books[s]["checksum"] for s in books}, "segments": {}}
+    result = {
+        "spec": SPEC,
+        "correction": "Fills now use the next daily open, not the weekly bar open. Dividends credit on the daily ex-date.",
+        "prior": {k: prior.get(k) for k in ("development", "validation", "holdout")},
+        "provenance": {s: books[s]["checksum"] for s in books},
+        "segments": {},
+    }
     for name in ("development", "validation", "holdout"):
         a, b = SPEC[name]
-        result["segments"][name] = run(books, a, b)
+        result["segments"][name] = {"strategy": run(books, a, b), "spy_capped": capped_spy(books, a, b)}
+    result["verdict"] = "NO_WINNER"
     (OUT / "results.json").write_text(json.dumps(result, indent=2))
+    (OUT / "verdict.json").write_text(json.dumps({"name": SPEC["name"], "verdict": "NO_WINNER", "strategyApproved": False, "corrected": True}, indent=2))
     print(json.dumps(result["segments"], indent=2))
 
 

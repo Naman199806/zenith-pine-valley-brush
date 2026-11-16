@@ -22,14 +22,12 @@
     "holdout": [
       "2025-01-02",
       "2026-11-11"
-    ]
+    ],
+    "execution": "signal on last daily bar of ISO week; fill next daily open",
+    "dividends": "credited on daily ex-date while held"
   },
-  "provenance": {
-    "SPY": "b7d2529962e3d4339fb0fe1e11bbc75bfba8df20d1b7e951b5a155497951a28b",
-    "QQQ": "bfd2870cb767de364fcaf18e770dab3718582152899ea0837b3d2be23aa6940c",
-    "IWM": "0ef7a4ccbb5b989cfccb72aea8c81f1f99e4c9a3a77149e4a231df27990354ce"
-  },
-  "segments": {
+  "correction": "Fills now use the next daily open, not the weekly bar open. Dividends credit on the daily ex-date.",
+  "prior": {
     "development": {
       "total": 0.2072,
       "cagr": 0.0384,
@@ -54,5 +52,64 @@
       "end": 101.0534,
       "trades": 27
     }
-  }
+  },
+  "provenance": {
+    "SPY": "b7d2529962e3d4339fb0fe1e11bbc75bfba8df20d1b7e951b5a155497951a28b",
+    "QQQ": "bfd2870cb767de364fcaf18e770dab3718582152899ea0837b3d2be23aa6940c",
+    "IWM": "0ef7a4ccbb5b989cfccb72aea8c81f1f99e4c9a3a77149e4a231df27990354ce"
+  },
+  "segments": {
+    "development": {
+      "strategy": {
+        "total": 0.1863,
+        "cagr": 0.0348,
+        "max_dd": -0.0694,
+        "sharpe": 0.755,
+        "end": 118.6346,
+        "trades": 113
+      },
+      "spy_capped": {
+        "total": 0.3076,
+        "cagr": 0.0552,
+        "max_dd": -0.1108,
+        "sharpe": 0.988,
+        "end": 130.7554
+      }
+    },
+    "validation": {
+      "strategy": {
+        "total": 0.0141,
+        "cagr": 0.0047,
+        "max_dd": -0.0675,
+        "sharpe": 0.142,
+        "end": 101.4143,
+        "trades": 69
+      },
+      "spy_capped": {
+        "total": 0.0681,
+        "cagr": 0.0223,
+        "max_dd": -0.0612,
+        "sharpe": 0.56,
+        "end": 106.8129
+      }
+    },
+    "holdout": {
+      "strategy": {
+        "total": 0.0407,
+        "cagr": 0.0218,
+        "max_dd": -0.0386,
+        "sharpe": 0.497,
+        "end": 104.0691,
+        "trades": 27
+      },
+      "spy_capped": {
+        "total": 0.0777,
+        "cagr": 0.0413,
+        "max_dd": -0.0482,
+        "sharpe": 0.969,
+        "end": 107.7746
+      }
+    }
+  },
+  "verdict": "NO_WINNER"
 }

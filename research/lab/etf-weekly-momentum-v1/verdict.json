@@ -1,7 +1,6 @@
 {
   "name": "etf-weekly-momentum-v1",
-  "independentOf": "etf-xs-breakout-20-v1",
   "verdict": "NO_WINNER",
-  "reason": "Holdout total +1.05% with Sharpe 0.16 under a $25 cap. It does not beat SPY buy-and-hold and is not strong enough to promote. No parameter was changed after the holdout was computed.",
-  "strategyApproved": false
+  "strategyApproved": false,
+  "corrected": true
 }
