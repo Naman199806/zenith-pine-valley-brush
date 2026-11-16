@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /**
- * Local health check. Exits 0 only when the frozen execution gate is intact.
+ * Local health check. Exits 0 only when the frozen execution gate is intact,
+ * this process's broker poll is fresh, and reconciliation is OK.
  * Usage: APEX_EXECUTOR_HEALTH_TOKEN=... node services/apex-executor/deploy/healthcheck.mjs
  */
 const token = process.env.APEX_EXECUTOR_HEALTH_TOKEN || "";
@@ -11,17 +12,25 @@ if (!token) {
 }
 const res = await fetch(`http://127.0.0.1:${port}/health`, { headers: { "x-executor-token": token } });
 const body = await res.json().catch(() => null);
+const poll = body && body.brokerPoll;
 const gateOk = body
   && body.mode === "PAPER_READ_ONLY"
   && body.paperPost === "DISABLED"
   && body.livePost === "DISABLED"
   && body.autonomousStrategyTrading === "DISABLED"
-  && body.strategyApproved === false;
+  && body.strategyApproved === false
+  && poll
+  && poll.stale === false
+  && poll.reconciliation
+  && poll.reconciliation.outcome === "OK";
 if (res.status !== 200 || !gateOk) {
-  console.error("executor health check failed");
+  const outcome = poll && poll.reconciliation ? poll.reconciliation.outcome : "missing";
+  const stale = poll ? poll.stale : "missing";
+  console.error(`executor health check failed stale=${stale} reconciliation=${outcome}`);
   process.exit(1);
 }
 console.log("ok");
+console.log(`brokerPoll stale=${poll.stale} reconciliation=${poll.reconciliation.outcome} outstandingOrders=${poll.reconciliation.outstandingOrders} unknownOrders=${poll.reconciliation.unknownOrders}`);
 if (body.durability != null) {
   console.log(`durability=${body.durability} directoryFsyncSupported=${body.directoryFsyncSupported}`);
 }

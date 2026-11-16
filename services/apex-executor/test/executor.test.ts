@@ -451,9 +451,9 @@ test("disconnect, delayed fill, stale evidence, and unexpected positions fail cl
   odd.notePoll("paper read failed");
   odd.notePoll("paper read failed");
   assert.ok(odd.alerts.includes("prolonged paper read failure"));
-  assert.equal(nextPollDelay(1_000, true), 2_000);
+  assert.equal(nextPollDelay(3_000, true), 6_000);
   assert.equal(nextPollDelay(16_000, true), 30_000);
-  assert.equal(nextPollDelay(30_000, false), 1_000);
+  assert.equal(nextPollDelay(30_000, false), 3_000);
   ex.release();
   fresh.release();
   odd.release();
