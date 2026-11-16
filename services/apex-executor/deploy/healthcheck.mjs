@@ -22,3 +22,9 @@ if (res.status !== 200 || !gateOk) {
   process.exit(1);
 }
 console.log("ok");
+if (body.durability != null) {
+  console.log(`durability=${body.durability} directoryFsyncSupported=${body.directoryFsyncSupported}`);
+}
+if (body.durability === "file-only") {
+  console.error(body.durabilityWarning || "directory fsync unsupported; durability is file-only");
+}

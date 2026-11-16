@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { spawn, spawnSync } from "node:child_process";
+import { spawn, spawnSync, type ChildProcess } from "node:child_process";
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -12,11 +12,13 @@ import { buildProposal } from "../../../src/lib/apex/research/proposal.ts";
 import { ingestOutcomes } from "../../../src/lib/apex/research/hermes-outcomes.ts";
 import { runCanonicalDecision, type Bar } from "../../../src/lib/apex/research/canonical-decision.ts";
 import { proposedTicket, signApproval, verifyApproval, type CanonicalApproval } from "../src/approval.ts";
+import { isPidAlive, pidAliveFromKillError } from "../src/lock.ts";
+import { FILE_ONLY_DURABILITY_WARNING } from "../src/persist.ts";
 import { checkDeployConfig } from "../src/deploy-config.ts";
 import { nextPollDelay } from "../src/runtime.ts";
 import { boot } from "../src/main.ts";
 import { buildMondaySpyTicket } from "../../../scripts/monday-spy-preflight.mjs";
-import { Executor, POST_ENABLED, STRATEGY_APPROVED, assertNoLiveCreds, openMarket, type ExecutorConfig } from "../src/runtime.ts";
+import { Executor, LIVE_POST_ENABLED, PAPER_POST_ENABLED, POST_ENABLED, STRATEGY_APPROVED, assertNoLiveCreds, openMarket, type ExecutorConfig } from "../src/runtime.ts";
 import type { TradeInstruction } from "../src/instruction.ts";
 import { createExecutorServer } from "../src/main.ts";
 
@@ -77,7 +79,7 @@ test("operator script signature verifies and tampering or an incomplete ticket f
   const out = join(dir, "approval.json");
   const ready = { verdict: "READY_FOR_OPERATOR_APPROVAL", ...approval() };
   writeFileSync(proposed, JSON.stringify(ready));
-  const run = spawnSync("node", ["--experimental-strip-types", "scripts/operator-sign-ticket.mjs", proposed], {
+  const run = spawnSync(process.execPath, ["--experimental-strip-types", "scripts/operator-sign-ticket.mjs", proposed], {
     cwd: repoRoot,
     env: { ...process.env, APEX_OPERATOR_SECRET: SECRET, APEX_OPERATOR_APPROVAL_PATH: out },
   });
@@ -90,7 +92,7 @@ test("operator script signature verifies and tampering or an incomplete ticket f
   const { nonce: _nonce, ...withoutNonce } = ready;
   void _nonce;
   writeFileSync(broken, JSON.stringify(withoutNonce));
-  const denied = spawnSync("node", ["--experimental-strip-types", "scripts/operator-sign-ticket.mjs", broken], {
+  const denied = spawnSync(process.execPath, ["--experimental-strip-types", "scripts/operator-sign-ticket.mjs", broken], {
     cwd: repoRoot,
     env: { ...process.env, APEX_OPERATOR_SECRET: SECRET, APEX_OPERATOR_APPROVAL_PATH: refused },
   });
@@ -140,21 +142,70 @@ test("forged approval, sigma veto, replay after restart, and a second writer are
   rmSync(dir, { recursive: true, force: true });
 });
 
-test("a live lock owner is not replaced; a dead owner can be recovered by one process", async () => {
+function killChild(child: ChildProcess): void {
+  if (child.exitCode != null || child.signalCode != null) return;
+  try {
+    child.kill();
+  } catch {
+    // already exited
+  }
+}
+
+function waitForExit(child: ChildProcess): Promise<void> {
+  if (child.exitCode != null || child.signalCode != null) return Promise.resolve();
+  return new Promise((resolve) => {
+    child.once("exit", () => resolve());
+    if (child.exitCode != null || child.signalCode != null) resolve();
+  });
+}
+
+test("EPERM from process.kill means the lock owner is alive", () => {
+  const refused = (code: string) => Object.assign(new Error(code), { code });
+  assert.equal(pidAliveFromKillError(refused("EPERM")), true);
+  assert.equal(pidAliveFromKillError(refused("EINVAL")), true);
+  assert.equal(pidAliveFromKillError(refused("EBADF")), true);
+  assert.equal(pidAliveFromKillError(new Error("no code")), true);
+  assert.equal(pidAliveFromKillError(refused("ESRCH")), false);
+  assert.equal(isPidAlive(process.pid), true);
+  assert.equal(isPidAlive(0), false);
+  assert.equal(isPidAlive(1), false);
+  assert.equal(isPidAlive(1.5), false);
+});
+
+test("a live lock owner is not replaced; a dead owner can be recovered by one process", { timeout: 20_000 }, async (t) => {
   const dir = mkdtempSync(join(tmpdir(), "lock-"));
-  const sleeper = spawn("sleep", ["30"]);
-  writeFileSync(join(dir, "writer.lock"), JSON.stringify({ pid: sleeper.pid }));
+  const child = spawn(process.execPath, ["-e", "setTimeout(()=>{}, 30000)"], { stdio: "ignore", windowsHide: true });
+  let recovered: Executor | null = null;
+  t.after(async () => {
+    recovered?.release();
+    killChild(child);
+    await Promise.race([waitForExit(child), new Promise((resolve) => setTimeout(resolve, 5_000))]);
+    rmSync(dir, { recursive: true, force: true });
+  });
+  await new Promise<void>((resolve, reject) => {
+    child.once("spawn", () => resolve());
+    child.once("error", reject);
+  });
+  assert.equal(typeof child.pid, "number");
+  assert.ok(child.pid && child.pid > 1);
+  writeFileSync(join(dir, "writer.lock"), JSON.stringify({ pid: child.pid }));
+  assert.equal(isPidAlive(child.pid), true);
   assert.throws(() => start(dir), /one active writer/);
-  assert.equal(JSON.parse(readFileSync(join(dir, "writer.lock"), "utf8")).pid, sleeper.pid);
-  sleeper.kill("SIGKILL");
-  await new Promise((resolve) => sleeper.once("exit", resolve));
-  const recovered = start(dir);
+  assert.equal(JSON.parse(readFileSync(join(dir, "writer.lock"), "utf8")).pid, child.pid);
+  killChild(child);
+  await waitForExit(child);
+  const deadline = Date.now() + 2_000;
+  while (child.pid != null && isPidAlive(child.pid) && Date.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+  assert.equal(isPidAlive(child.pid ?? 0), false);
+  recovered = start(dir);
   assert.equal(JSON.parse(readFileSync(join(dir, "writer.lock"), "utf8")).pid, process.pid);
   assert.throws(() => start(dir), /one active writer/);
   recovered.release();
+  recovered = null;
   writeFileSync(join(dir, "writer.lock"), "{");
   assert.throws(() => start(dir), /not provably dead/);
-  rmSync(dir, { recursive: true, force: true });
 });
 
 test("PROPOSED stays proposed when the broker has no order; an unconfirmed attempt becomes UNKNOWN, not FLAT", async () => {
@@ -240,6 +291,9 @@ test("corrupt state fails closed, live credentials are refused, and the six stag
   const dir = mkdtempSync(join(tmpdir(), "bad-"));
   writeFileSync(join(dir, "state.json"), "{");
   assert.throws(() => start(dir), /corrupt/);
+  assert.equal(readFileSync(join(dir, "state.json"), "utf8"), "{");
+  writeFileSync(join(dir, "state.json"), JSON.stringify({ hello: true }));
+  assert.throws(() => start(dir), /corrupt/);
   const marker = "LIVE-SECRET-MUST-NOT-APPEAR";
   assert.throws(() => assertNoLiveCreds({ APEX_EXECUTOR_MODE: "PAPER", APCA_LIVE_API_KEY_ID: marker }), (error: unknown) => {
     assert.match(error instanceof Error ? error.message : "", /LIVE credentials/);
@@ -263,12 +317,26 @@ test("health stays on the frozen gate", async () => {
     const denied = await fetch(`http://127.0.0.1:${port}/health`);
     assert.equal(denied.status, 401);
     const res = await fetch(`http://127.0.0.1:${port}/health`, { headers: { "x-executor-token": "health-token" } });
-    const body = await res.json() as { mode: string; paperPost: string; livePost: string; strategyApproved: boolean; postEnabled: boolean };
+    const body = await res.json() as {
+      mode: string;
+      paperPost: string;
+      livePost: string;
+      strategyApproved: boolean;
+      postEnabled: boolean;
+      directoryFsyncSupported: boolean;
+      durability: string;
+      durabilityWarning: string | null;
+    };
     assert.equal(body.mode, "PAPER_READ_ONLY");
     assert.equal(body.paperPost, "DISABLED");
     assert.equal(body.livePost, "DISABLED");
     assert.equal(body.strategyApproved, false);
     assert.equal(body.postEnabled, false);
+    assert.equal(PAPER_POST_ENABLED, false);
+    assert.equal(LIVE_POST_ENABLED, false);
+    assert.equal(body.directoryFsyncSupported, process.platform !== "win32");
+    assert.equal(body.durability, process.platform === "win32" ? "file-only" : "full");
+    assert.equal(body.durabilityWarning, process.platform === "win32" ? FILE_ONLY_DURABILITY_WARNING : null);
     assert.equal(JSON.stringify(body).includes(SECRET), false);
   } finally {
     server.close();
@@ -423,7 +491,7 @@ test("clean shutdown lets the next process take the lock", async () => {
 });
 
 test("mock lifecycle script is explicit that it is not a real fill", () => {
-  const run = spawnSync("node", ["--experimental-strip-types", "services/apex-executor/scripts/mock-lifecycle.mjs"], { cwd: repoRoot });
+  const run = spawnSync(process.execPath, ["--experimental-strip-types", "services/apex-executor/scripts/mock-lifecycle.mjs"], { cwd: repoRoot });
   assert.equal(run.status, 0, run.stderr?.toString());
   const report = JSON.parse(run.stdout.toString()) as { realFill: boolean; flat: string; partial: string; postEnabled: boolean; note: string };
   assert.equal(report.realFill, false);

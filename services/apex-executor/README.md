@@ -15,20 +15,46 @@ Accepting an instruction records `PROPOSED`. It does not transmit an order and i
 A mock lifecycle is not a broker fill:
 
 ```bash
+node services/apex-executor/scripts/run-tests.mjs
 node --experimental-strip-types services/apex-executor/scripts/mock-lifecycle.mjs
+node services/apex-executor/scripts/typecheck.mjs
 ```
 
-## Windows tests
+`npm run test:executor` calls the same runner. The mock script prints `realFill: false`. Do not treat that output as a fill.
 
-From the clone (this checkout is `C:\Users\sharm\apex-quant-x-clean` when that is the local path):
+## Windows and Node compatibility
+
+Windows is for development and tests. Production is one Linux VM with the systemd unit. Do not point a Windows host at a broker.
+
+CI (`.github/workflows/executor.yml`) runs the executor suite, the Hermes outcome tests, the research handoff tests, strict `tsc` on `services/apex-executor/src`, the deployment typecheck guard, and the mock lifecycle on:
+
+- `ubuntu-latest` and `windows-latest`
+- Node 22 and Node 24
+
+A local run on Windows with Node v26.13.1 reported 9 passing and 10 failing before this hotfix. Node 26 is not a CI cell. Those failures were directory `fsync` (`EPERM` after `renameSync`) and a POSIX `sleep` child in the lock-owner test. The type-stripping flag was not the failure.
+
+`--experimental-strip-types` is still passed so Node 22 and Node 24 share one command. Early Node 22 required the flag to execute TypeScript. On Node 24, and on the reported Node v26.13.1, type stripping is enabled by default and the flag is still accepted.
+
+Windows PowerShell and cmd do not expand `*.test.ts`. The runner passes an explicit file list:
 
 ```powershell
-cd C:\Users\sharm\apex-quant-x-clean
-node --experimental-strip-types --test services/apex-executor/test/*.test.ts
+node services/apex-executor/scripts/run-tests.mjs
 node --experimental-strip-types services/apex-executor/scripts/mock-lifecycle.mjs
 ```
 
-The mock script prints `realFill: false`. Do not treat that output as a fill.
+### Durability
+
+`atomicWrite` fsyncs the temporary file before `rename` on every platform. On Linux and other POSIX hosts it then fsyncs the parent directory. Any error from that step throws. Health reports `durability` `full` and `directoryFsyncSupported` true.
+
+On Windows, opening or fsyncing a directory is unsupported. That step tolerates only `EPERM`, `EISDIR`, `EBADF`, and `EINVAL`, and only when `process.platform === "win32"`. The same errors on POSIX still throw. Health and the process log report `durability` `file-only`, `directoryFsyncSupported` false, and a one-time warning. A crash can keep the renamed snapshot. A power loss can still lose the rename. That is not POSIX durability.
+
+Corrupt snapshots, a failed temp write, a failed temp fsync, and a failed rename still throw on every platform.
+
+POSIX mode `0600` on `/etc/apex-executor/secrets.env` is a Linux install requirement. Windows does not implement those mode bits. The suite does not treat a Windows ACL as a substitute, and it does not skip a Linux permission check: there is no mode-bit assertion to relax.
+
+Lock ownership uses `process.kill(pid, 0)`. `ESRCH` is the only code treated as dead. `EPERM` means the pid exists but cannot be signaled, including on Windows, so the owner stays alive and the lock is not stolen.
+
+`SIGTERM` and `SIGINT` stop the process on both platforms. Windows also handles `SIGBREAK`.
 
 ## Linux VM
 
@@ -67,7 +93,7 @@ APEX_EXECUTOR_HEALTH_TOKEN=replace-with-a-local-token node /opt/apex-quant-x/ser
 
 The listener is `127.0.0.1:8787`. `POST /instructions` only ingests a signed proposal. It cannot submit.
 
-Copy from Windows:
+Copy from Windows (example clone `C:\Users\sharm\apex-quant-x-clean`; any clone root works):
 
 ```powershell
 cd C:\Users\sharm\apex-quant-x-clean
@@ -77,7 +103,8 @@ ssh user@vm "sudo rsync -a /tmp/apex-quant-x/ /opt/apex-quant-x/ && sudo systemc
 
 ## Invariants
 
-- One writer lock. A live pid is never replaced. A dead pid can be recovered.
+- One writer lock. A live pid is never replaced. `EPERM` from `process.kill(pid, 0)` counts as alive. A dead pid can be recovered only after that pid is provably gone.
+- Snapshot durability is `full` on Linux (file fsync, rename, directory fsync). On Windows it is `file-only`. Production stays the Linux VM.
 - Unknown broker lookups are not treated as flat, and they are not resubmitted.
 - Exits use a separate signed sell ticket and the broker's position quantity.
 - Hermes receives the outcome notes. Pilot reads that telemetry. Neither can approve a trade.

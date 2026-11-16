@@ -4,6 +4,8 @@
  * Any error in a file outside that list fails the check.
  */
 import { spawnSync } from "node:child_process";
+import { createRequire } from "node:module";
+import { dirname, join } from "node:path";
 
 const KNOWN = new Set([
   "src/lib/apex/research/costs.test.ts",
@@ -14,11 +16,18 @@ const KNOWN = new Set([
   "src/lib/apex/research/trend-strategy.test.ts",
 ]);
 
-const run = spawnSync("./node_modules/.bin/tsc", ["--noEmit", "--pretty", "false"], { encoding: "utf8" });
+const require = createRequire(import.meta.url);
+const tsc = join(dirname(require.resolve("typescript/package.json")), "bin", "tsc");
+const run = spawnSync(process.execPath, [tsc, "--noEmit", "--pretty", "false"], { encoding: "utf8" });
+if (run.error) {
+  console.error(run.error.message);
+  process.exit(1);
+}
 const text = `${run.stdout ?? ""}\n${run.stderr ?? ""}`;
 const files = new Set();
-for (const line of text.split("\n")) {
-  const match = line.match(/^(src\/\S+?)\(/);
+for (const raw of text.split("\n")) {
+  const line = raw.trim().replaceAll("\\", "/");
+  const match = line.match(/(?:^|\/)(src\/\S+?)\(/);
   if (match) files.add(match[1]);
 }
 const fresh = [...files].filter((file) => !KNOWN.has(file));

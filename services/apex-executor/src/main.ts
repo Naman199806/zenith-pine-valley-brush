@@ -9,6 +9,7 @@ import { assertPaperUrl } from "../../../src/lib/apex/broker/allowlist.ts";
 import { paperGet } from "../../../src/lib/apex/broker/paper-read.ts";
 import { readPaperSnapshot } from "./broker.ts";
 import { assertNoLiveCreds, loadPaperCredentials } from "./credentials.ts";
+import { warnFileOnlyDurability } from "./persist.ts";
 import { Executor, loadConfig, nextPollDelay } from "./runtime.ts";
 
 function send(res: ServerResponse, status: number, body: unknown): void {
@@ -98,6 +99,7 @@ export async function boot(env: NodeJS.ProcessEnv = process.env): Promise<{ exec
   await new Promise<void>((resolve) => {
     server.listen(port, "127.0.0.1", () => resolve());
   });
+  warnFileOnlyDurability();
   console.log(JSON.stringify({ ...exec.health(), port }));
 
   const stop = () => {
@@ -125,6 +127,7 @@ if (invokedDirectly()) {
       };
       process.on("SIGTERM", shutdown);
       process.on("SIGINT", shutdown);
+      if (process.platform === "win32") process.on("SIGBREAK", shutdown);
     })
     .catch((error: unknown) => {
       console.error(error instanceof Error ? error.message : "executor failed");
