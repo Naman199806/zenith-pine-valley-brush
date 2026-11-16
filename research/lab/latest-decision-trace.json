@@ -1,0 +1,346 @@
+{
+  "asOf": "2026-11-11T20:00:00Z",
+  "strategyApproved": false,
+  "paperPostEnabled": false,
+  "stages": [
+    {
+      "stage": "1. Market Data",
+      "ready": true,
+      "blockers": []
+    },
+    {
+      "stage": "2. Scanner",
+      "ready": true,
+      "blockers": []
+    },
+    {
+      "stage": "3. 13 Agents",
+      "ready": false,
+      "blockers": [
+        "Bull and Bear blocked by billing lock; no fake inference",
+        "Pulse and Volta unavailable",
+        "Pilot blocked"
+      ]
+    },
+    {
+      "stage": "4. Decision Gates",
+      "ready": true,
+      "blockers": [
+        "No validated strategy; NO_TRADE remains native decision"
+      ]
+    },
+    {
+      "stage": "5. Execution",
+      "ready": false,
+      "blockers": [
+        "LIVE order transport disabled by default",
+        "No separate real-money order authorization",
+        "No live quote verification"
+      ]
+    },
+    {
+      "stage": "6. Hermes",
+      "ready": true,
+      "blockers": []
+    }
+  ],
+  "decisions": [
+    {
+      "symbol": "SPY",
+      "recommendation": "NO_TRADE",
+      "reason": "EXIT quantity not reconciled.",
+      "executionAuthorized": false,
+      "agents": [
+        {
+          "role": "Scout",
+          "invoked": true,
+          "mode": "DETERMINISTIC",
+          "contribution": "ADVISORY_ONLY",
+          "effect": "universe check"
+        },
+        {
+          "role": "Vector",
+          "invoked": true,
+          "mode": "DETERMINISTIC",
+          "contribution": "CHANGED_DECISION",
+          "effect": "frozen spec including 60-day rank"
+        },
+        {
+          "role": "Atlas",
+          "invoked": false,
+          "mode": "UNAVAILABLE",
+          "contribution": "UNAVAILABLE",
+          "effect": "no fundamental adapter"
+        },
+        {
+          "role": "Oracle",
+          "invoked": false,
+          "mode": "UNAVAILABLE",
+          "contribution": "UNAVAILABLE",
+          "effect": "macro feed not bound"
+        },
+        {
+          "role": "Pulse",
+          "invoked": false,
+          "mode": "UNAVAILABLE",
+          "contribution": "UNAVAILABLE",
+          "effect": "news not authorized"
+        },
+        {
+          "role": "Volta",
+          "invoked": false,
+          "mode": "UNAVAILABLE",
+          "contribution": "UNAVAILABLE",
+          "effect": "derivatives not connected"
+        },
+        {
+          "role": "Bull",
+          "invoked": false,
+          "mode": "BLOCKED",
+          "contribution": "BLOCKED",
+          "effect": "billing lock"
+        },
+        {
+          "role": "Bear",
+          "invoked": false,
+          "mode": "BLOCKED",
+          "contribution": "BLOCKED",
+          "effect": "billing lock"
+        },
+        {
+          "role": "Sigma",
+          "invoked": true,
+          "mode": "DETERMINISTIC",
+          "contribution": "ADVISORY_ONLY",
+          "effect": "mandatory; no strategy is broker-approved"
+        },
+        {
+          "role": "Sentinel",
+          "invoked": true,
+          "mode": "DETERMINISTIC",
+          "contribution": "VETO",
+          "effect": "entry cap separate from exit quantity"
+        },
+        {
+          "role": "Allocator",
+          "invoked": true,
+          "mode": "DETERMINISTIC",
+          "contribution": "ADVISORY_ONLY",
+          "effect": "entry cap only"
+        },
+        {
+          "role": "Pilot",
+          "invoked": false,
+          "mode": "BLOCKED",
+          "contribution": "BLOCKED",
+          "effect": "LIVE disabled; synthetic fixtures cannot execute"
+        },
+        {
+          "role": "Hermes",
+          "invoked": true,
+          "mode": "DETERMINISTIC",
+          "contribution": "ADVISORY_ONLY",
+          "effect": "in-memory"
+        }
+      ]
+    },
+    {
+      "symbol": "QQQ",
+      "recommendation": "NO_TRADE",
+      "reason": "EXIT quantity not reconciled.",
+      "executionAuthorized": false,
+      "agents": [
+        {
+          "role": "Scout",
+          "invoked": true,
+          "mode": "DETERMINISTIC",
+          "contribution": "ADVISORY_ONLY",
+          "effect": "universe check"
+        },
+        {
+          "role": "Vector",
+          "invoked": true,
+          "mode": "DETERMINISTIC",
+          "contribution": "CHANGED_DECISION",
+          "effect": "frozen spec including 60-day rank"
+        },
+        {
+          "role": "Atlas",
+          "invoked": false,
+          "mode": "UNAVAILABLE",
+          "contribution": "UNAVAILABLE",
+          "effect": "no fundamental adapter"
+        },
+        {
+          "role": "Oracle",
+          "invoked": false,
+          "mode": "UNAVAILABLE",
+          "contribution": "UNAVAILABLE",
+          "effect": "macro feed not bound"
+        },
+        {
+          "role": "Pulse",
+          "invoked": false,
+          "mode": "UNAVAILABLE",
+          "contribution": "UNAVAILABLE",
+          "effect": "news not authorized"
+        },
+        {
+          "role": "Volta",
+          "invoked": false,
+          "mode": "UNAVAILABLE",
+          "contribution": "UNAVAILABLE",
+          "effect": "derivatives not connected"
+        },
+        {
+          "role": "Bull",
+          "invoked": false,
+          "mode": "BLOCKED",
+          "contribution": "BLOCKED",
+          "effect": "billing lock"
+        },
+        {
+          "role": "Bear",
+          "invoked": false,
+          "mode": "BLOCKED",
+          "contribution": "BLOCKED",
+          "effect": "billing lock"
+        },
+        {
+          "role": "Sigma",
+          "invoked": true,
+          "mode": "DETERMINISTIC",
+          "contribution": "ADVISORY_ONLY",
+          "effect": "mandatory; no strategy is broker-approved"
+        },
+        {
+          "role": "Sentinel",
+          "invoked": true,
+          "mode": "DETERMINISTIC",
+          "contribution": "VETO",
+          "effect": "entry cap separate from exit quantity"
+        },
+        {
+          "role": "Allocator",
+          "invoked": true,
+          "mode": "DETERMINISTIC",
+          "contribution": "ADVISORY_ONLY",
+          "effect": "entry cap only"
+        },
+        {
+          "role": "Pilot",
+          "invoked": false,
+          "mode": "BLOCKED",
+          "contribution": "BLOCKED",
+          "effect": "LIVE disabled; synthetic fixtures cannot execute"
+        },
+        {
+          "role": "Hermes",
+          "invoked": true,
+          "mode": "DETERMINISTIC",
+          "contribution": "ADVISORY_ONLY",
+          "effect": "in-memory"
+        }
+      ]
+    },
+    {
+      "symbol": "IWM",
+      "recommendation": "NO_TRADE",
+      "reason": "Vector WAIT.",
+      "executionAuthorized": false,
+      "agents": [
+        {
+          "role": "Scout",
+          "invoked": true,
+          "mode": "DETERMINISTIC",
+          "contribution": "ADVISORY_ONLY",
+          "effect": "universe check"
+        },
+        {
+          "role": "Vector",
+          "invoked": true,
+          "mode": "DETERMINISTIC",
+          "contribution": "ADVISORY_ONLY",
+          "effect": "frozen spec including 60-day rank"
+        },
+        {
+          "role": "Atlas",
+          "invoked": false,
+          "mode": "UNAVAILABLE",
+          "contribution": "UNAVAILABLE",
+          "effect": "no fundamental adapter"
+        },
+        {
+          "role": "Oracle",
+          "invoked": false,
+          "mode": "UNAVAILABLE",
+          "contribution": "UNAVAILABLE",
+          "effect": "macro feed not bound"
+        },
+        {
+          "role": "Pulse",
+          "invoked": false,
+          "mode": "UNAVAILABLE",
+          "contribution": "UNAVAILABLE",
+          "effect": "news not authorized"
+        },
+        {
+          "role": "Volta",
+          "invoked": false,
+          "mode": "UNAVAILABLE",
+          "contribution": "UNAVAILABLE",
+          "effect": "derivatives not connected"
+        },
+        {
+          "role": "Bull",
+          "invoked": false,
+          "mode": "BLOCKED",
+          "contribution": "BLOCKED",
+          "effect": "billing lock"
+        },
+        {
+          "role": "Bear",
+          "invoked": false,
+          "mode": "BLOCKED",
+          "contribution": "BLOCKED",
+          "effect": "billing lock"
+        },
+        {
+          "role": "Sigma",
+          "invoked": true,
+          "mode": "DETERMINISTIC",
+          "contribution": "ADVISORY_ONLY",
+          "effect": "mandatory; no strategy is broker-approved"
+        },
+        {
+          "role": "Sentinel",
+          "invoked": true,
+          "mode": "DETERMINISTIC",
+          "contribution": "ADVISORY_ONLY",
+          "effect": "entry cap separate from exit quantity"
+        },
+        {
+          "role": "Allocator",
+          "invoked": true,
+          "mode": "DETERMINISTIC",
+          "contribution": "ADVISORY_ONLY",
+          "effect": "entry cap only"
+        },
+        {
+          "role": "Pilot",
+          "invoked": false,
+          "mode": "BLOCKED",
+          "contribution": "BLOCKED",
+          "effect": "LIVE disabled; synthetic fixtures cannot execute"
+        },
+        {
+          "role": "Hermes",
+          "invoked": true,
+          "mode": "DETERMINISTIC",
+          "contribution": "ADVISORY_ONLY",
+          "effect": "in-memory"
+        }
+      ]
+    }
+  ]
+}
