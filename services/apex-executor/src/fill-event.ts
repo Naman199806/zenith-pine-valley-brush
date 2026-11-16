@@ -96,7 +96,10 @@ export function fillEventFromBroker(input: {
   return event;
 }
 
-export function toResearchOutcome(event: FillEvent): ExecutionOutcome {
+export function trustedEvidenceFromFill(event: FillEvent): { clientOrderId: string; brokerOrderId: string; fillId: string; qty: number; fillPrice: number; source: "PAPER" | "LIVE" } | null {
+  if (event.provenance !== "broker" || !event.brokerOrderId || !event.fillId || event.source === "MOCK") return null;
+  return { clientOrderId: event.clientOrderId, brokerOrderId: event.brokerOrderId, fillId: event.fillId, qty: event.qty, fillPrice: event.fillPrice, source: event.source };
+}
   const broker = event.provenance === "broker";
   return {
     decisionId: event.decisionId,
@@ -112,5 +115,6 @@ export function toResearchOutcome(event: FillEvent): ExecutionOutcome {
     brokerOrderId: broker ? event.brokerOrderId : null,
     fillId: broker ? event.fillId : null,
     corrected: false,
+    at: event.eventTimestamp,
   };
 }

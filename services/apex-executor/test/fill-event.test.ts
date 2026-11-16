@@ -74,8 +74,8 @@ test("partial fills are deltas from broker fields, and mocks are not broker evid
     intendedPrice: 100, previousFilled: 0, body: { ...body, fill_id: undefined }, provenance: "broker", source: "PAPER",
   }), null);
   const report = ingestOutcomes([
-    { decisionId: mock!.decisionId, strategyVersion: mock!.strategyVersion, clientOrderId: mock!.clientOrderId, symbol: "SPY", side: "buy", qty: mock!.qty, fillPrice: mock!.fillPrice, intendedPrice: mock!.intendedPrice, fee: mock!.fee, source: "MOCK", brokerOrderId: null, fillId: null, corrected: false },
-  ]);
+    { decisionId: mock!.decisionId, strategyVersion: mock!.strategyVersion, clientOrderId: mock!.clientOrderId, symbol: "SPY", side: "buy", qty: mock!.qty, fillPrice: mock!.fillPrice, intendedPrice: mock!.intendedPrice, fee: mock!.fee, source: "MOCK", brokerOrderId: null, fillId: null, corrected: false, at: "2026-11-16T15:01:00Z" },
+  ], []);
   assert.equal(report.mockIgnored, 1);
   assert.equal(report.paper.length, 0);
 });
