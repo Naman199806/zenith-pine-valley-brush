@@ -1,6 +1,8 @@
 # Hermes journal contract note for Cursor
 
-Research can read Executor journal lines. Current lines (`ACCEPTED`, `BROKER`, `EXIT_AUTHORIZED`) do not contain fill price, fill ID, fee, or broker order ID.
+Research can read Executor journal lines. Current Executor lines may use `kind` or `event`. Neither currently includes fill price, fill ID, broker order ID or fee. The adapter marks those lines INCOMPLETE.
+
+Research will not treat a caller-supplied brokerOrderId or fillId as evidence unless the same identity appears in a trusted Executor-origin record.
 
 Until Executor emits those fields, `adaptExecutorJournal` marks every current line incomplete. Research will not invent fills from them.
 
