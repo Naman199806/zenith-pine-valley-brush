@@ -188,6 +188,11 @@ export function fillsFromExecutions(input: {
   return { events, incomplete: gaps };
 }
 
+export function trustedEvidenceFromFill(event: FillEvent): { clientOrderId: string; brokerOrderId: string; fillId: string; qty: number; fillPrice: number; source: "PAPER" | "LIVE" } | null {
+  if (event.provenance !== "broker" || !event.brokerOrderId || !event.fillId || event.source === "MOCK") return null;
+  return { clientOrderId: event.clientOrderId, brokerOrderId: event.brokerOrderId, fillId: event.fillId, qty: event.qty, fillPrice: event.fillPrice, source: event.source };
+}
+
 export function toResearchOutcome(event: FillEvent): ExecutionOutcome {
   const broker = event.provenance === "broker";
   return {
