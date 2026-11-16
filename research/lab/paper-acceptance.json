@@ -1,15 +1,18 @@
 {
-  "status": "PAPER_ROUND_TRIP_VERIFIED",
-  "host": "paper-api.alpaca.markets",
-  "buyOrderId": "9633330d-cb0f-4f71-ab56-90add657cfbf",
-  "buyClientOrderId": "apex-smoke-buy-10ec7990-a0e7-4bc1-ba3c-4d1ce95860ff",
-  "sellOrderId": "cc7a1733-9701-471a-9cda-82ffc3d6edfb",
-  "sellClientOrderId": "apex-smoke-sell-11a4caeb-2a08-402f-9eee-ffeabdaf583f",
-  "symbol": "BTC/USD",
-  "buyStatus": "filled",
-  "sellStatus": "filled",
-  "positionsAfter": [],
-  "openOrdersAfter": [],
-  "flat": true,
+  "cryptoPaper": {
+    "status": "FIXTURE_VERIFIED",
+    "symbol": "BTC/USD",
+    "host": "paper-api.alpaca.markets",
+    "buyOrderId": "9633330d-cb0f-4f71-ab56-90add657cfbf",
+    "sellOrderId": "cc7a1733-9701-471a-9cda-82ffc3d6edfb",
+    "flat": true,
+    "freshGetVerification": "NOT_PERFORMED",
+    "notEquityEvidence": true
+  },
+  "usEquityPaper": {
+    "status": "NOT_STARTED",
+    "symbols": ["SPY", "QQQ", "IWM"],
+    "requirements": "research/lab/equity-paper-requirements.json"
+  },
   "liveOrders": false
 }

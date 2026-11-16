@@ -118,24 +118,23 @@ export interface GateProof {
   proof: string;
 }
 
-const GATE_KEY = "apex-sigma-sentinel-issuer-v1";
-
-function issuerDigest(material: string): string {
-  let h = 2166136261;
-  const s = `${GATE_KEY}|${material}`;
-  for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619) >>> 0;
-  return h.toString(16).padStart(8, "0");
-}
+import { createHmac, timingSafeEqual } from "node:crypto";
 
 function proofMaterial(p: Omit<GateProof, "proof">): string {
   return [p.singleUseId, p.symbol, p.side, String(p.qty), String(p.limitPrice), p.computedAt, String(p.sigmaApproved), String(p.sentinelApproved), String(p.sigmaVeto), String(p.sentinelVeto)].join("|");
+}
+
+function hmac(secret: string, material: string): string {
+  return createHmac("sha256", secret).update(material).digest("hex");
 }
 
 export function issueGateProof(
   bind: { singleUseId: string; symbol: string; side: "buy" | "sell"; qty: number; limitPrice: number | null },
   opts: { dataIntegrityOk: boolean; riskOk: boolean; notional: number },
   now = new Date(),
-): GateProof {
+  secret: string | null = process.env.APEX_GATE_SECRET ?? null,
+): GateProof | null {
+  if (!secret || secret.length < 32) return null;
   const sigma = !opts.dataIntegrityOk
     ? { sigmaVeto: true, sigmaApproved: false }
     : { sigmaVeto: false, sigmaApproved: true };
@@ -152,7 +151,7 @@ export function issueGateProof(
     ...sigma,
     ...sentinel,
   };
-  return { ...base, proof: issuerDigest(proofMaterial(base)) };
+  return { ...base, proof: hmac(secret, proofMaterial(base)) };
 }
 
 export function verifyGateProof(
@@ -160,9 +159,14 @@ export function verifyGateProof(
   bind: { singleUseId: string; symbol: string; side: "buy" | "sell"; qty: number; limitPrice: number | null },
   now = Date.now(),
   maxAgeMs = 30_000,
+  secret: string | null = process.env.APEX_GATE_SECRET ?? null,
 ): string | null {
+  if (!secret || secret.length < 32) return "gate issuer secret missing; fail closed";
   if (!proof) return "missing ticket-bound gate proof";
-  if (proof.proof !== issuerDigest(proofMaterial({ ...proof }))) return "gate proof was not issued by Sigma/Sentinel";
+  const expected = hmac(secret, proofMaterial({ ...proof }));
+  const a = Buffer.from(proof.proof);
+  const b = Buffer.from(expected);
+  if (a.length !== b.length || !timingSafeEqual(a, b)) return "gate proof was not issued by Sigma/Sentinel";
   if (proof.singleUseId !== bind.singleUseId || proof.symbol !== bind.symbol || proof.side !== bind.side) return "gate proof not bound to ticket";
   if (proof.qty !== bind.qty || proof.limitPrice !== bind.limitPrice) return "gate proof quantity or price mismatch";
   const age = now - Date.parse(proof.computedAt);

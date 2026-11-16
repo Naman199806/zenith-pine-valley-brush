@@ -1,0 +1,26 @@
+{
+  "assetClass": "crypto",
+  "symbol": "BTC/USD",
+  "host": "paper-api.alpaca.markets",
+  "notEquity": true,
+  "source": "authentic Alpaca PAPER order responses captured 2026-11-15",
+  "sanitized": "order payloads only; no API keys or account numbers",
+  "buy": {
+    "id": "9633330d-cb0f-4f71-ab56-90add657cfbf",
+    "client_order_id": "apex-smoke-buy-10ec7990-a0e7-4bc1-ba3c-4d1ce95860ff",
+    "status": "filled",
+    "filled_qty": "0.000151417",
+    "filled_at": "2026-11-15T05:47:07.780691623Z"
+  },
+  "sell": {
+    "id": "cc7a1733-9701-471a-9cda-82ffc3d6edfb",
+    "client_order_id": "apex-smoke-sell-11a4caeb-2a08-402f-9eee-ffeabdaf583f",
+    "status": "filled",
+    "filled_qty": "0.000151038",
+    "filled_at": "2026-11-15T05:47:16.288212404Z"
+  },
+  "positionsAfter": [],
+  "openOrdersAfter": [],
+  "freshGetVerification": "NOT_PERFORMED",
+  "freshGetReason": "No PAPER credentials in this environment. LIVE credentials were not accessed."
+}

@@ -1,3 +1,4 @@
+process.env.APEX_GATE_SECRET = "test-only-gate-secret-32chars-min";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { mkdtempSync, rmSync } from "node:fs";
@@ -32,10 +33,12 @@ const ticket = (over: Partial<EquityTicket> = {}): EquityTicket => ({
 });
 
 const quote = () => ({ bid: 500, ask: 500.02, timestamp: now.toISOString() });
+const SECRET = process.env.APEX_GATE_SECRET!;
 const proofFor = (t: EquityTicket) => issueGateProof(
   { singleUseId: t.singleUseId, symbol: t.symbol, side: t.side, qty: t.qty, limitPrice: t.limitPrice },
   { dataIntegrityOk: true, riskOk: true, notional: t.maxNotional },
   now,
+  SECRET,
 );
 
 test("worst-case notional rejects qty × limit exceeding approved cap", () => {
@@ -48,7 +51,9 @@ test("hand-built approval object is rejected; proof must be computed", () => {
   const dir = mkdtempSync(join(tmpdir(), "adv-"));
   const j = new HermesJournal(join(dir, "j.json"));
   const t = ticket();
-  const fake = { ...proofFor(t), proof: "forged" };
+  const issued = proofFor(t);
+  assert.ok(issued);
+  const fake = { ...issued, proof: "forged" };
   const r = prepareEquityTicket(t, quote(), j, fake, { now, calendar });
   assert.equal(r.intentPersisted, false);
   assert.ok(r.reason.includes("independently computed") || r.reason.includes("proof"));

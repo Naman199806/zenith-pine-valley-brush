@@ -1,3 +1,4 @@
+process.env.APEX_GATE_SECRET = "test-only-gate-secret-32chars-min";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { mkdtempSync, rmSync } from "node:fs";
@@ -33,10 +34,12 @@ const ticket = (over: Partial<EquityTicket> = {}): EquityTicket => ({
 });
 
 const quote = () => ({ bid: 500, ask: 500.05, timestamp: now.toISOString() });
+const SECRET = process.env.APEX_GATE_SECRET!;
 const proofFor = (t: EquityTicket) => issueGateProof(
   { singleUseId: t.singleUseId, symbol: t.symbol, side: t.side, qty: t.qty, limitPrice: t.limitPrice },
   { dataIntegrityOk: true, riskOk: true, notional: t.maxNotional },
   now,
+  SECRET,
 );
 
 test("SPY eligibility evidence and candidate set", () => {
@@ -94,6 +97,7 @@ test("Sigma veto proof blocks equity ticket", () => {
     { singleUseId: t.singleUseId, symbol: t.symbol, side: t.side, qty: t.qty, limitPrice: t.limitPrice },
     { dataIntegrityOk: false, riskOk: true, notional: 10 },
     now,
+    SECRET,
   );
   const r = prepareEquityTicket(t, quote(), j, sigma, { now, calendar });
   assert.ok(r.reason.includes("Sigma"));

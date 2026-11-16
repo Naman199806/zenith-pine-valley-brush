@@ -1,3 +1,4 @@
+process.env.APEX_GATE_SECRET = "test-only-gate-secret-32chars-min";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { mkdtempSync, rmSync } from "node:fs";
@@ -33,10 +34,12 @@ const ticket = (over: Partial<EquityTicket> = {}): EquityTicket => ({
 });
 
 const quote = () => ({ bid: 500, ask: 500.02, timestamp: now.toISOString() });
+const SECRET = process.env.APEX_GATE_SECRET!;
 const proofFor = (t: EquityTicket, at = now) => issueGateProof(
   { singleUseId: t.singleUseId, symbol: t.symbol, side: t.side, qty: t.qty, limitPrice: t.limitPrice },
   { dataIntegrityOk: true, riskOk: true, notional: t.maxNotional },
   at,
+  SECRET,
 );
 
 test("mismatched quantity between ticket and proof is rejected", () => {
