@@ -1,0 +1,30 @@
+{
+  "verdict": "NO-GO",
+  "reason": "Regular session is not open. A regular-session quote cannot be taken and the ticket cannot be finalized.",
+  "checkedAt": "2026-11-16T02:32:15.157Z",
+  "host": "paper-api.alpaca.markets",
+  "clock": {
+    "isOpen": false,
+    "timestamp": "2026-11-15T21:32:15.173380009-05:00",
+    "nextOpen": "2026-11-16T09:30:00-05:00",
+    "nextClose": "2026-11-16T16:00:00-05:00"
+  },
+  "account": {
+    "status": "ACTIVE",
+    "tradingBlocked": false,
+    "accountBlocked": false,
+    "buyingPower": "422645.36"
+  },
+  "spy": {
+    "status": "active",
+    "tradable": true,
+    "fractionable": true
+  },
+  "positions": 0,
+  "openOrders": 0,
+  "regularQuote": "NOT_TAKEN",
+  "priorQuotesReusable": false,
+  "submitted": false,
+  "operatorAuthorized": false,
+  "strategyApproved": false
+}
