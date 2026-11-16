@@ -1,0 +1,70 @@
+{
+  "mode": "SHADOW",
+  "strategyApproved": false,
+  "paperPostEnabled": false,
+  "liveDisabled": true,
+  "submitted": false,
+  "data": {
+    "SPY": {
+      "dataOk": true,
+      "reasons": [],
+      "asOf": "2026-11-13T21:00:00Z",
+      "provenance": "shadow-refreshed"
+    },
+    "QQQ": {
+      "dataOk": true,
+      "reasons": [],
+      "asOf": "2026-11-13T21:00:00Z",
+      "provenance": "shadow-refreshed"
+    },
+    "IWM": {
+      "dataOk": true,
+      "reasons": [],
+      "asOf": "2026-11-13T21:00:00Z",
+      "provenance": "shadow-refreshed"
+    }
+  },
+  "broker": {
+    "SPY": {
+      "ok": true,
+      "reasons": [],
+      "ownedQty": 0,
+      "openExitQty": 0
+    },
+    "QQQ": {
+      "ok": true,
+      "reasons": [],
+      "ownedQty": 0,
+      "openExitQty": 0
+    },
+    "IWM": {
+      "ok": true,
+      "reasons": [],
+      "ownedQty": 0,
+      "openExitQty": 0
+    }
+  },
+  "decisions": [
+    {
+      "symbol": "SPY",
+      "recommendation": "NO_TRADE",
+      "reason": "EXIT quantity not reconciled.",
+      "executionAuthorized": false,
+      "decisionId": "etf-xs-breakout-20-v1:SPY:2026-11-13T21:00:00Z"
+    },
+    {
+      "symbol": "QQQ",
+      "recommendation": "NO_TRADE",
+      "reason": "EXIT quantity not reconciled.",
+      "executionAuthorized": false,
+      "decisionId": "etf-xs-breakout-20-v1:QQQ:2026-11-13T21:00:00Z"
+    },
+    {
+      "symbol": "IWM",
+      "recommendation": "NO_TRADE",
+      "reason": "EXIT quantity not reconciled.",
+      "executionAuthorized": false,
+      "decisionId": "etf-xs-breakout-20-v1:IWM:2026-11-13T21:00:00Z"
+    }
+  ]
+}
