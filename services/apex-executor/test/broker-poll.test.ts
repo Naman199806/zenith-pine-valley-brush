@@ -10,7 +10,8 @@ import test from "node:test";
 import { issueGateProof } from "../../../src/lib/apex/live/executor.ts";
 import { signApproval, type CanonicalApproval } from "../src/approval.ts";
 import { createPaperPollClient, type BrokerPollClient } from "../src/broker.ts";
-import { classifyHttpStatus, effectiveStaleAfterMs, readStaleAfterMs } from "../src/broker-poll.ts";
+import { BROKER_POLL_INTERVAL_MS, classifyHttpStatus, effectiveStaleAfterMs, readPollIntervalMs, readStaleAfterMs } from "../src/broker-poll.ts";
+import { PollScheduler, nextPollDelay, type PollTimer } from "../src/runtime.ts";
 import type { TradeInstruction } from "../src/instruction.ts";
 import { createExecutorServer } from "../src/main.ts";
 import {
@@ -579,6 +580,111 @@ test("poll scenarios issue no broker POST, PATCH, or DELETE", async () => {
     assert.deepEqual(fetchMethods, ["GET"]);
   } finally {
     globalThis.fetch = originalFetch;
+    ex.release();
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+class FakeTimers implements PollTimer {
+  readonly delays: number[] = [];
+  private queue: { fire: () => Promise<void> | void }[] = [];
+
+  setTimer(delayMs: number, fire: () => Promise<void> | void): unknown {
+    this.delays.push(delayMs);
+    const handle = { fire };
+    this.queue.push(handle);
+    return handle;
+  }
+
+  clearTimer(handle: unknown): void {
+    this.queue = this.queue.filter((item) => item !== handle);
+  }
+
+  async fireNext(): Promise<void> {
+    const next = this.queue.shift();
+    if (!next) throw new Error("no timer scheduled");
+    await next.fire();
+  }
+}
+
+test("successful polls wait the configured baseline between attempts", async () => {
+  assert.equal(BROKER_POLL_INTERVAL_MS, 3_000);
+  assert.equal(readPollIntervalMs({}), 3_000);
+  assert.equal(readPollIntervalMs({ APEX_EXECUTOR_POLL_INTERVAL_MS: "4500" }), 4_500);
+  assert.throws(() => readPollIntervalMs({ APEX_EXECUTOR_POLL_INTERVAL_MS: "0" }), /positive integer/);
+  for (const baseline of [3_000, 4_500]) {
+    const timers = new FakeTimers();
+    const scheduler = new PollScheduler(baseline, async () => false, timers);
+    await scheduler.start();
+    await timers.fireNext();
+    await timers.fireNext();
+    assert.deepEqual(timers.delays, [baseline, baseline, baseline]);
+    scheduler.stop();
+  }
+});
+
+test("failure backoff doubles from the baseline and then caps", async () => {
+  assert.equal(nextPollDelay(1_000, true), 6_000);
+  assert.equal(nextPollDelay(3_000, true, 4_500), 9_000);
+  const timers = new FakeTimers();
+  const outcomes = [false, true, true, true, true, true];
+  let index = 0;
+  const scheduler = new PollScheduler(3_000, async () => outcomes[index++] ?? true, timers);
+  await scheduler.start();
+  for (let step = 0; step < outcomes.length - 1; step += 1) await timers.fireNext();
+  assert.deepEqual(timers.delays, [3_000, 6_000, 12_000, 24_000, 30_000, 30_000]);
+  scheduler.stop();
+});
+
+test("a success after failures returns the delay to the baseline", async () => {
+  const timers = new FakeTimers();
+  const outcomes = [false, true, true, false, false];
+  let index = 0;
+  const scheduler = new PollScheduler(4_500, async () => outcomes[index++] ?? false, timers);
+  await scheduler.start();
+  for (let step = 0; step < outcomes.length - 1; step += 1) await timers.fireNext();
+  assert.deepEqual(timers.delays, [4_500, 9_000, 18_000, 4_500, 4_500]);
+  scheduler.stop();
+});
+
+test("evidence older than 5000ms refuses accept and exit until reconciliation is OK", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "poll-age-"));
+  const ex = open(dir, 5_000);
+  const calls: Call[] = [];
+  try {
+    await ex.runBrokerPoll(client(calls, emptyBook(), T0), T0);
+    assert.equal(ex.accept(signed({ clientOrderId: "age-buy", nonce: "age-buy", qty: 0.02 }), T0).state, "PROPOSED");
+    const book = emptyBook();
+    book.positions = [{ symbol: "SPY", qty: "0.02" }];
+    book.orders["age-buy"] = { id: "brk-age", client_order_id: "age-buy", symbol: "SPY", side: "buy", status: "filled", filled_qty: "0.02" };
+    assert.equal((await ex.runBrokerPoll(client(calls, book, T0), T0)).ok, true);
+    assert.equal(ex.get("age-buy")?.state, "OPEN");
+    const sell = signed({ side: "sell", qty: 0.01, clientOrderId: "age-sell", nonce: "age-sell", exitAuthorizationId: "exit-age", linkedEntryId: "age-buy" });
+    const positions = async (url: string) => url.includes("/v2/positions") ? { status: 200, body: [{ symbol: "SPY", qty: "0.02" }] } : { status: 200, body: [] };
+    const later = T0 + 5_001;
+    const stale = ex.health(later);
+    assert.equal(stale.brokerPoll.stale, true);
+    assert.equal(stale.brokerPoll.staleAfterMs, 5_000);
+    assert.equal(stale.ready, false);
+    assert.match(ex.accept(signed({ clientOrderId: "age-new", nonce: "age-new", symbol: "QQQ" }), later).reason, /stale broker evidence/);
+    assert.match((await ex.authorizeExit("age-buy", sell, positions, later)).reason, /stale broker evidence/);
+
+    const missed = await ex.runBrokerPoll(client(calls, emptyBook(), later), later);
+    assert.equal(missed.ok, false);
+    assert.equal(ex.health(later).brokerPoll.reconciliation.outcome, "MISMATCH");
+    assert.equal(ex.health(later).ready, false);
+    assert.match(ex.accept(signed({ clientOrderId: "age-still", nonce: "age-still", symbol: "QQQ" }), later).reason, /reconciliation/);
+    assert.match((await ex.authorizeExit("age-buy", sell, positions, later)).reason, /reconciliation/);
+
+    assert.equal((await ex.runBrokerPoll(client(calls, book, later), later)).ok, true);
+    const restored = ex.health(later);
+    assert.equal(restored.brokerPoll.stale, false);
+    assert.equal(restored.brokerPoll.reconciliation.outcome, "OK");
+    assert.equal(restored.ready, true);
+    assert.equal((await ex.authorizeExit("age-buy", sell, positions, later)).ok, true);
+    assert.equal(ex.accept(signed({ clientOrderId: "age-qqq", nonce: "age-qqq", symbol: "QQQ" }), later).state, "PROPOSED");
+    assertGetOnly(calls);
+  } finally {
     ex.release();
     rmSync(dir, { recursive: true, force: true });
   }

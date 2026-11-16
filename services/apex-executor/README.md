@@ -62,8 +62,7 @@ Run one instance, as its own user, not on the research host.
 
 ```bash
 sudo useradd --system --home /opt/apex-quant-x --shell /usr/sbin/nologin apex-executor || true
-sudo mkdir -p /var/lib/apex-executor /etc/apex-executor /opt/apex-quant-x
-sudo rsync -a --exclude .git --exclude node_modules ./ /opt/apex-quant-x/
+sudo mkdir -p /var/lib/apex-executor /etc/apex-executor /opt/apex-quant-x/releases
 sudo chown -R apex-executor:apex-executor /var/lib/apex-executor /opt/apex-quant-x
 sudo install -m 0600 -o apex-executor -g apex-executor services/apex-executor/deploy/apex-executor.env.example /etc/apex-executor/secrets.env
 # edit /etc/apex-executor/secrets.env on the VM. Do not commit it.
@@ -104,7 +103,7 @@ The listener is `127.0.0.1:8787`. `POST /instructions` only ingests a signed pro
 | `lastFailureAt` / `lastFailureKind` | Latest failure. Kind is only `auth`, `network`, `timeout`, `http`, `parse`, or `reconcile`. |
 | `consecutiveFailures` | Failed polls since the last full success. A full success resets it to 0. |
 | `freshnessMs` | Age of this process's full success, or `null` if it has not had one. |
-| `staleAfterMs` | Freshness window. Default is 5000, five times the 1s poll interval. Values above 5000 are clamped to the existing 5s evidence limit. `APEX_EXECUTOR_STALE_AFTER_MS` can only make this stricter. |
+| `staleAfterMs` | Freshness window. Default is 5000. Values above 5000 are clamped to the existing 5s evidence limit, so a slower poll cannot extend execution authority. `APEX_EXECUTOR_STALE_AFTER_MS` can only make this stricter. |
 | `stale` | True when this process has no full success inside that window. A timestamp left on disk by the previous process does not clear it. |
 | `reconciliation.outcome` | `OK`, `MISMATCH`, `UNKNOWN_ORDERS`, `NOT_RUN`, or `FAILED`. |
 | `reconciliation.outstandingOrders` | Journal orders that are not flat or closed. |
@@ -114,35 +113,95 @@ The listener is `127.0.0.1:8787`. `POST /instructions` only ingests a signed pro
 
 A closed market is not a failed poll. The clock is still read. New buys keep the existing session and cutoff checks. The host clock is the freshness clock: a step backward is stale, and a step forward ages the evidence early.
 
+The baseline poll interval is 3000ms (`APEX_EXECUTOR_POLL_INTERVAL_MS`). A successful poll schedules the next one at that baseline. A failure doubles the wait, starting from the baseline, and the wait stops growing at 30000ms. The next success returns the wait to the baseline. With a 3s interval, one missed poll backs off to 6s. The last good snapshot is then older than 5000ms before that retry runs, and the gate closes. That is intentional. Do not raise `staleAfterMs` to keep the gate open across a slower poll. Values above 5000 are clamped.
+
+## Request budget
+
+Each poll snapshot is 4 Trading API GETs on `paper-api.alpaca.markets`: account, clock, positions, and open orders. The SPY quote is a separate Market Data API GET on `data.alpaca.markets` (`/v2/stocks/SPY/quotes/latest?feed=iex`). It is not part of the Trading API count.
+
+Each outstanding journal order then adds exactly 3 Trading API GETs: positions, open orders, and the order looked up by client id. Those position and open-order reads are not reused from the snapshot.
+
+At the 3000ms baseline that is 20 polls a minute:
+
+- 0 outstanding orders: 80 Trading API requests/min, plus 20 Market Data requests/min.
+- 2 outstanding orders: 200 Trading API requests/min, plus 20 Market Data requests/min.
+
+200 Trading API requests/min is Alpaca's standard limit. This configuration is not safe for an unlimited number of outstanding orders. Three outstanding orders are 260 Trading API requests/min before the quote. An HTTP 429 is failure kind `http`. It does not count as a full success, and the gate closes once the last full success is older than 5000ms.
+
 ## Safe deployment
 
-Apply this on the VM by hand. Do not put tokens or brokerage keys in the shell history you paste into a ticket. `PAPER_POST_ENABLED`, `LIVE_POST_ENABLED`, and `strategyApproved` stay false; this deploy does not turn them on.
+The production VM was filled by copy. It does not have a confirmed git checkout. Do not run `git fetch`, `git checkout`, or `git rev-parse` on it. Build the release on a trusted workstation from the merged commit. `PAPER_POST_ENABLED`, `LIVE_POST_ENABLED`, and `strategyApproved` stay false. Do not put tokens or brokerage keys in a ticket.
 
-1. Note the SHA that is on the VM now (`git rev-parse HEAD`). That is the rollback target.
-2. `git fetch` and check out the merged SHA.
-3. `npm ci`
-4. Run `node services/apex-executor/scripts/run-tests.mjs` and `node services/apex-executor/scripts/typecheck.mjs` on the VM.
-5. `sudo systemctl restart apex-executor`
-6. Wait until `systemctl is-active apex-executor` is `active`, then wait one poll interval (default 1s; wait a few seconds if the broker is slow).
-7. Run the authenticated check. It exits 0 only when the frozen gate is intact, `brokerPoll.stale` is false, and `reconciliation.outcome` is `OK`:
+Secrets stay in `/etc/apex-executor/secrets.env` and `/etc/apex-executor/paper.json`. The journal, state, lock, inbox, and fills stay in `/var/lib/apex-executor`. A deploy never reads or writes those directories. The systemd unit keeps `WorkingDirectory=/opt/apex-quant-x` and starts `services/apex-executor/src/main.ts` from that fixed path. The switch below replaces that directory with a release by rename. `releases/` is kept outside the directory being renamed so the new tree is not overwritten and the previous tree is kept.
+
+On the workstation, from a clean checkout of the merged SHA:
+
+```bash
+SHA=<merged-sha>
+rm -rf "/tmp/apex-release-$SHA"
+mkdir -p "/tmp/apex-release-$SHA"
+git archive "$SHA" | tar -x -C "/tmp/apex-release-$SHA"
+printf '%s\n' "$SHA" > "/tmp/apex-release-$SHA/VERSION"
+cd "/tmp/apex-release-$SHA"
+npm ci
+node services/apex-executor/scripts/run-tests.mjs
+node services/apex-executor/scripts/typecheck.mjs
+ssh user@vm "sudo mkdir -p /opt/apex-quant-x/releases/$SHA && sudo chown -R \$USER /opt/apex-quant-x/releases"
+rsync -a --delete \
+  --exclude .git \
+  --exclude .env \
+  --exclude '.env.*' \
+  --exclude node_modules \
+  --exclude services/apex-executor/data \
+  --exclude '**/writer.lock' \
+  "/tmp/apex-release-$SHA/" \
+  "user@vm:/opt/apex-quant-x/releases/$SHA/"
+```
+
+That upload lands only in `releases/<sha>/`. It does not replace `/opt/apex-quant-x/services` or anything else the running process is using. `git archive` does not contain `.git`, `.env`, or `node_modules`. The excludes are still there so a later checkout-based upload cannot copy secrets, a local data directory, or a lock. Do not rsync `/etc/apex-executor` or `/var/lib/apex-executor`.
+
+On the VM, install dependencies in the staged release, then switch the fixed path by rename. `npm ci --omit=dev` is enough to run the process. Typecheck needs the TypeScript package, which is a production dependency in this repo, so the same install can run the checks:
+
+```bash
+SHA=<merged-sha>
+sudo chown -R apex-executor:apex-executor "/opt/apex-quant-x/releases/$SHA"
+sudo -u apex-executor bash -lc "cd /opt/apex-quant-x/releases/$SHA && npm ci --omit=dev && node services/apex-executor/scripts/run-tests.mjs && node services/apex-executor/scripts/typecheck.mjs"
+ts=$(date -u +%Y%m%dT%H%M%SZ)
+sudo systemctl stop apex-executor
+# Move the release store out of the live directory before the rename.
+sudo mkdir -p /opt/apex-releases
+if [ -d /opt/apex-quant-x/releases ]; then sudo mv /opt/apex-quant-x/releases /opt/apex-releases/releases; fi
+sudo mv /opt/apex-quant-x "/opt/apex-releases/previous-$ts"
+sudo mv "/opt/apex-releases/releases/$SHA" /opt/apex-quant-x
+sudo mkdir -p /opt/apex-quant-x/releases
+sudo mv /opt/apex-releases/releases/* /opt/apex-quant-x/releases/ || true
+sudo mv "/opt/apex-releases/previous-$ts" "/opt/apex-quant-x/releases/previous-$ts"
+sudo chown -R apex-executor:apex-executor /opt/apex-quant-x
+sudo systemctl start apex-executor
+```
+
+Wait until `systemctl is-active apex-executor` is `active`, then one poll interval (default 3s; a few seconds more if the broker is slow). The authenticated check exits 0 only when the frozen gate is intact, `brokerPoll.stale` is false, and `reconciliation.outcome` is `OK`:
 
 ```bash
 APEX_EXECUTOR_HEALTH_TOKEN=replace-with-a-local-token node /opt/apex-quant-x/services/apex-executor/deploy/healthcheck.mjs
 ```
 
-The line it prints looks like `brokerPoll stale=false reconciliation=OK outstandingOrders=0 unknownOrders=0`.
+The line it prints looks like `brokerPoll stale=false reconciliation=OK outstandingOrders=0 unknownOrders=0`. Confirm `VERSION` in `/opt/apex-quant-x` is the merged SHA.
 
-If the process crashes, the poll never authenticates, or `stale` stays true with `NOT_RUN` / `FAILED` after several intervals, check out the previous SHA, `npm ci`, and `sudo systemctl restart apex-executor`, then run the same health check against that build. A result of `MISMATCH` or `UNKNOWN_ORDERS` is the gate seeing a book that does not match the journal. Do not roll that back to hide it. While POST is disabled, a journal `PROPOSED` order that was never sent will mismatch until it is reconciled or removed by the operator's own procedure. The health check prints only those enums and counts.
+Rollback uses the previous tree and does not touch `/var/lib/apex-executor`:
 
-`APEX_EXECUTOR_STALE_AFTER_MS` is optional. Leave it unset for the 5000ms default. The poll still issues about five GETs per second at the current 1s interval, which can press Alpaca's paper rate limit; lowering the stale window does not reduce that rate, and raising it cannot extend execution authority past 5s.
-
-Copy from Windows (example clone `C:\Users\sharm\apex-quant-x-clean`; any clone root works):
-
-```powershell
-cd C:\Users\sharm\apex-quant-x-clean
-scp -r .\services .\scripts .\src .\package.json .\package-lock.json user@vm:/tmp/apex-quant-x/
-ssh user@vm "sudo rsync -a /tmp/apex-quant-x/ /opt/apex-quant-x/ && sudo systemctl restart apex-executor"
+```bash
+ts=<the previous timestamp>
+sudo systemctl stop apex-executor
+sudo mv /opt/apex-quant-x/releases /opt/apex-releases/releases
+sudo mv /opt/apex-quant-x "/opt/apex-releases/failed-$ts"
+sudo mv "/opt/apex-releases/releases/previous-$ts" /opt/apex-quant-x
+sudo mkdir -p /opt/apex-quant-x/releases
+sudo mv /opt/apex-releases/releases/* /opt/apex-quant-x/releases/ || true
+sudo systemctl start apex-executor
 ```
+
+If the process crashes, or `stale` stays true with `NOT_RUN` or `FAILED` after several intervals, roll back. `MISMATCH` or `UNKNOWN_ORDERS` means the gate sees a book that does not match the journal. Do not roll back to hide that. While POST is disabled, a journal `PROPOSED` order that was never sent mismatches until the operator reconciles it. The health check prints only those enums and counts.
 
 ## Invariants
 

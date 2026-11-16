@@ -9,7 +9,7 @@ import { createPaperPollClient } from "./broker.ts";
 import { BROKER_POLL_INTERVAL_MS } from "./broker-poll.ts";
 import { assertNoLiveCreds, loadPaperCredentials } from "./credentials.ts";
 import { warnFileOnlyDurability } from "./persist.ts";
-import { Executor, loadConfig, nextPollDelay } from "./runtime.ts";
+import { Executor, PollScheduler, loadConfig } from "./runtime.ts";
 
 function send(res: ServerResponse, status: number, body: unknown): void {
   const payload = typeof body === "string" ? body : JSON.stringify(body);
@@ -56,37 +56,32 @@ export function createExecutorServer(exec: Executor, token: string): Server {
 export async function boot(env: NodeJS.ProcessEnv = process.env): Promise<{ exec: Executor; server: Server; stop: () => void }> {
   assertNoLiveCreds(env);
   const paper = loadPaperCredentials(env);
-  const exec = new Executor(loadConfig(env), paper);
-  let stopped = false;
-  let delay = BROKER_POLL_INTERVAL_MS;
-  let timer: ReturnType<typeof setTimeout> | null = null;
-
-  const poll = async () => {
+  const config = loadConfig(env);
+  const exec = new Executor(config, paper);
+  const scheduler = new PollScheduler(config.pollIntervalMs ?? BROKER_POLL_INTERVAL_MS, async () => {
     if (!paper) {
       exec.notePoll("paper credentials not configured");
-      return;
+      return null;
     }
-    let failed = false;
     try {
       const result = await exec.runBrokerPoll(createPaperPollClient(paper), Date.now());
-      failed = !result.ok;
+      return !result.ok;
     } catch {
       exec.notePoll("paper read failed");
-      failed = true;
+      return true;
     }
-    delay = nextPollDelay(delay, failed);
-  };
+  }, {
+    setTimer(delayMs, fire) {
+      return setTimeout(() => {
+        void fire();
+      }, delayMs);
+    },
+    clearTimer(handle) {
+      clearTimeout(handle as ReturnType<typeof setTimeout>);
+    },
+  });
 
-  const schedule = () => {
-    timer = setTimeout(() => {
-      void poll().finally(() => {
-        if (!stopped) schedule();
-      });
-    }, delay);
-  };
-
-  await poll();
-  schedule();
+  await scheduler.start();
 
   const token = env.APEX_EXECUTOR_HEALTH_TOKEN || "";
   const port = Number(env.APEX_EXECUTOR_PORT || 8787);
@@ -97,10 +92,11 @@ export async function boot(env: NodeJS.ProcessEnv = process.env): Promise<{ exec
   warnFileOnlyDurability();
   console.log(JSON.stringify({ ...exec.health(), port }));
 
+  let stopped = false;
   const stop = () => {
     if (stopped) return;
     stopped = true;
-    if (timer) clearTimeout(timer);
+    scheduler.stop();
     server.close();
     exec.release();
   };

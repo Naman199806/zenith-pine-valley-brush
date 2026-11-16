@@ -5,7 +5,11 @@
  * A timestamp restored from disk is not a full success.
  */
 
-export const BROKER_POLL_INTERVAL_MS = 1_000;
+/** Baseline delay between broker polls. Failure backoff grows from this and returns to it. */
+export const BROKER_POLL_INTERVAL_MS = 3_000;
+
+/** Doubled failure delays stop here. A success still returns to the baseline, even below this cap. */
+export const POLL_BACKOFF_CAP_MS = 30_000;
 
 /** Existing execution evidence window. staleAfterMs cannot extend it. */
 export const MARKET_EVIDENCE_MAX_AGE_MS = 5_000;
@@ -39,8 +43,18 @@ export interface BrokerPollHealth extends BrokerPollState {
   stale: boolean;
 }
 
+/** Five poll intervals, never above the 5s execution-evidence cap. A 3s poll therefore stays at 5000. */
 export function defaultStaleAfterMs(pollIntervalMs = BROKER_POLL_INTERVAL_MS): number {
-  return pollIntervalMs * 5;
+  return Math.min(pollIntervalMs * 5, MARKET_EVIDENCE_MAX_AGE_MS);
+}
+
+export function readPollIntervalMs(env: NodeJS.ProcessEnv): number {
+  const raw = env.APEX_EXECUTOR_POLL_INTERVAL_MS;
+  if (raw == null || raw.trim() === "") return BROKER_POLL_INTERVAL_MS;
+  if (!/^\d+$/.test(raw.trim())) throw new Error("APEX_EXECUTOR_POLL_INTERVAL_MS must be a positive integer");
+  const value = Number(raw.trim());
+  if (!Number.isSafeInteger(value) || value <= 0) throw new Error("APEX_EXECUTOR_POLL_INTERVAL_MS must be a positive integer");
+  return value;
 }
 
 export function readStaleAfterMs(env: NodeJS.ProcessEnv, pollIntervalMs = BROKER_POLL_INTERVAL_MS): number {

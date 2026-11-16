@@ -16,11 +16,14 @@ import { verifyApproval } from "./approval.ts";
 import { BrokerPollError, loadPaperPollSnapshot, type BrokerPollClient } from "./broker.ts";
 import {
   blankBrokerPoll,
+  BROKER_POLL_INTERVAL_MS,
   classifyHttpStatus,
   classifyThrown,
   effectiveStaleAfterMs,
   MARKET_EVIDENCE_MAX_AGE_MS,
+  POLL_BACKOFF_CAP_MS,
   readPersistedPoll,
+  readPollIntervalMs,
   readStaleAfterMs,
   unknownBrokerOrderCount,
   type BrokerPollFailureKind,
@@ -54,6 +57,8 @@ export interface ExecutorConfig {
   fillsPath: string;
   /** Positive milliseconds. Values above the 5s evidence window are clamped. */
   staleAfterMs?: number;
+  /** Baseline delay between polls. Success resets to this. Default 3000. */
+  pollIntervalMs?: number;
 }
 
 interface DecisionMeta {
@@ -87,6 +92,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ExecutorConfig
     hermesPath: env.APEX_EXECUTOR_HERMES || `${root}/hermes.json`,
     fillsPath: env.APEX_EXECUTOR_FILLS || `${root}/fills.jsonl`,
     staleAfterMs: readStaleAfterMs(env),
+    pollIntervalMs: readPollIntervalMs(env),
   };
 }
 
@@ -743,7 +749,59 @@ export function openMarket(now: number): MarketSnapshot {
   return flatSnapshot(now);
 }
 
-export function nextPollDelay(previous: number, failed: boolean): number {
-  if (!failed) return 1_000;
-  return Math.min(Math.max(previous, 1_000) * 2, 30_000);
+export function nextPollDelay(previous: number, failed: boolean, baseline = BROKER_POLL_INTERVAL_MS): number {
+  if (!Number.isSafeInteger(baseline) || baseline <= 0) throw new Error("poll interval must be a positive integer");
+  if (!failed) return baseline;
+  const cap = Math.max(POLL_BACKOFF_CAP_MS, baseline);
+  return Math.min(Math.max(previous, baseline) * 2, cap);
+}
+
+export interface PollTimer {
+  setTimer(delayMs: number, fire: () => Promise<void> | void): unknown;
+  clearTimer(handle: unknown): void;
+}
+
+/**
+ * Immediate first poll, then wait the delay chosen by nextPollDelay.
+ * `poll` returns true on failure, false on success, and null to keep the current delay.
+ */
+export class PollScheduler {
+  private delay: number;
+  private handle: unknown = null;
+  private stopped = false;
+  private readonly baseline: number;
+  private readonly poll: () => Promise<boolean | null>;
+  private readonly timer: PollTimer;
+
+  constructor(baseline: number, poll: () => Promise<boolean | null>, timer: PollTimer) {
+    this.baseline = baseline;
+    this.poll = poll;
+    this.timer = timer;
+    this.delay = baseline;
+  }
+
+  async start(): Promise<void> {
+    await this.tick();
+  }
+
+  stop(): void {
+    this.stopped = true;
+    if (this.handle != null) {
+      this.timer.clearTimer(this.handle);
+      this.handle = null;
+    }
+  }
+
+  private async tick(): Promise<void> {
+    if (this.stopped) return;
+    let outcome: boolean | null = true;
+    try {
+      outcome = await this.poll();
+    } catch {
+      outcome = true;
+    }
+    if (this.stopped) return;
+    if (outcome !== null) this.delay = nextPollDelay(this.delay, outcome, this.baseline);
+    this.handle = this.timer.setTimer(this.delay, () => this.tick());
+  }
 }
