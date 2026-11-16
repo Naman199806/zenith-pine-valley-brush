@@ -4,6 +4,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "no
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
+import { fileURLToPath } from "node:url";
 import { issueGateProof } from "../../../src/lib/apex/live/executor.ts";
 import { architectureReadiness } from "../../../src/lib/apex/live/architecture.ts";
 import { ROLES } from "../../../src/lib/apex/research/canonical-decision.ts";
@@ -19,6 +20,7 @@ import { Executor, POST_ENABLED, STRATEGY_APPROVED, assertNoLiveCreds, openMarke
 import type { TradeInstruction } from "../src/instruction.ts";
 import { createExecutorServer } from "../src/main.ts";
 
+const repoRoot = fileURLToPath(new URL("../../../", import.meta.url));
 const now = Date.parse("2026-11-16T15:00:00Z");
 const SECRET = "operator-secret-32-characters-min";
 const GATE = "gate-secret-value-32-characters-ok";
@@ -76,7 +78,7 @@ test("operator script signature verifies and tampering or an incomplete ticket f
   const ready = { verdict: "READY_FOR_OPERATOR_APPROVAL", ...approval() };
   writeFileSync(proposed, JSON.stringify(ready));
   const run = spawnSync("node", ["--experimental-strip-types", "scripts/operator-sign-ticket.mjs", proposed], {
-    cwd: "/workspace",
+    cwd: repoRoot,
     env: { ...process.env, APEX_OPERATOR_SECRET: SECRET, APEX_OPERATOR_APPROVAL_PATH: out },
   });
   assert.equal(run.status, 0, run.stderr?.toString());
@@ -89,7 +91,7 @@ test("operator script signature verifies and tampering or an incomplete ticket f
   void _nonce;
   writeFileSync(broken, JSON.stringify(withoutNonce));
   const denied = spawnSync("node", ["--experimental-strip-types", "scripts/operator-sign-ticket.mjs", broken], {
-    cwd: "/workspace",
+    cwd: repoRoot,
     env: { ...process.env, APEX_OPERATOR_SECRET: SECRET, APEX_OPERATOR_APPROVAL_PATH: refused },
   });
   assert.notEqual(denied.status, 0);
@@ -421,7 +423,7 @@ test("clean shutdown lets the next process take the lock", async () => {
 });
 
 test("mock lifecycle script is explicit that it is not a real fill", () => {
-  const run = spawnSync("node", ["--experimental-strip-types", "services/apex-executor/scripts/mock-lifecycle.mjs"], { cwd: "/workspace" });
+  const run = spawnSync("node", ["--experimental-strip-types", "services/apex-executor/scripts/mock-lifecycle.mjs"], { cwd: repoRoot });
   assert.equal(run.status, 0, run.stderr?.toString());
   const report = JSON.parse(run.stdout.toString()) as { realFill: boolean; flat: string; partial: string; postEnabled: boolean; note: string };
   assert.equal(report.realFill, false);
