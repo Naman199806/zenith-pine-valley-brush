@@ -1,37 +1,75 @@
 /**
- * Position lifecycle owned by Apex Executor.
- * FLAT → ENTRY_PENDING → PARTIAL/OPEN → EXIT_PENDING → CLOSED/FLAT
+ * Order lifecycle on top of the existing broker state machine.
+ * authorized is local-only (nothing has been sent). Every later move
+ * goes through machine.transition, including UNKNOWN.
  */
 
-export type PositionState = "FLAT" | "ENTRY_PENDING" | "PARTIAL" | "OPEN" | "EXIT_PENDING" | "CLOSED";
+import { isTerminal, mapBrokerStatus, transition, type BrokerOrderState } from "../../../src/lib/apex/broker/machine.ts";
 
-const NEXT: Record<PositionState, PositionState[]> = {
-  FLAT: ["ENTRY_PENDING"],
-  ENTRY_PENDING: ["PARTIAL", "OPEN", "FLAT", "CLOSED"],
-  PARTIAL: ["OPEN", "EXIT_PENDING", "CLOSED"],
-  OPEN: ["EXIT_PENDING", "CLOSED"],
-  EXIT_PENDING: ["CLOSED", "FLAT"],
-  CLOSED: ["FLAT"],
+export type LifecycleState =
+  | "authorized"
+  | "submitted"
+  | "accepted"
+  | "partial_fill"
+  | "filled"
+  | "cancelled"
+  | "rejected"
+  | "expired"
+  | "unknown";
+
+const TO_MACHINE: Record<Exclude<LifecycleState, "authorized">, BrokerOrderState> = {
+  submitted: "submitted",
+  accepted: "accepted",
+  partial_fill: "partially_filled",
+  filled: "filled",
+  cancelled: "canceled",
+  rejected: "rejected",
+  expired: "expired",
+  unknown: "unknown_pending_reconciliation",
 };
 
-export function transitionPosition(from: PositionState, to: PositionState): PositionState {
-  if (!NEXT[from].includes(to)) throw new Error(`invalid lifecycle ${from} -> ${to}`);
-  return to;
+const FROM_MACHINE: Record<BrokerOrderState, LifecycleState> = {
+  created: "authorized",
+  risk_approved: "authorized",
+  submitted: "submitted",
+  accepted: "accepted",
+  partially_filled: "partial_fill",
+  filled: "filled",
+  pending_cancel: "accepted",
+  canceled: "cancelled",
+  rejected: "rejected",
+  expired: "expired",
+  unknown_pending_reconciliation: "unknown",
+};
+
+export function toMachine(state: LifecycleState): BrokerOrderState {
+  if (state === "authorized") return "risk_approved";
+  return TO_MACHINE[state];
 }
 
-export interface LifecycleRecord {
-  clientOrderId: string;
-  state: PositionState;
-  filledQty: number;
-  linkedExitId: string | null;
-  unknown: boolean;
+export function fromMachine(state: BrokerOrderState): LifecycleState {
+  return FROM_MACHINE[state];
 }
 
-export function applyBrokerStatus(rec: LifecycleRecord, status: string, filledQty: number): LifecycleRecord {
-  if (status === "rejected" || status === "canceled") return { ...rec, state: transitionPosition(rec.state, "FLAT"), unknown: false };
-  if (status === "unknown") return { ...rec, unknown: true };
-  if (status === "partially_filled") return { ...rec, state: transitionPosition(rec.state === "FLAT" ? "ENTRY_PENDING" : rec.state, "PARTIAL"), filledQty };
-  if (status === "filled" && rec.state === "EXIT_PENDING") return { ...rec, state: "CLOSED", filledQty, unknown: false };
-  if (status === "filled") return { ...rec, state: transitionPosition(rec.state === "FLAT" ? "ENTRY_PENDING" : rec.state, "OPEN"), filledQty, unknown: false };
-  return rec;
+export function isTerminalState(state: LifecycleState): boolean {
+  if (state === "authorized") return false;
+  return isTerminal(toMachine(state));
+}
+
+export function nextLifecycle(from: LifecycleState, to: LifecycleState): LifecycleState {
+  if (from === to) return to;
+  if (from === "authorized") {
+    const allowed: LifecycleState[] = ["submitted", "rejected", "unknown", "accepted", "partial_fill", "filled", "cancelled", "expired"];
+    if (!allowed.includes(to)) throw new Error(`invalid lifecycle ${from} -> ${to}`);
+    return to;
+  }
+  return fromMachine(transition(toMachine(from), toMachine(to)));
+}
+
+export function lifecycleFromBrokerStatus(from: LifecycleState, brokerStatus: string): LifecycleState {
+  if (from === "authorized") throw new Error("not submitted");
+  const mapped = mapBrokerStatus(brokerStatus);
+  const current = toMachine(from);
+  if (current === mapped) return from;
+  return fromMachine(transition(current, mapped));
 }

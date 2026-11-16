@@ -68,8 +68,13 @@ function digest(secret: string, material: string): string {
   return createHmac("sha256", secret).update(material).digest("hex");
 }
 
-function material(t: PaperLimitTicket): string {
+/** Canonical operator material. scripts/operator-sign-ticket.mjs must stay in lockstep. */
+export function limitApprovalMaterial(t: PaperLimitTicket): string {
   return [t.symbol, t.side, "limit", "day", String(t.qty), String(t.limitPrice), t.session, t.clientOrderId, t.expiresAt].join("|");
+}
+
+function material(t: PaperLimitTicket): string {
+  return limitApprovalMaterial(t);
 }
 
 export function verifyOperatorApproval(ticket: PaperLimitTicket, approval: OperatorApproval | null, secret: string | null, now = Date.now()): string | null {
@@ -82,6 +87,82 @@ export function verifyOperatorApproval(ticket: PaperLimitTicket, approval: Opera
   const expected = digest(secret, material(ticket));
   const a = Buffer.from(approval.proof);
   const b = Buffer.from(expected);
+  if (a.length !== b.length || !timingSafeEqual(a, b)) return "approval proof mismatch";
+  return null;
+}
+
+/**
+ * Separate operator grant to enable a POST mode.
+ * The executor verifies this. It has no signer and cannot mint the proof.
+ * scripts/operator-sign-ticket.mjs --enable-post is the only minter.
+ */
+export interface PostEnableGrant {
+  source: "OPERATOR_SIGNED";
+  enable: "PAPER_POST" | "LIVE_POST";
+  confirmation: "I_AUTHORIZE_PAPER_POST" | "I_AUTHORIZE_LIVE_POST";
+  expiresAt: string;
+  proof: string;
+}
+
+export function postEnableMaterial(grant: Pick<PostEnableGrant, "enable" | "confirmation" | "expiresAt">): string {
+  return [grant.enable, grant.confirmation, grant.expiresAt].join("|");
+}
+
+export function verifyOperatorPostEnable(grant: PostEnableGrant | null, secret: string | null, now = Date.now()): string | null {
+  if (!secret) return "operator secret not present; this process cannot mint approval";
+  if (!grant || grant.source !== "OPERATOR_SIGNED") return "operator-signed post authorization required";
+  const expected = grant.enable === "PAPER_POST" ? "I_AUTHORIZE_PAPER_POST" : grant.enable === "LIVE_POST" ? "I_AUTHORIZE_LIVE_POST" : "";
+  if (!expected || grant.confirmation !== expected) return "post authorization confirmation mismatch";
+  if (Date.parse(grant.expiresAt) <= now) return "post authorization expired";
+  const expectedProof = digest(secret, postEnableMaterial(grant));
+  const a = Buffer.from(grant.proof);
+  const b = Buffer.from(expectedProof);
+  if (a.length !== b.length || !timingSafeEqual(a, b)) return "post authorization proof mismatch";
+  return null;
+}
+
+/** Previously authorized protective sell. Distinct material from an entry ticket. */
+export interface ProtectiveApproval {
+  source: "OPERATOR_SIGNED";
+  clientOrderId: string;
+  symbol: "SPY";
+  side: "sell";
+  orderType: "stop" | "stop_limit";
+  qty: number;
+  limitPrice: number;
+  stopPrice: number;
+  session: "REGULAR";
+  expiresAt: string;
+  linkedEntryId: string;
+  proof: string;
+}
+
+export function protectiveMaterial(approval: Omit<ProtectiveApproval, "source" | "proof">): string {
+  return [
+    "PROTECT",
+    approval.symbol,
+    approval.side,
+    approval.orderType,
+    String(approval.qty),
+    String(approval.limitPrice),
+    String(approval.stopPrice),
+    approval.session,
+    approval.clientOrderId,
+    approval.linkedEntryId,
+    approval.expiresAt,
+  ].join("|");
+}
+
+export function verifyProtectiveApproval(approval: ProtectiveApproval | null, secret: string | null, now = Date.now()): string | null {
+  if (!secret) return "operator secret not present; this process cannot mint approval";
+  if (!approval || approval.source !== "OPERATOR_SIGNED") return "operator-signed approval required";
+  if (approval.side !== "sell" || (approval.orderType !== "stop" && approval.orderType !== "stop_limit")) return "protective order must be a sell stop";
+  if (!(approval.qty > 0) || !(approval.stopPrice > 0) || !(approval.limitPrice > 0)) return "protective terms invalid";
+  if (!approval.linkedEntryId) return "protective order requires the authorized entry";
+  if (Date.parse(approval.expiresAt) <= now) return "approval expired";
+  const expectedProof = digest(secret, protectiveMaterial(approval));
+  const a = Buffer.from(approval.proof);
+  const b = Buffer.from(expectedProof);
   if (a.length !== b.length || !timingSafeEqual(a, b)) return "approval proof mismatch";
   return null;
 }

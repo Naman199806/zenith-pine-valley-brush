@@ -1,14 +1,16 @@
 [Unit]
-Description=Apex Executor PAPER read-only
-After=network.target
+Description=Apex Executor (PAPER read-only, POST disabled)
+After=network-online.target
+Wants=network-online.target
 
 [Service]
 Type=simple
 WorkingDirectory=/opt/apex-quant-x
-Environment=APEX_EXECUTOR_MODE=PAPER
-Environment=APEX_EXECUTOR_HEALTH_TOKEN=replace-me
+Environment=APEX_EXECUTOR_MODE=PAPER_READ_ONLY
+EnvironmentFile=-/etc/apex-executor.env
 ExecStart=/usr/bin/node --experimental-strip-types services/apex-executor/src/main.ts
 Restart=on-failure
+RestartSec=3
 NoNewPrivileges=true
 
 [Install]

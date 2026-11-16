@@ -16,8 +16,36 @@ if (!secret || secret.length < 32) {
   process.exit(1);
 }
 const ticketPath = process.argv[2];
+if (ticketPath === "--enable-post") {
+  const which = process.argv[3];
+  if (which !== "PAPER" && which !== "LIVE") {
+    console.error("usage: node scripts/operator-sign-ticket.mjs --enable-post PAPER|LIVE");
+    process.exit(1);
+  }
+  const enable = which === "PAPER" ? "PAPER_POST" : "LIVE_POST";
+  const confirmation = which === "PAPER" ? "I_AUTHORIZE_PAPER_POST" : "I_AUTHORIZE_LIVE_POST";
+  const expiresAt = process.env.APEX_OPERATOR_GRANT_EXPIRES || "";
+  if (!expiresAt) {
+    console.error("APEX_OPERATOR_GRANT_EXPIRES is required");
+    process.exit(1);
+  }
+  const material = [enable, confirmation, expiresAt].join("|");
+  const grant = {
+    source: "OPERATOR_SIGNED",
+    enable,
+    confirmation,
+    expiresAt,
+    proof: createHmac("sha256", secret).update(material).digest("hex"),
+  };
+  const out = process.env.APEX_OPERATOR_APPROVAL_PATH || `.operator/${which.toLowerCase()}-post-grant.json`;
+  mkdirSync(dirname(out), { recursive: true });
+  writeFileSync(out, JSON.stringify(grant, null, 2));
+  console.log(JSON.stringify({ signed: true, enable, path: out, storedInGit: false }));
+  process.exit(0);
+}
 if (!ticketPath) {
   console.error("usage: node scripts/operator-sign-ticket.mjs <proposed-ticket.json>");
+  console.error("       node scripts/operator-sign-ticket.mjs --enable-post PAPER|LIVE");
   process.exit(1);
 }
 const proposed = JSON.parse(readFileSync(ticketPath, "utf8"));
