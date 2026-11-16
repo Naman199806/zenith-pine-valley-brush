@@ -1,0 +1,26 @@
+# Apex Executor
+
+Independent execution runtime. Apex Quant X proposes. This service is the only process that may submit, and submission is hard-disabled.
+
+## Startup
+
+```powershell
+cd C:\Users\sharm\apex-quant-x-clean
+$env:APEX_EXECUTOR_MODE = "PAPER"
+$env:APEX_EXECUTOR_HEALTH_TOKEN = "<local token>"
+node --experimental-strip-types services/apex-executor/src/main.ts
+```
+
+Health: `GET http://127.0.0.1:8787/health` with header `x-executor-token`.
+
+## Invariants
+
+- PAPER is the default. LIVE credentials are refused in PAPER mode.
+- `POST_ENABLED` is hard-false. A single environment variable cannot enable it.
+- Research cannot mint operator approval.
+- Unknown submissions are reconciled by client order ID. They are not retried.
+- Kill switch blocks new entries and still allows an authorized exit.
+
+## VM
+
+See `deploy/apex-executor.service`. Run one instance per account.

@@ -12,3 +12,5 @@ research/lab/windows/*.tmp
 
 .operator/
 research/lab/operator-authorization.json
+
+services/apex-executor/data/

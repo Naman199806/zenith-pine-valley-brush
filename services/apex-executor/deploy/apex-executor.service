@@ -1,0 +1,15 @@
+[Unit]
+Description=Apex Executor PAPER read-only
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/apex-quant-x
+Environment=APEX_EXECUTOR_MODE=PAPER
+Environment=APEX_EXECUTOR_HEALTH_TOKEN=replace-me
+ExecStart=/usr/bin/node --experimental-strip-types services/apex-executor/src/main.ts
+Restart=on-failure
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target
