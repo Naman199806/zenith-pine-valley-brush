@@ -3,7 +3,7 @@ import test from "node:test";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { PAPER_POST_ENABLED, fetchPaperEvidence, preparePaperLimit, validateEvidence, verifyOperatorApproval, type BrokerEvidence, type PaperLimitTicket } from "./paper-equity-transport.ts";
+import { PAPER_POST_ENABLED, PAPER_EVIDENCE_URLS, evaluateSubmissionBoundary, fetchPaperEvidence, preparePaperLimit, validateEvidence, verifyOperatorApproval, type BrokerEvidence, type PaperLimitTicket } from "./paper-equity-transport.ts";
 import { HermesJournal } from "../live/journal.ts";
 import { architectureReadiness } from "../live/architecture.ts";
 import { agentRoleStatus } from "../live/connectivity.ts";
@@ -75,18 +75,47 @@ test("POST remains disabled and authorization is not consumed", () => {
   rmSync(dir, { recursive: true, force: true });
 });
 
-test("execution boundary fetches mocked PAPER evidence and rejects a bad quote", async () => {
+test("evidence fetch uses paper host for account state and data host for the IEX quote", async () => {
+  const seen: string[] = [];
   const nowDate = new Date(now);
-  const good = await fetchPaperEvidence(async (path) => {
-    if (path === "/v2/account") return { status: 200, body: { status: "ACTIVE", trading_blocked: false } };
-    if (path === "/v2/clock") return { status: 200, body: { is_open: true } };
-    if (path === "/v2/positions") return { status: 200, body: [] };
-    if (path.startsWith("/v2/orders")) return { status: 200, body: [] };
+  const creds = { keyId: "PKPAPERKEY", secret: "paper-secret" };
+  const evidence = await fetchPaperEvidence(creds, async (url) => {
+    seen.push(url);
+    if (url.includes("/v2/account")) return { status: 200, body: { status: "ACTIVE", trading_blocked: false } };
+    if (url.includes("/v2/clock")) return { status: 200, body: { is_open: true } };
+    if (url.includes("/v2/positions")) return { status: 200, body: [] };
+    if (url.includes("/v2/orders")) return { status: 200, body: [] };
     return { status: 200, body: { quote: { bp: 749.9, ap: 750, t: nowDate.toISOString() } } };
   }, nowDate);
-  assert.equal(validateEvidence(good, now), null);
-  const bad = await fetchPaperEvidence(async () => ({ status: 500, body: null }), nowDate);
-  assert.ok(validateEvidence(bad, now));
+  assert.ok(seen.filter((u) => u !== PAPER_EVIDENCE_URLS.quote).every((u) => u.startsWith("https://paper-api.alpaca.markets/")));
+  assert.equal(seen.at(-1), "https://data.alpaca.markets/v2/stocks/SPY/quotes/latest?feed=iex");
+  assert.equal(validateEvidence(evidence, now), null);
+  await assert.rejects(() => fetchPaperEvidence({ keyId: "AKLIVE", secret: "x" }, async () => ({ status: 200, body: {} })), /paper/);
+  const failed = await fetchPaperEvidence(creds, async () => ({ status: 500, body: null }), nowDate);
+  assert.ok(validateEvidence(failed, now)?.includes("incomplete"));
+});
+
+test("submission boundary fetches evidence and stays disabled", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "p-"));
+  const nowDate = new Date(now);
+  const r = await evaluateSubmissionBoundary(
+    ticket(),
+    new HermesJournal(join(dir, "j.json")),
+    null,
+    { keyId: "PKPAPERKEY", secret: "paper-secret" },
+    async (url) => {
+      if (url.includes("data.alpaca.markets") && !url.includes("feed=iex")) return { status: 400, body: null };
+      if (url.includes("/v2/account")) return { status: 200, body: { status: "ACTIVE", trading_blocked: false } };
+      if (url.includes("/v2/clock")) return { status: 200, body: { is_open: true } };
+      if (url.includes("/v2/positions") || url.includes("/v2/orders")) return { status: 200, body: [] };
+      return { status: 200, body: { quote: { bp: 749.9, ap: 750, t: nowDate.toISOString() } } };
+    },
+    now,
+  );
+  assert.equal(PAPER_POST_ENABLED, false);
+  assert.equal(r.submitted, false);
+  assert.equal(r.state, "PROPOSED");
+  rmSync(dir, { recursive: true, force: true });
 });
 
 test("six stages and 13 roles remain intact", () => {

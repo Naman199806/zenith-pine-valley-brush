@@ -7,7 +7,8 @@
 
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { readFileSync } from "node:fs";
-import { PAPER_TRADING_ORIGIN, assertPaperUrl } from "./allowlist.ts";
+import { PAPER_TRADING_ORIGIN, DATA_ORIGIN, assertPaperUrl } from "./allowlist.ts";
+import { assertPaperCreds, type PaperCreds } from "./paper-read.ts";
 import type { HermesJournal } from "../live/journal.ts";
 import type { IntentRecord } from "../live/executor.ts";
 
@@ -85,15 +86,30 @@ export function verifyOperatorApproval(ticket: PaperLimitTicket, approval: Opera
   return null;
 }
 
+export const PAPER_EVIDENCE_URLS = {
+  account: `${PAPER_TRADING_ORIGIN}/v2/account`,
+  clock: `${PAPER_TRADING_ORIGIN}/v2/clock`,
+  positions: `${PAPER_TRADING_ORIGIN}/v2/positions`,
+  openOrders: `${PAPER_TRADING_ORIGIN}/v2/orders?status=open`,
+  quote: `${DATA_ORIGIN}/v2/stocks/SPY/quotes/latest?feed=iex`,
+} as const;
+
 export async function fetchPaperEvidence(
-  get: (path: string) => Promise<{ status: number; body: unknown }>,
+  creds: PaperCreds,
+  get: (url: string) => Promise<{ status: number; body: unknown }>,
   now = new Date(),
 ): Promise<BrokerEvidence> {
-  const account = await get("/v2/account");
-  const clock = await get("/v2/clock");
-  const positions = await get("/v2/positions");
-  const open = await get("/v2/orders?status=open");
-  const quote = await get("/v2/stocks/SPY/quotes/latest");
+  const credErr = assertPaperCreds(creds);
+  if (credErr) throw new Error(credErr);
+  for (const url of Object.values(PAPER_EVIDENCE_URLS)) assertPaperUrl(url);
+  if (!PAPER_EVIDENCE_URLS.quote.includes("data.alpaca.markets") || !PAPER_EVIDENCE_URLS.quote.includes("feed=iex")) {
+    throw new Error("quote host or feed invalid");
+  }
+  const account = await get(PAPER_EVIDENCE_URLS.account);
+  const clock = await get(PAPER_EVIDENCE_URLS.clock);
+  const positions = await get(PAPER_EVIDENCE_URLS.positions);
+  const open = await get(PAPER_EVIDENCE_URLS.openOrders);
+  const quote = await get(PAPER_EVIDENCE_URLS.quote);
   const a = (account.body ?? {}) as { status?: string; trading_blocked?: boolean };
   const c = (clock.body ?? {}) as { is_open?: boolean };
   const q = ((quote.body ?? {}) as { quote?: { bp?: number; ap?: number; t?: string } }).quote ?? {};
@@ -107,6 +123,18 @@ export async function fetchPaperEvidence(
     openOrders: Array.isArray(open.body) ? open.body.length : Number.NaN,
     quote: { bid: Number(q.bp), ask: Number(q.ap), timestamp: String(q.t ?? "") },
   };
+}
+
+export async function evaluateSubmissionBoundary(
+  ticket: PaperLimitTicket,
+  journal: HermesJournal,
+  approval: OperatorApproval | null,
+  creds: PaperCreds,
+  get: (url: string) => Promise<{ status: number; body: unknown }>,
+  now = Date.now(),
+): Promise<PaperTransportResult> {
+  const evidence = await fetchPaperEvidence(creds, get, new Date(now));
+  return preparePaperLimit(ticket, journal, evidence, approval, { now });
 }
 
 export function validateEvidence(evidence: BrokerEvidence, now = Date.now()): string | null {
