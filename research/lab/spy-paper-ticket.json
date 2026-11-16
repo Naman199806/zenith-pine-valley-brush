@@ -1,6 +1,6 @@
 {
   "buy": {
-    "status": "PREPARED_NOT_AUTHORIZED",
+    "status": "AWAITING_REGULAR_QUOTE",
     "host": "paper-api.alpaca.markets",
     "symbol": "SPY",
     "side": "buy",
@@ -11,14 +11,14 @@
     "qty": null,
     "limitPrice": null,
     "maxEntryNotional": 25,
-    "clientOrderId": "apex-spy-b3e6b802-3b03-4ba8-9e99-a48af94e4399",
+    "clientOrderId": "apex-spy-797d686b-b5f4-4383-b256-27c688ccc04e",
     "expiresAt": "2026-11-16T16:00:00-05:00",
     "operatorAuthorized": false,
     "quote": "REQUIRED_AT_AUTHORIZATION",
     "submitted": false
   },
   "sell": {
-    "status": "PREPARED_NOT_AUTHORIZED",
+    "status": "AWAITING_REGULAR_QUOTE",
     "host": "paper-api.alpaca.markets",
     "symbol": "SPY",
     "side": "sell",
@@ -29,48 +29,21 @@
     "qty": null,
     "limitPrice": null,
     "maxEntryNotional": 25,
-    "clientOrderId": "apex-spy-exit-b3e6b802-3b03-4ba8-9e99-a48af94e4399",
+    "clientOrderId": "apex-spy-exit-797d686b-b5f4-4383-b256-27c688ccc04e",
     "expiresAt": "2026-11-16T16:00:00-05:00",
     "operatorAuthorized": false,
     "quote": "REQUIRED_AT_AUTHORIZATION",
     "submitted": false,
-    "independentOfBuy": true
+    "independentAuthorization": true
   },
-  "paper": {
-    "account": "ACTIVE",
-    "tradingBlocked": false,
-    "accountBlocked": false,
-    "buyingPower": 422645.36,
-    "host": "paper-api.alpaca.markets"
-  },
-  "spy": {
-    "tradable": true,
-    "fractionable": true,
-    "overnightTradable": true
-  },
+  "calendarSource": "Alpaca PAPER /v2/calendar verified 2026-11-15",
   "clock": {
     "isOpen": false,
     "nextOpen": "2026-11-16T09:30:00-05:00",
     "nextClose": "2026-11-16T16:00:00-05:00"
   },
-  "quotes": {
-    "regularSession": "UNAVAILABLE",
-    "iex": {
-      "bid": 729.68,
-      "ask": 775.36,
-      "spreadBps": 607.03,
-      "timestamp": "2026-11-13T21:00:00Z",
-      "usable": false,
-      "reason": "stale and spread far above gate"
-    },
-    "overnight": {
-      "bid": 754.85,
-      "ask": 754.91,
-      "spreadBps": 0.79,
-      "timestamp": "2026-11-16T02:27:54Z",
-      "usableForRegularTicket": false,
-      "reason": "not a regular-session quote"
-    }
-  },
-  "submitted": false
+  "regularQuote": "UNAVAILABLE_UNTIL_MONDAY_OPEN",
+  "priorQuotesReusable": false,
+  "submitted": false,
+  "operatorAuthorized": false
 }

@@ -2,5 +2,6 @@
   "name": "etf-weekly-momentum-v1",
   "verdict": "NO_WINNER",
   "strategyApproved": false,
-  "corrected": true
+  "corrected": true,
+  "exDividend": "A position entered at the next session open is not entitled to a dividend whose ex-date is that same open date. Entitlement requires entryDate < exDate. Parameters were not changed."
 }

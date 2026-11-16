@@ -1,12 +1,21 @@
 /**
- * Exact SPY PAPER LIMIT ticket for the next regular session.
- * Not authorized. Not submitted. Quote must be fresh at decision time.
+ * Exact SPY PAPER LIMIT ticket.
+ * Session comes from verified Alpaca calendar evidence, not local date arithmetic.
+ * Authorization must match the finalized ticket exactly. Unset values are rejected.
+ * Not submitted.
  */
 
 import { randomUUID } from "node:crypto";
+import { readFileSync } from "node:fs";
+
+export interface CalendarDay {
+  date: string;
+  open: string;
+  close: string;
+}
 
 export interface ExactSpyTicket {
-  status: "PREPARED_NOT_AUTHORIZED";
+  status: "PREPARED_NOT_AUTHORIZED" | "AWAITING_REGULAR_QUOTE";
   host: "paper-api.alpaca.markets";
   symbol: "SPY";
   side: "buy" | "sell";
@@ -24,25 +33,70 @@ export interface ExactSpyTicket {
   submitted: false;
 }
 
-export function nextRegularSession(now = new Date()): { window: string; expiresAt: string } {
-  const et = new Date(now.toLocaleString("en-US", { timeZone: "America/New_York" }));
-  const day = et.getDay();
-  const afterClose = et.getHours() > 16 || (et.getHours() === 16 && et.getMinutes() >= 0);
-  const add = day === 0 ? 1 : day === 6 ? 2 : afterClose || day === 5 && afterClose ? (8 - day) % 7 || 3 : 0;
-  const session = new Date(et);
-  session.setDate(et.getDate() + (et.getHours() >= 16 || day === 0 || day === 6 ? add || 1 : 0));
-  if (session.getDay() === 0) session.setDate(session.getDate() + 1);
-  if (session.getDay() === 6) session.setDate(session.getDate() + 2);
-  const y = session.getFullYear();
-  const m = String(session.getMonth() + 1).padStart(2, "0");
-  const d = String(session.getDate()).padStart(2, "0");
-  return { window: `${y}-${m}-${d} 09:30-16:00 ET`, expiresAt: `${y}-${m}-${d}T16:00:00-05:00` };
+export interface Authorization {
+  symbol: string;
+  side: "buy" | "sell";
+  orderType: "limit";
+  timeInForce: "day";
+  qty: number;
+  limitPrice: number;
+  clientOrderId: string;
+  session: "REGULAR";
+  expiresAt: string;
 }
 
-export function prepareExactSpyBuy(now = new Date()): ExactSpyTicket {
-  const session = nextRegularSession(now);
+export function loadVerifiedCalendar(path = "research/fixtures/paper/calendar-verified.json"): CalendarDay[] {
+  const doc = JSON.parse(readFileSync(path, "utf8"));
+  return doc.days as CalendarDay[];
+}
+
+function etParts(now: Date): { date: string; minutes: number; offset: string } {
+  const fmt = new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
+  const parts = Object.fromEntries(fmt.formatToParts(now).map((p) => [p.type, p.value]));
+  const date = `${parts.year}-${parts.month}-${parts.day}`;
+  const minutes = Number(parts.hour) * 60 + Number(parts.minute);
+  const utc = new Date(now.toLocaleString("en-US", { timeZone: "UTC" }));
+  const et = new Date(now.toLocaleString("en-US", { timeZone: "America/New_York" }));
+  const offsetMin = Math.round((utc.getTime() - et.getTime()) / 60000);
+  const sign = offsetMin >= 0 ? "-" : "+";
+  const abs = Math.abs(offsetMin);
+  const offset = `${sign}${String(Math.floor(abs / 60)).padStart(2, "0")}:${String(abs % 60).padStart(2, "0")}`;
+  return { date, minutes, offset };
+}
+
+export function nextRegularSession(now: Date, calendar: CalendarDay[]): { window: string; expiresAt: string; date: string; close: string } {
+  const { date, minutes, offset } = etParts(now);
+  const upcoming = calendar.filter((d) => d.date > date || (d.date === date && minutes < toMinutes(d.close))).sort((a, b) => a.date.localeCompare(b.date));
+  const day = upcoming[0];
+  if (!day) throw new Error("no verified calendar session");
+  const close = day.close;
   return {
-    status: "PREPARED_NOT_AUTHORIZED",
+    date: day.date,
+    close,
+    window: `${day.date} ${day.open}-${close} ET`,
+    expiresAt: `${day.date}T${close}:00${offsetFor(day.date)}`,
+  };
+}
+
+function toMinutes(hhmm: string): number {
+  const [h, m] = hhmm.split(":").map(Number);
+  return h! * 60 + m!;
+}
+
+function offsetFor(date: string): string {
+  const utc = new Date(`${date}T16:00:00Z`);
+  const et = new Date(utc.toLocaleString("en-US", { timeZone: "America/New_York" }));
+  const ref = new Date(utc.toLocaleString("en-US", { timeZone: "UTC" }));
+  const offsetMin = Math.round((ref.getTime() - et.getTime()) / 60000);
+  const sign = offsetMin >= 0 ? "-" : "+";
+  const abs = Math.abs(offsetMin);
+  return `${sign}${String(Math.floor(abs / 60)).padStart(2, "0")}:00`;
+}
+
+export function prepareExactSpyBuy(now: Date, calendar: CalendarDay[], clientOrderId = `apex-spy-${randomUUID()}`): ExactSpyTicket {
+  const session = nextRegularSession(now, calendar);
+  return {
+    status: "AWAITING_REGULAR_QUOTE",
     host: "paper-api.alpaca.markets",
     symbol: "SPY",
     side: "buy",
@@ -53,7 +107,7 @@ export function prepareExactSpyBuy(now = new Date()): ExactSpyTicket {
     qty: null,
     limitPrice: null,
     maxEntryNotional: 25,
-    clientOrderId: `apex-spy-${randomUUID()}`,
+    clientOrderId,
     expiresAt: session.expiresAt,
     operatorAuthorized: false,
     quote: "REQUIRED_AT_AUTHORIZATION",
@@ -61,6 +115,22 @@ export function prepareExactSpyBuy(now = new Date()): ExactSpyTicket {
   };
 }
 
-export function authorizationMatches(auth: { symbol: string; side: string; qty: number; limitPrice: number; session: string; expiresAt: string }, ticket: ExactSpyTicket): boolean {
-  return auth.symbol === ticket.symbol && auth.side === ticket.side && auth.session === ticket.session && auth.expiresAt === ticket.expiresAt && auth.qty * auth.limitPrice * 1.001 <= ticket.maxEntryNotional;
+export function authorizationMatches(auth: Authorization, ticket: ExactSpyTicket): boolean {
+  if (ticket.qty == null || ticket.limitPrice == null) return false;
+  if (!(auth.qty > 0) || !Number.isFinite(auth.qty)) return false;
+  if (!(auth.limitPrice > 0) || !Number.isFinite(auth.limitPrice)) return false;
+  return auth.symbol === ticket.symbol
+    && auth.side === ticket.side
+    && auth.orderType === ticket.orderType
+    && auth.timeInForce === ticket.timeInForce
+    && auth.qty === ticket.qty
+    && auth.limitPrice === ticket.limitPrice
+    && auth.clientOrderId === ticket.clientOrderId
+    && auth.session === ticket.session
+    && auth.expiresAt === ticket.expiresAt
+    && auth.qty * auth.limitPrice * 1.001 <= ticket.maxEntryNotional;
+}
+
+export function entitledToDividend(entryDate: string, exDate: string): boolean {
+  return entryDate < exDate;
 }
