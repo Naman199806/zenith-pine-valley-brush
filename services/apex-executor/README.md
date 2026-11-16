@@ -93,6 +93,49 @@ APEX_EXECUTOR_HEALTH_TOKEN=replace-with-a-local-token node /opt/apex-quant-x/ser
 
 The listener is `127.0.0.1:8787`. `POST /instructions` only ingests a signed proposal. It cannot submit.
 
+`/health` is still the only status route, and it still requires `x-executor-token`. It now includes `brokerPoll`:
+
+| Field | Meaning |
+| --- | --- |
+| `lastAttemptAt` | When this process last started a poll. |
+| `lastSnapshotOkAt` | When account, clock, positions, open orders, and the quote all returned HTTP 200 and parsed. |
+| `lastReconcileOkAt` | When outstanding journal orders matched the broker and no unknown broker order was present. |
+| `lastFullSuccessAt` | When both of those happened. Snapshot success alone does not move this. |
+| `lastFailureAt` / `lastFailureKind` | Latest failure. Kind is only `auth`, `network`, `timeout`, `http`, `parse`, or `reconcile`. |
+| `consecutiveFailures` | Failed polls since the last full success. A full success resets it to 0. |
+| `freshnessMs` | Age of this process's full success, or `null` if it has not had one. |
+| `staleAfterMs` | Freshness window. Default is 5000, five times the 1s poll interval. Values above 5000 are clamped to the existing 5s evidence limit. `APEX_EXECUTOR_STALE_AFTER_MS` can only make this stricter. |
+| `stale` | True when this process has no full success inside that window. A timestamp left on disk by the previous process does not clear it. |
+| `reconciliation.outcome` | `OK`, `MISMATCH`, `UNKNOWN_ORDERS`, `NOT_RUN`, or `FAILED`. |
+| `reconciliation.outstandingOrders` | Journal orders that are not flat or closed. |
+| `reconciliation.unknownOrders` | Open broker orders whose client id is not in the journal. They are counted, not marked flat. |
+
+`ready` is true only when market evidence is inside the existing 5s window, `brokerPoll.stale` is false, and reconciliation is `OK`. `accept` and exit authorization use that same rule. A transport failure (auth, network, timeout, HTTP, parse) does not move `lastFullSuccessAt`; execution keeps using the last full success until it becomes stale. A snapshot that parses while reconciliation is `MISMATCH`, `UNKNOWN_ORDERS`, or `FAILED` refuses execution immediately, even if the previous full success is still young. `PROPOSED` and `SUBMISSION_ATTEMPTED` orders that the broker does not have are a mismatch. They stay `PROPOSED` or become `UNKNOWN`. They are never treated as flat.
+
+A closed market is not a failed poll. The clock is still read. New buys keep the existing session and cutoff checks. The host clock is the freshness clock: a step backward is stale, and a step forward ages the evidence early.
+
+## Safe deployment
+
+Apply this on the VM by hand. Do not put tokens or brokerage keys in the shell history you paste into a ticket. `PAPER_POST_ENABLED`, `LIVE_POST_ENABLED`, and `strategyApproved` stay false; this deploy does not turn them on.
+
+1. Note the SHA that is on the VM now (`git rev-parse HEAD`). That is the rollback target.
+2. `git fetch` and check out the merged SHA.
+3. `npm ci`
+4. Run `node services/apex-executor/scripts/run-tests.mjs` and `node services/apex-executor/scripts/typecheck.mjs` on the VM.
+5. `sudo systemctl restart apex-executor`
+6. Wait until `systemctl is-active apex-executor` is `active`, then wait one poll interval (default 1s; wait a few seconds if the broker is slow).
+7. Run the authenticated check. It exits 0 only when the frozen gate is intact, `brokerPoll.stale` is false, and `reconciliation.outcome` is `OK`:
+
+```bash
+APEX_EXECUTOR_HEALTH_TOKEN=replace-with-a-local-token node /opt/apex-quant-x/services/apex-executor/deploy/healthcheck.mjs
+```
+
+The line it prints looks like `brokerPoll stale=false reconciliation=OK outstandingOrders=0 unknownOrders=0`.
+
+If the process crashes, the poll never authenticates, or `stale` stays true with `NOT_RUN` / `FAILED` after several intervals, check out the previous SHA, `npm ci`, and `sudo systemctl restart apex-executor`, then run the same health check against that build. A result of `MISMATCH` or `UNKNOWN_ORDERS` is the gate seeing a book that does not match the journal. Do not roll that back to hide it. While POST is disabled, a journal `PROPOSED` order that was never sent will mismatch until it is reconciled or removed by the operator's own procedure. The health check prints only those enums and counts.
+
+`APEX_EXECUTOR_STALE_AFTER_MS` is optional. Leave it unset for the 5000ms default. The poll still issues about five GETs per second at the current 1s interval, which can press Alpaca's paper rate limit; lowering the stale window does not reduce that rate, and raising it cannot extend execution authority past 5s.
+
 Copy from Windows (example clone `C:\Users\sharm\apex-quant-x-clean`; any clone root works):
 
 ```powershell
@@ -105,6 +148,7 @@ ssh user@vm "sudo rsync -a /tmp/apex-quant-x/ /opt/apex-quant-x/ && sudo systemc
 
 - One writer lock. A live pid is never replaced. `EPERM` from `process.kill(pid, 0)` counts as alive. A dead pid can be recovered only after that pid is provably gone.
 - Snapshot durability is `full` on Linux (file fsync, rename, directory fsync). On Windows it is `file-only`. Production stays the Linux VM.
-- Unknown broker lookups are not treated as flat, and they are not resubmitted.
+- Unknown broker lookups are not treated as flat, and they are not resubmitted. An open broker order that is not in the journal is `UNKNOWN_ORDERS` and does not become a flat record.
+- `ready` requires a full broker poll in this process. Restart is stale until that poll reconciles. Snapshot success without reconciliation does not advance `lastFullSuccessAt`.
 - Exits use a separate signed sell ticket and the broker's position quantity.
 - Hermes receives the outcome notes. Pilot reads that telemetry. Neither can approve a trade.

@@ -5,9 +5,8 @@
  */
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import { pathToFileURL } from "node:url";
-import { assertPaperUrl } from "../../../src/lib/apex/broker/allowlist.ts";
-import { paperGet } from "../../../src/lib/apex/broker/paper-read.ts";
-import { readPaperSnapshot } from "./broker.ts";
+import { createPaperPollClient } from "./broker.ts";
+import { BROKER_POLL_INTERVAL_MS } from "./broker-poll.ts";
 import { assertNoLiveCreds, loadPaperCredentials } from "./credentials.ts";
 import { warnFileOnlyDurability } from "./persist.ts";
 import { Executor, loadConfig, nextPollDelay } from "./runtime.ts";
@@ -59,7 +58,7 @@ export async function boot(env: NodeJS.ProcessEnv = process.env): Promise<{ exec
   const paper = loadPaperCredentials(env);
   const exec = new Executor(loadConfig(env), paper);
   let stopped = false;
-  let delay = 1_000;
+  let delay = BROKER_POLL_INTERVAL_MS;
   let timer: ReturnType<typeof setTimeout> | null = null;
 
   const poll = async () => {
@@ -69,12 +68,8 @@ export async function boot(env: NodeJS.ProcessEnv = process.env): Promise<{ exec
     }
     let failed = false;
     try {
-      const snapshot = await readPaperSnapshot(paper);
-      exec.observeMarket(snapshot, Date.now());
-      await exec.recoverOutstanding(async (url) => {
-        const parsed = assertPaperUrl(url);
-        return paperGet(paper, `${parsed.pathname}${parsed.search}`);
-      }, "broker");
+      const result = await exec.runBrokerPoll(createPaperPollClient(paper), Date.now());
+      failed = !result.ok;
     } catch {
       exec.notePoll("paper read failed");
       failed = true;
