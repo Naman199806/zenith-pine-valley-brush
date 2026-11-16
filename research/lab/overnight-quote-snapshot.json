@@ -1,0 +1,21 @@
+{
+  "kind": "HISTORICAL_READ_ONLY_SNAPSHOT",
+  "reusableAsFreshQuote": false,
+  "executionAuthorization": false,
+  "capturedBy": "operator LIVE GET-only",
+  "capturedAt": "2026-11-15T21:16:00-05:00",
+  "account": {
+    "status": "ACTIVE",
+    "tradingBlocked": false,
+    "accountBlocked": false,
+    "buyingPower": 100,
+    "positions": 0,
+    "openOrders": 0
+  },
+  "quotes": {
+    "SPY": { "bid": 753.96, "ask": 754.33, "spreadBps": 4.91, "ageSeconds": 0.1, "indicativeQuality": "PASS_AT_CAPTURE" },
+    "QQQ": { "bid": 677.98, "ask": 679.01, "spreadBps": 15.18, "ageSeconds": 0.1, "indicativeQuality": "PASS_AT_CAPTURE" },
+    "IWM": { "bid": 277.09, "ask": 277.15, "spreadBps": 2.17, "ageSeconds": 1.8, "indicativeQuality": "PASS_AT_CAPTURE" }
+  },
+  "note": "Capture-time indicative checks passed. This snapshot must not be reused as a fresh quote and is not an execution authorization."
+}
