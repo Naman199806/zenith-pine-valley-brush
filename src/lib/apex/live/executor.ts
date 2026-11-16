@@ -29,6 +29,7 @@ export interface IntentRecord {
   ticket: TicketAuthorization;
   createdAt: string;
   status: "PERSISTED" | "SUBMITTED" | "FILLED" | "PARTIAL" | "REJECTED" | "CANCELED" | "UNKNOWN";
+  paperState?: "PROPOSED" | "AUTHORIZED" | "SUBMISSION_ATTEMPTED" | "BROKER_CONFIRMED" | "UNKNOWN" | "CLOSED";
   filledQty: number;
   avgPrice: number | null;
   equityIdentity?: {

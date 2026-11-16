@@ -1,18 +1,19 @@
 /**
- * Isolated Alpaca PAPER LIMIT adapter.
- * PAPER_POST_ENABLED is hard-false. Production cannot submit.
- * Operator approval is loaded from an operator-written record and verified
- * against APEX_OPERATOR_SECRET. This module cannot mint that approval.
- * Sigma and Sentinel are computed from broker inputs, not caller booleans.
+ * Isolated PAPER LIMIT adapter.
+ * PAPER_POST_ENABLED is hard-false. This module verifies operator signatures.
+ * It cannot issue them. Signing is scripts/operator-sign-ticket.mjs, run by the operator.
+ * Authorization is not consumed while submission is disabled.
  */
 
-import { createHmac, timingSafeEqual, randomUUID } from "node:crypto";
+import { createHmac, timingSafeEqual } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { PAPER_TRADING_ORIGIN, assertPaperUrl } from "./allowlist.ts";
 import type { HermesJournal } from "../live/journal.ts";
 import type { IntentRecord } from "../live/executor.ts";
 
 export const PAPER_POST_ENABLED = false;
+export const PAPER_STATES = ["PROPOSED", "AUTHORIZED", "SUBMISSION_ATTEMPTED", "BROKER_CONFIRMED", "UNKNOWN", "CLOSED"] as const;
+export type PaperState = (typeof PAPER_STATES)[number];
 
 export interface PaperLimitTicket {
   symbol: "SPY";
@@ -24,23 +25,22 @@ export interface PaperLimitTicket {
   session: "REGULAR";
   clientOrderId: string;
   expiresAt: string;
-  quoteTimestamp: string;
-  quoteSpreadBps: number;
-  bid: number;
-  ask: number;
   exitAuthorizationId: string | null;
 }
 
-export interface BrokerInputs {
+export interface BrokerEvidence {
+  fetchedAt: string;
+  http: { account: number; clock: number; positions: number; openOrders: number; quote: number };
   accountActive: boolean;
   tradingBlocked: boolean;
-  positions: number;
+  clockOpen: boolean;
+  positions: { symbol: string; qty: number }[];
   openOrders: number;
-  dataOk: boolean;
+  quote: { bid: number; ask: number; timestamp: string };
 }
 
 export interface OperatorApproval {
-  source: "OPERATOR_FILE";
+  source: "OPERATOR_SIGNED";
   clientOrderId: string;
   symbol: "SPY";
   side: "buy" | "sell";
@@ -57,85 +57,70 @@ export interface PaperTransportResult {
   submitted: false;
   host: "paper-api.alpaca.markets";
   clientOrderId: string | null;
+  state: PaperState;
   reason: string;
   intentPersisted: boolean;
-  payload: Record<string, unknown> | null;
+  authorizationConsumed: false;
 }
 
 function digest(secret: string, material: string): string {
   return createHmac("sha256", secret).update(material).digest("hex");
 }
 
-function material(t: { symbol: string; side: string; qty: number; limitPrice: number; session: string; clientOrderId: string; expiresAt: string; quoteTimestamp: string }): string {
-  return [t.symbol, t.side, "limit", "day", String(t.qty), String(t.limitPrice), t.session, t.clientOrderId, t.expiresAt, t.quoteTimestamp].join("|");
+function material(t: PaperLimitTicket, quoteTimestamp: string): string {
+  return [t.symbol, t.side, "limit", "day", String(t.qty), String(t.limitPrice), t.session, t.clientOrderId, t.expiresAt, quoteTimestamp].join("|");
 }
 
-export function loadOperatorApproval(path: string): OperatorApproval | null {
-  try {
-    const doc = JSON.parse(readFileSync(path, "utf8"));
-    if (doc.source !== "OPERATOR_FILE") return null;
-    return doc as OperatorApproval;
-  } catch {
-    return null;
-  }
-}
-
-export function verifyOperatorApproval(ticket: PaperLimitTicket, approval: OperatorApproval | null, secret: string | null, now = Date.now()): string | null {
-  if (!secret) return "operator secret not present; agent cannot mint approval";
-  if (!approval || approval.source !== "OPERATOR_FILE") return "operator approval file required";
-  if (approval.clientOrderId !== ticket.clientOrderId || approval.symbol !== ticket.symbol || approval.side !== ticket.side) return "approval identity mismatch";
-  if (approval.qty !== ticket.qty || approval.limitPrice !== ticket.limitPrice || approval.session !== ticket.session) return "approval terms mismatch";
-  if (approval.expiresAt !== ticket.expiresAt || approval.quoteTimestamp !== ticket.quoteTimestamp) return "approval quote or expiry mismatch";
+export function verifyOperatorApproval(ticket: PaperLimitTicket, approval: OperatorApproval | null, secret: string | null, quoteTimestamp: string, now = Date.now()): string | null {
+  if (!secret) return "operator secret not present; this process cannot mint approval";
+  if (!approval || approval.source !== "OPERATOR_SIGNED") return "operator-signed approval required";
+  if (approval.clientOrderId !== ticket.clientOrderId || approval.side !== ticket.side || approval.qty !== ticket.qty || approval.limitPrice !== ticket.limitPrice) return "approval terms mismatch";
+  if (approval.expiresAt !== ticket.expiresAt || approval.quoteTimestamp !== quoteTimestamp) return "approval quote or expiry mismatch";
   if (Date.parse(approval.expiresAt) <= now) return "approval expired";
-  const expected = digest(secret, material(ticket));
+  const expected = digest(secret, material(ticket, quoteTimestamp));
   const a = Buffer.from(approval.proof);
   const b = Buffer.from(expected);
   if (a.length !== b.length || !timingSafeEqual(a, b)) return "approval proof mismatch";
   return null;
 }
 
-export function computeGates(ticket: PaperLimitTicket, broker: BrokerInputs): { ok: boolean; reason: string | null } {
-  if (!broker.dataOk) return { ok: false, reason: "Sigma veto: data integrity" };
-  if (!broker.accountActive || broker.tradingBlocked) return { ok: false, reason: "Sentinel veto: account" };
-  if (ticket.side === "buy" && (broker.positions !== 0 || broker.openOrders !== 0)) return { ok: false, reason: "Sentinel veto: unexpected position or order" };
-  if (ticket.side === "buy" && ticket.qty * ticket.limitPrice * 1.001 > 25) return { ok: false, reason: "Sentinel veto: notional" };
-  if (!(ticket.bid > 0) || !(ticket.ask > ticket.bid) || ticket.quoteSpreadBps > 20) return { ok: false, reason: "Sentinel veto: quote" };
-  return { ok: true, reason: null };
-}
-
-export function paperLimitPayload(ticket: PaperLimitTicket): Record<string, unknown> {
-  return {
-    symbol: ticket.symbol,
-    side: ticket.side,
-    type: "limit",
-    qty: ticket.qty,
-    time_in_force: "day",
-    limit_price: ticket.limitPrice,
-    client_order_id: ticket.clientOrderId,
-  };
+export function validateEvidence(evidence: BrokerEvidence, now = Date.now()): string | null {
+  if (Object.values(evidence.http).some((s) => s !== 200)) return "incomplete broker response";
+  if (!evidence.accountActive || evidence.tradingBlocked || !evidence.clockOpen) return "account or session not eligible";
+  const age = now - Date.parse(evidence.fetchedAt);
+  const quoteAge = now - Date.parse(evidence.quote.timestamp);
+  if (!Number.isFinite(age) || age < 0 || age > 5_000) return "evidence stale or future";
+  if (!Number.isFinite(quoteAge) || quoteAge < 0 || quoteAge > 5_000) return "quote stale or future";
+  if (!(evidence.quote.bid > 0) || !(evidence.quote.ask > evidence.quote.bid)) return "quote nonfinite";
+  if (evidence.positions.some((p) => !Number.isFinite(p.qty))) return "position nonfinite";
+  return null;
 }
 
 export function preparePaperLimit(
   ticket: PaperLimitTicket,
   journal: HermesJournal,
-  broker: BrokerInputs,
-  opts: { now?: number; approvalPath?: string } = {},
+  evidence: BrokerEvidence,
+  approval: OperatorApproval | null,
+  opts: { now?: number } = {},
 ): PaperTransportResult {
-  const fail = (reason: string, persisted = false): PaperTransportResult => ({
-    enabled: false, submitted: false, host: "paper-api.alpaca.markets", clientOrderId: null, reason, intentPersisted: persisted, payload: null,
+  const fail = (reason: string, state: PaperState = "PROPOSED"): PaperTransportResult => ({
+    enabled: false, submitted: false, host: "paper-api.alpaca.markets", clientOrderId: ticket.clientOrderId, state, reason, intentPersisted: false, authorizationConsumed: false,
   });
   const now = opts.now ?? Date.now();
-  if (!(ticket.qty > 0) || !(ticket.limitPrice > 0) || !Number.isFinite(ticket.qty) || !Number.isFinite(ticket.limitPrice)) return fail("quantity or limit invalid");
-  const age = now - Date.parse(ticket.quoteTimestamp);
-  if (!Number.isFinite(age) || age < 0 || age > 5_000) return fail("quote stale or future");
-  const gates = computeGates(ticket, broker);
-  if (!gates.ok) return fail(gates.reason!);
-  const approval = opts.approvalPath ? loadOperatorApproval(opts.approvalPath) : null;
-  const authErr = verifyOperatorApproval(ticket, approval, process.env.APEX_OPERATOR_SECRET ?? null, now);
-  if (authErr) return fail(authErr);
-  if (journal.isConsumed(ticket.clientOrderId)) return fail("duplicate client order id");
+  if (!(ticket.qty > 0) || !Number.isFinite(ticket.qty) || !(ticket.limitPrice > 0)) return fail("quantity or limit invalid");
+  const evidenceErr = validateEvidence(evidence, now);
+  if (evidenceErr) return fail(evidenceErr);
+  if (ticket.side === "buy" && (evidence.positions.length !== 0 || evidence.openOrders !== 0)) return fail("unexpected position or order");
+  if (ticket.side === "buy" && ticket.qty * ticket.limitPrice * 1.001 > 25) return fail("worst-case entry exceeds $25");
+  if (ticket.side === "sell") {
+    const owned = evidence.positions.find((p) => p.symbol === "SPY")?.qty ?? 0;
+    if (!ticket.exitAuthorizationId) return fail("separate sell authorization required");
+    if (!(owned > 0) || ticket.qty > owned) return fail("sell exceeds owned SPY quantity");
+  }
+  const authErr = verifyOperatorApproval(ticket, approval, process.env.APEX_OPERATOR_SECRET ?? null, evidence.quote.timestamp, now);
+  const state: PaperState = authErr ? "PROPOSED" : "AUTHORIZED";
+  if (journal.isConsumed(ticket.clientOrderId)) return fail("duplicate client order id", state);
   assertPaperUrl(`${PAPER_TRADING_ORIGIN}/v2/orders`);
-  const payload = paperLimitPayload(ticket);
   const intent: IntentRecord = {
     clientOrderId: ticket.clientOrderId,
     ticket: {
@@ -147,13 +132,14 @@ export function preparePaperLimit(
       expiry: ticket.expiresAt,
       singleUseId: ticket.clientOrderId,
       readAuthorized: true,
-      orderAuthorized: true,
-      confirmed: true,
+      orderAuthorized: state === "AUTHORIZED",
+      confirmed: false,
     },
     createdAt: new Date(now).toISOString(),
     status: "PERSISTED",
     filledQty: 0,
     avgPrice: null,
+    paperState: state,
     equityIdentity: {
       symbol: ticket.symbol,
       side: ticket.side,
@@ -169,21 +155,14 @@ export function preparePaperLimit(
     },
   };
   journal.persist(intent);
-  journal.consumeAuthorization(ticket.clientOrderId);
-  if (PAPER_POST_ENABLED) {
-    return fail("unreachable: PAPER post is hard-disabled", true);
-  }
   return {
     enabled: false,
     submitted: false,
     host: "paper-api.alpaca.markets",
     clientOrderId: ticket.clientOrderId,
-    reason: "PAPER POST disabled pending separate exact-ticket authorization. LIMIT intent persisted. No order submitted.",
+    state,
+    reason: authErr ?? "AUTHORIZED but PAPER POST remains disabled. Authorization was not consumed.",
     intentPersisted: true,
-    payload,
+    authorizationConsumed: false,
   };
-}
-
-export function newClientOrderId(): string {
-  return `apex-spy-${randomUUID()}`;
 }

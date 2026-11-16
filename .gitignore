@@ -9,3 +9,6 @@ node_modules/
 research/lab/paper-runtime-heartbeat.json
 research/lab/windows/*.lock
 research/lab/windows/*.tmp
+
+.operator/
+research/lab/operator-authorization.json
