@@ -3,12 +3,15 @@ import test from "node:test";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { preparePaperLimit, validatePaperLimit, type PaperLimitTicket } from "./paper-equity-transport.ts";
-import { HermesJournal, MockBroker } from "../live/journal.ts";
+import { issueOperatorAuth, preparePaperLimit, validatePaperLimit, type PaperLimitTicket } from "./paper-equity-transport.ts";
+import { HermesJournal } from "../live/journal.ts";
+import { issueGateProof } from "../live/executor.ts";
 import { architectureReadiness } from "../live/architecture.ts";
-import { agentRoleStatus } from "../live/connectivity.ts";
 
+const AUTH = "operator-auth-secret-32-characters";
+const GATE = "gate-proof-secret-32-characters-ok";
 const now = Date.parse("2026-11-16T15:00:00Z");
+
 const ticket = (over: Partial<PaperLimitTicket> = {}): PaperLimitTicket => ({
   symbol: "SPY",
   side: "buy",
@@ -19,81 +22,79 @@ const ticket = (over: Partial<PaperLimitTicket> = {}): PaperLimitTicket => ({
   session: "REGULAR",
   clientOrderId: "apex-spy-unique",
   expiresAt: "2026-11-16T16:00:00-05:00",
-  operatorAuthorized: true,
-  sigmaApproved: true,
-  sentinelApproved: true,
   quoteTimestamp: new Date(now).toISOString(),
   quoteSpreadBps: 5,
   exitAuthorizationId: null,
   ...over,
 });
 
-test("default path persists intent and does not submit", async () => {
-  const dir = mkdtempSync(join(tmpdir(), "paper-eq-"));
+function ready(t = ticket()) {
+  return {
+    auth: issueOperatorAuth(t, AUTH, new Date(now)),
+    proof: issueGateProof({ singleUseId: t.clientOrderId, symbol: t.symbol, side: t.side, qty: t.qty, limitPrice: t.limitPrice }, { dataIntegrityOk: true, riskOk: true, notional: 25 }, new Date(now), GATE),
+  };
+}
+
+test("missing, mismatched and expired proofs are rejected", () => {
+  const dir = mkdtempSync(join(tmpdir(), "p-"));
   const j = new HermesJournal(join(dir, "j.json"));
-  const r = await preparePaperLimit(ticket(), j, { now });
-  assert.equal(r.enabled, false);
-  assert.equal(r.submitted, false);
-  assert.equal(r.intentPersisted, true);
-  assert.equal(r.host, "paper-api.alpaca.markets");
+  const t = ticket();
+  const { auth, proof } = ready(t);
+  assert.equal(preparePaperLimit(t, j, null, proof, { now, authSecret: AUTH, gateSecret: GATE }).intentPersisted, false);
+  assert.equal(preparePaperLimit(t, j, auth, null, { now, authSecret: AUTH, gateSecret: GATE }).intentPersisted, false);
+  const mismatch = { ...auth!, proof: "0".repeat(64) };
+  assert.ok(preparePaperLimit(t, j, mismatch, proof, { now, authSecret: AUTH, gateSecret: GATE }).reason.includes("mismatch"));
+  const expired = ticket({ expiresAt: "2020-01-01T00:00:00Z" });
+  assert.ok(validatePaperLimit(expired, now)?.includes("expired"));
   rmSync(dir, { recursive: true, force: true });
 });
 
-test("authorization, gates, stale quote, spread and expiry fail closed", () => {
-  assert.ok(validatePaperLimit(ticket({ operatorAuthorized: false }), now));
-  assert.ok(validatePaperLimit(ticket({ sigmaApproved: false }), now));
-  assert.ok(validatePaperLimit(ticket({ sentinelApproved: false }), now));
-  assert.ok(validatePaperLimit(ticket({ quoteTimestamp: new Date(now - 10_000).toISOString() }), now));
-  assert.ok(validatePaperLimit(ticket({ quoteSpreadBps: 50 }), now));
-  assert.ok(validatePaperLimit(ticket({ qty: 1, limitPrice: 750 }), now));
-  assert.ok(validatePaperLimit(ticket({ expiresAt: "2020-01-01T00:00:00Z" }), now));
-});
-
-test("duplicate client id is blocked and restart sees the journal", async () => {
-  const dir = mkdtempSync(join(tmpdir(), "paper-eq-"));
+test("journal stores LIMIT fields, never MARKET", () => {
+  const dir = mkdtempSync(join(tmpdir(), "p-"));
   const path = join(dir, "j.json");
   const j = new HermesJournal(path);
-  await preparePaperLimit(ticket(), j, { now });
-  const again = await preparePaperLimit(ticket(), j, { now });
-  assert.ok(again.reason.includes("duplicate"));
-  const restarted = new HermesJournal(path);
-  assert.ok(restarted.get("apex-spy-unique"));
+  const t = ticket();
+  const { auth, proof } = ready(t);
+  const r = preparePaperLimit(t, j, auth, proof, { now, authSecret: AUTH, gateSecret: GATE });
+  assert.equal(r.submitted, false);
+  assert.equal(r.enabled, false);
+  const saved = new HermesJournal(path).get(t.clientOrderId);
+  assert.equal(saved?.ticket.orderType, "limit");
+  assert.equal(saved?.equityIdentity?.orderType, "limit");
+  assert.equal(saved?.equityIdentity?.qty, 0.03);
+  assert.equal(saved?.equityIdentity?.limitPrice, 750);
+  assert.equal(saved?.equityIdentity?.timeInForce, "day");
+  assert.equal(saved?.equityIdentity?.session, "REGULAR");
   rmSync(dir, { recursive: true, force: true });
 });
 
-test("mock partial fill, cancel, independent sell and flat", async () => {
-  const dir = mkdtempSync(join(tmpdir(), "paper-eq-"));
+test("injected POST callback cannot make production submit", () => {
+  const dir = mkdtempSync(join(tmpdir(), "p-"));
   const j = new HermesJournal(join(dir, "j.json"));
-  const broker = new MockBroker();
-  const buy = await preparePaperLimit(ticket({ clientOrderId: "buy-1" }), j, { now, enabled: true, transport: { post: async () => ({ status: 200 }) } });
-  assert.equal(buy.submitted, true);
-  broker.submit("buy-1", "buy", 0.03, "SPY");
-  broker.partialFill("buy-1", 0.01);
-  assert.ok(Math.abs(broker.getPosition() - 0.01) < 1e-9);
-  broker.complete("buy-1");
-  const sell = await preparePaperLimit(ticket({ side: "sell", clientOrderId: "sell-1", exitAuthorizationId: "exit-1" }), j, { now });
-  assert.equal(sell.intentPersisted, true);
-  assert.equal(sell.submitted, false);
-  broker.submit("sell-1", "sell", 0.03, "SPY");
-  assert.equal(broker.getPosition(), 0);
-  assert.equal(broker.openOrders(), 0);
+  const t = ticket({ clientOrderId: "no-post" });
+  const { auth, proof } = ready(t);
+  const injected = { post: () => { throw new Error("must not be called"); } };
+  const r = preparePaperLimit(t, j, auth, proof, { now, authSecret: AUTH, gateSecret: GATE, ...({ transport: injected } as object) });
+  assert.equal(r.submitted, false);
+  assert.equal(r.enabled, false);
   rmSync(dir, { recursive: true, force: true });
 });
 
-test("unknown timeout is not resubmitted", async () => {
-  const dir = mkdtempSync(join(tmpdir(), "paper-eq-"));
-  const j = new HermesJournal(join(dir, "j.json"));
-  const r = await preparePaperLimit(ticket({ clientOrderId: "timeout-1" }), j, {
-    now,
-    enabled: true,
-    transport: { post: async () => { throw new Error("timeout"); } },
-  });
-  assert.equal(r.intentPersisted, true);
-  assert.equal(j.isConsumed("timeout-1"), true);
-  rmSync(dir, { recursive: true, force: true });
+test("preflight validation rejects bad quote, account and quantity", () => {
+  assert.ok(validatePaperLimit(ticket({ quoteTimestamp: new Date(now - 6_000).toISOString() }), now));
+  assert.ok(validatePaperLimit(ticket({ quoteSpreadBps: 21 }), now));
+  assert.ok(validatePaperLimit(ticket({ qty: 0 }), now));
+  assert.ok(validatePaperLimit(ticket({ limitPrice: Number.NaN }), now));
 });
 
-test("six stages and 13 agents remain represented", () => {
-  assert.equal(architectureReadiness().length, 6);
-  assert.equal(Object.keys(agentRoleStatus()).length, 13);
+test("six-stage trace has the original ordered stages", () => {
+  const stages = architectureReadiness().map((s) => s.stage);
+  assert.deepEqual(stages, [
+    "1. Market Data",
+    "2. Scanner",
+    "3. 13 Agents",
+    "4. Decision Gates",
+    "5. Execution",
+    "6. Hermes",
+  ]);
 });
