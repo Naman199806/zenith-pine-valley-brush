@@ -4,7 +4,7 @@ import { reconcile } from "./reconcile-paper.ts";
 import { assertLiveReadOnly, prepareLiveReadOnly } from "./live-readonly.ts";
 
 test("positions are compared by instrument", () => {
-  const result = reconcile({ "BTC/USD": 0, "ETH/USD": 0 }, { account: { status: "ACTIVE", cash: "1" }, positions: [{ symbol: "BTC/USD", qty: "0.001" }, { symbol: "ETH/USD", qty: "-0.001" }], openOrders: [], recentOrders: [] });
+  const result = reconcile({ "BTC/USD": 0, "ETH/USD": 0 }, { account: { status: "ACTIVE", cash: "1" }, positions: [{ symbol: "BTC/USD", qty: "0.001" }, { symbol: "ETH/USD", qty: "-0.001" }], openOrders: [], recentOrders: [] }, []);
   assert.equal(result.ok, false);
   assert.match(result.notes.join(" "), /BTC\/USD/);
   assert.match(result.notes.join(" "), /ETH\/USD/);

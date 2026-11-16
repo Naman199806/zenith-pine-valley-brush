@@ -57,7 +57,16 @@ export class HermesJournal {
     }
     const existing = this.entries.get(intent.clientOrderId);
     if (existing) {
-      const same = existing.ticket.side === intent.ticket.side && existing.ticket.symbol === intent.ticket.symbol && existing.equityIdentity?.qty === intent.equityIdentity?.qty;
+      const a = existing.equityIdentity;
+      const b = intent.equityIdentity;
+      const same = existing.ticket.symbol === intent.ticket.symbol
+        && existing.ticket.side === intent.ticket.side
+        && existing.ticket.expiry === intent.ticket.expiry
+        && existing.ticket.singleUseId === intent.ticket.singleUseId
+        && a?.qty === b?.qty
+        && a?.limitPrice === b?.limitPrice
+        && a?.timeInForce === b?.timeInForce
+        && a?.session === b?.session;
       if (!same) throw new Error("conflicting client order id reuse");
       return existing;
     }

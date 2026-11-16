@@ -85,6 +85,30 @@ export function verifyOperatorApproval(ticket: PaperLimitTicket, approval: Opera
   return null;
 }
 
+export async function fetchPaperEvidence(
+  get: (path: string) => Promise<{ status: number; body: unknown }>,
+  now = new Date(),
+): Promise<BrokerEvidence> {
+  const account = await get("/v2/account");
+  const clock = await get("/v2/clock");
+  const positions = await get("/v2/positions");
+  const open = await get("/v2/orders?status=open");
+  const quote = await get("/v2/stocks/SPY/quotes/latest");
+  const a = (account.body ?? {}) as { status?: string; trading_blocked?: boolean };
+  const c = (clock.body ?? {}) as { is_open?: boolean };
+  const q = ((quote.body ?? {}) as { quote?: { bp?: number; ap?: number; t?: string } }).quote ?? {};
+  return {
+    fetchedAt: now.toISOString(),
+    http: { account: account.status, clock: clock.status, positions: positions.status, openOrders: open.status, quote: quote.status },
+    accountActive: a.status === "ACTIVE",
+    tradingBlocked: a.trading_blocked === true,
+    clockOpen: c.is_open === true,
+    positions: Array.isArray(positions.body) ? positions.body.map((p) => ({ symbol: String((p as { symbol?: string }).symbol ?? ""), qty: Number((p as { qty?: string }).qty) })) : (null as never),
+    openOrders: Array.isArray(open.body) ? open.body.length : Number.NaN,
+    quote: { bid: Number(q.bp), ask: Number(q.ap), timestamp: String(q.t ?? "") },
+  };
+}
+
 export function validateEvidence(evidence: BrokerEvidence, now = Date.now()): string | null {
   const http = evidence.http;
   if (!http || [http.account, http.clock, http.positions, http.openOrders, http.quote].some((s) => s !== 200)) return "incomplete broker response";
@@ -98,7 +122,8 @@ export function validateEvidence(evidence: BrokerEvidence, now = Date.now()): st
   if (![bid, ask].every((n) => Number.isFinite(n) && n > 0) || ask <= bid) return "quote nonfinite";
   const spreadBps = (ask - bid) / ((ask + bid) / 2) * 10000;
   if (!Number.isFinite(spreadBps) || spreadBps > 20) return "spread above 20 bps";
-  if (evidence.positions.some((p) => !Number.isFinite(p.qty))) return "position nonfinite";
+  if (!Number.isFinite(evidence.openOrders) || evidence.openOrders < 0) return "open-order count invalid";
+  if (evidence.positions.some((p) => !Number.isFinite(p.qty) || p.qty < 0)) return "position nonfinite";
   return null;
 }
 

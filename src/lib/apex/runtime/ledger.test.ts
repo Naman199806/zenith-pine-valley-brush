@@ -39,9 +39,9 @@ test("simultaneous writers are rejected", () => {
 });
 
 test("broker mismatches and incomplete snapshots block entries", () => {
-  const mismatch = reconcile(0.001, { account: { status: "ACTIVE", cash: "1" }, positions: [{ symbol: "BTC/USD", qty: "0" }], openOrders: [], recentOrders: [] });
+  const mismatch = reconcile({ "BTC/USD": 0.001 }, { account: { status: "ACTIVE", cash: "1" }, positions: [{ symbol: "BTC/USD", qty: "0" }], openOrders: [], recentOrders: [] }, []);
   assert.equal(mismatch.entriesBlocked, true);
-  const incomplete = reconcile(0, { account: null, positions: [], openOrders: [], recentOrders: [] });
+  const incomplete = reconcile({}, { account: null, positions: [], openOrders: [], recentOrders: [] }, []);
   assert.equal(incomplete.ok, false);
 });
 

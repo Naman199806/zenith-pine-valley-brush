@@ -35,9 +35,9 @@ export interface PaperReadResult {
   openOrders: number | null;
 }
 
-export function assertPaperCreds(creds: PaperCreds, host = PAPER_TRADING_ORIGIN): string | null {
-  if (host !== PAPER_TRADING_ORIGIN) return "LIVE host rejected";
+export function assertPaperCreds(creds: PaperCreds, host: string = PAPER_TRADING_ORIGIN): string | null {
   if (host === LIVE_TRADING_ORIGIN) return "LIVE host rejected";
+  if (host !== PAPER_TRADING_ORIGIN) return "LIVE host rejected";
   if (!creds.keyId.startsWith("PK")) return "LIVE or non-paper key rejected";
   if (!creds.secret) return "missing paper secret";
   return null;

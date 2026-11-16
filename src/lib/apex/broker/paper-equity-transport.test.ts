@@ -3,7 +3,7 @@ import test from "node:test";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { PAPER_POST_ENABLED, preparePaperLimit, validateEvidence, verifyOperatorApproval, type BrokerEvidence, type PaperLimitTicket } from "./paper-equity-transport.ts";
+import { PAPER_POST_ENABLED, fetchPaperEvidence, preparePaperLimit, validateEvidence, verifyOperatorApproval, type BrokerEvidence, type PaperLimitTicket } from "./paper-equity-transport.ts";
 import { HermesJournal } from "../live/journal.ts";
 import { architectureReadiness } from "../live/architecture.ts";
 import { agentRoleStatus } from "../live/connectivity.ts";
@@ -73,6 +73,20 @@ test("POST remains disabled and authorization is not consumed", () => {
   assert.equal(r.authorizationConsumed, false);
   assert.equal(r.submitted, false);
   rmSync(dir, { recursive: true, force: true });
+});
+
+test("execution boundary fetches mocked PAPER evidence and rejects a bad quote", async () => {
+  const nowDate = new Date(now);
+  const good = await fetchPaperEvidence(async (path) => {
+    if (path === "/v2/account") return { status: 200, body: { status: "ACTIVE", trading_blocked: false } };
+    if (path === "/v2/clock") return { status: 200, body: { is_open: true } };
+    if (path === "/v2/positions") return { status: 200, body: [] };
+    if (path.startsWith("/v2/orders")) return { status: 200, body: [] };
+    return { status: 200, body: { quote: { bp: 749.9, ap: 750, t: nowDate.toISOString() } } };
+  }, nowDate);
+  assert.equal(validateEvidence(good, now), null);
+  const bad = await fetchPaperEvidence(async () => ({ status: 500, body: null }), nowDate);
+  assert.ok(validateEvidence(bad, now));
 });
 
 test("six stages and 13 roles remain intact", () => {
