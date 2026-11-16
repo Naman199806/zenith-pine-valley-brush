@@ -56,11 +56,33 @@ export class HermesJournal {
       throw new Error("authorization already consumed");
     }
     const existing = this.entries.get(intent.clientOrderId);
-    if (existing) return existing;
+    if (existing) {
+      const same = existing.ticket.side === intent.ticket.side && existing.ticket.symbol === intent.ticket.symbol && existing.equityIdentity?.qty === intent.equityIdentity?.qty;
+      if (!same) throw new Error("conflicting client order id reuse");
+      return existing;
+    }
     const entry: JournalEntry = { ...intent, consumed: false, recoveryNotes: [] };
     this.entries.set(intent.clientOrderId, entry);
     this.save();
     return entry;
+  }
+
+  transitionPaperState(clientOrderId: string, next: NonNullable<IntentRecord["paperState"]>): JournalEntry {
+    const allowed: Record<string, string[]> = {
+      PROPOSED: ["AUTHORIZED", "CLOSED"],
+      AUTHORIZED: ["SUBMISSION_ATTEMPTED", "CLOSED"],
+      SUBMISSION_ATTEMPTED: ["BROKER_CONFIRMED", "UNKNOWN", "CLOSED"],
+      UNKNOWN: ["BROKER_CONFIRMED", "CLOSED"],
+      BROKER_CONFIRMED: ["CLOSED"],
+      CLOSED: [],
+    };
+    const e = this.entries.get(clientOrderId);
+    if (!e) throw new Error("intent not found");
+    const current = e.paperState ?? "PROPOSED";
+    if (!allowed[current]?.includes(next)) throw new Error(`invalid paper state transition ${current} -> ${next}`);
+    e.paperState = next;
+    this.save();
+    return e;
   }
 
   consumeAuthorization(singleUseId: string): void {

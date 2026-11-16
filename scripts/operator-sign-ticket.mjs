@@ -1,12 +1,14 @@
 #!/usr/bin/env node
 /**
  * Operator-owned signing action. Not called by the coding agent.
- * Reads APEX_OPERATOR_SECRET from the operator environment and writes a
- * signed approval outside Git.
- * Usage: APEX_OPERATOR_SECRET=... node scripts/operator-sign-ticket.mjs research/lab/monday-spy-preflight.json
+ * PowerShell 5.1:
+ *   $env:APEX_OPERATOR_SECRET = "<set locally>"
+ *   node scripts/operator-sign-ticket.mjs research/lab/monday-spy-preflight.json
+ * The secret is read only from the environment. It is never logged or passed as an argument.
  */
-import { createHmac, randomUUID } from "node:crypto";
-import { readFileSync, writeFileSync } from "node:fs";
+import { createHmac } from "node:crypto";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname } from "node:path";
 
 const secret = process.env.APEX_OPERATOR_SECRET;
 if (!secret || secret.length < 32) {
@@ -32,11 +34,10 @@ const approval = {
   limitPrice: proposed.limitPrice,
   session: proposed.session,
   expiresAt: proposed.expiresAt,
-  quoteTimestamp: proposed.quote.timestamp,
 };
-const material = [approval.symbol, approval.side, "limit", "day", String(approval.qty), String(approval.limitPrice), approval.session, approval.clientOrderId, approval.expiresAt, approval.quoteTimestamp].join("|");
+const material = [approval.symbol, approval.side, "limit", "day", String(approval.qty), String(approval.limitPrice), approval.session, approval.clientOrderId, approval.expiresAt].join("|");
 approval.proof = createHmac("sha256", secret).update(material).digest("hex");
 const out = process.env.APEX_OPERATOR_APPROVAL_PATH || ".operator/spy-approval.json";
+mkdirSync(dirname(out), { recursive: true });
 writeFileSync(out, JSON.stringify(approval, null, 2));
 console.log(JSON.stringify({ signed: true, path: out, clientOrderId: approval.clientOrderId, storedInGit: false }));
-void randomUUID;

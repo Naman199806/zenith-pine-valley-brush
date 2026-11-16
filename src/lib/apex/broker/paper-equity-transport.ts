@@ -67,17 +67,18 @@ function digest(secret: string, material: string): string {
   return createHmac("sha256", secret).update(material).digest("hex");
 }
 
-function material(t: PaperLimitTicket, quoteTimestamp: string): string {
-  return [t.symbol, t.side, "limit", "day", String(t.qty), String(t.limitPrice), t.session, t.clientOrderId, t.expiresAt, quoteTimestamp].join("|");
+function material(t: PaperLimitTicket): string {
+  return [t.symbol, t.side, "limit", "day", String(t.qty), String(t.limitPrice), t.session, t.clientOrderId, t.expiresAt].join("|");
 }
 
-export function verifyOperatorApproval(ticket: PaperLimitTicket, approval: OperatorApproval | null, secret: string | null, quoteTimestamp: string, now = Date.now()): string | null {
+export function verifyOperatorApproval(ticket: PaperLimitTicket, approval: OperatorApproval | null, secret: string | null, now = Date.now()): string | null {
   if (!secret) return "operator secret not present; this process cannot mint approval";
   if (!approval || approval.source !== "OPERATOR_SIGNED") return "operator-signed approval required";
-  if (approval.clientOrderId !== ticket.clientOrderId || approval.side !== ticket.side || approval.qty !== ticket.qty || approval.limitPrice !== ticket.limitPrice) return "approval terms mismatch";
-  if (approval.expiresAt !== ticket.expiresAt || approval.quoteTimestamp !== quoteTimestamp) return "approval quote or expiry mismatch";
+  if (approval.clientOrderId !== ticket.clientOrderId || approval.symbol !== ticket.symbol || approval.side !== ticket.side) return "approval identity mismatch";
+  if (approval.qty !== ticket.qty || approval.limitPrice !== ticket.limitPrice || approval.session !== ticket.session) return "approval terms mismatch";
+  if (approval.expiresAt !== ticket.expiresAt) return "approval expiry mismatch";
   if (Date.parse(approval.expiresAt) <= now) return "approval expired";
-  const expected = digest(secret, material(ticket, quoteTimestamp));
+  const expected = digest(secret, material(ticket));
   const a = Buffer.from(approval.proof);
   const b = Buffer.from(expected);
   if (a.length !== b.length || !timingSafeEqual(a, b)) return "approval proof mismatch";
@@ -85,13 +86,18 @@ export function verifyOperatorApproval(ticket: PaperLimitTicket, approval: Opera
 }
 
 export function validateEvidence(evidence: BrokerEvidence, now = Date.now()): string | null {
-  if (Object.values(evidence.http).some((s) => s !== 200)) return "incomplete broker response";
+  const http = evidence.http;
+  if (!http || [http.account, http.clock, http.positions, http.openOrders, http.quote].some((s) => s !== 200)) return "incomplete broker response";
+  if (!Array.isArray(evidence.positions)) return "positions not an array";
   if (!evidence.accountActive || evidence.tradingBlocked || !evidence.clockOpen) return "account or session not eligible";
   const age = now - Date.parse(evidence.fetchedAt);
-  const quoteAge = now - Date.parse(evidence.quote.timestamp);
+  const quoteAge = now - Date.parse(evidence.quote?.timestamp);
   if (!Number.isFinite(age) || age < 0 || age > 5_000) return "evidence stale or future";
   if (!Number.isFinite(quoteAge) || quoteAge < 0 || quoteAge > 5_000) return "quote stale or future";
-  if (!(evidence.quote.bid > 0) || !(evidence.quote.ask > evidence.quote.bid)) return "quote nonfinite";
+  const { bid, ask } = evidence.quote;
+  if (![bid, ask].every((n) => Number.isFinite(n) && n > 0) || ask <= bid) return "quote nonfinite";
+  const spreadBps = (ask - bid) / ((ask + bid) / 2) * 10000;
+  if (!Number.isFinite(spreadBps) || spreadBps > 20) return "spread above 20 bps";
   if (evidence.positions.some((p) => !Number.isFinite(p.qty))) return "position nonfinite";
   return null;
 }
@@ -108,16 +114,17 @@ export function preparePaperLimit(
   });
   const now = opts.now ?? Date.now();
   if (!(ticket.qty > 0) || !Number.isFinite(ticket.qty) || !(ticket.limitPrice > 0)) return fail("quantity or limit invalid");
+  if (Date.parse(ticket.expiresAt) <= now) return fail("ticket expired");
   const evidenceErr = validateEvidence(evidence, now);
   if (evidenceErr) return fail(evidenceErr);
-  if (ticket.side === "buy" && (evidence.positions.length !== 0 || evidence.openOrders !== 0)) return fail("unexpected position or order");
+  if (ticket.side === "buy" && (evidence.positions.length !== 0 || evidence.openOrders !== 0)) return fail("mismatched broker state");
   if (ticket.side === "buy" && ticket.qty * ticket.limitPrice * 1.001 > 25) return fail("worst-case entry exceeds $25");
   if (ticket.side === "sell") {
     const owned = evidence.positions.find((p) => p.symbol === "SPY")?.qty ?? 0;
     if (!ticket.exitAuthorizationId) return fail("separate sell authorization required");
     if (!(owned > 0) || ticket.qty > owned) return fail("sell exceeds owned SPY quantity");
   }
-  const authErr = verifyOperatorApproval(ticket, approval, process.env.APEX_OPERATOR_SECRET ?? null, evidence.quote.timestamp, now);
+  const authErr = verifyOperatorApproval(ticket, approval, process.env.APEX_OPERATOR_SECRET ?? null, now);
   const state: PaperState = authErr ? "PROPOSED" : "AUTHORIZED";
   if (journal.isConsumed(ticket.clientOrderId)) return fail("duplicate client order id", state);
   assertPaperUrl(`${PAPER_TRADING_ORIGIN}/v2/orders`);

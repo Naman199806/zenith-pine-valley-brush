@@ -15,7 +15,7 @@ export interface TicketAuthorization {
   category: AuthorizationCategory;
   symbol: string;
   side: "buy" | "sell";
-  orderType: "market";
+  orderType: "market" | "limit";
   maxNotional: number;
   expiry: string; // ISO
   singleUseId: string;
@@ -30,6 +30,7 @@ export interface IntentRecord {
   createdAt: string;
   status: "PERSISTED" | "SUBMITTED" | "FILLED" | "PARTIAL" | "REJECTED" | "CANCELED" | "UNKNOWN";
   paperState?: "PROPOSED" | "AUTHORIZED" | "SUBMISSION_ATTEMPTED" | "BROKER_CONFIRMED" | "UNKNOWN" | "CLOSED";
+  linkedClientOrderId?: string;
   filledQty: number;
   avgPrice: number | null;
   equityIdentity?: {
