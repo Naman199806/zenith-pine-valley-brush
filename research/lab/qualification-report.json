@@ -1,0 +1,17 @@
+{
+  "study": "track-c-liquid-etf-v1",
+  "audited": true,
+  "strategyApproved": false,
+  "paperGo": "NO-GO",
+  "liveGo": "NO-GO",
+  "reason": "No candidate beat SPY on validation. Vol-regime was the strongest and still underperformed SPY in development, validation and holdout, with a worse validation drawdown.",
+  "strongest": {
+    "id": "vol-regime-spy-tlt-v1",
+    "validation": {"totalReturn": 0.407, "sharpe": 0.49, "maxDrawdown": -0.404, "trades": 37, "profitFactor": 1.38, "spy": 0.548, "twoXCostTotal": 0.348},
+    "holdout": {"totalReturn": 0.586, "sharpe": 0.99, "maxDrawdown": -0.146, "trades": 30, "spy": 1.064},
+    "sensitivity": "Positive at 2x costs, but the SPY gap remains. Not promoted."
+  },
+  "rejected": ["dual-mom-spy-tlt-v1", "spy-mr-2atr-v1", "etf-xs-breakout-20-v1", "etf-weekly-momentum-v1", "etf-xs-rs-60-v1"],
+  "executorCommit": "662ef288",
+  "executorTouched": false
+}
