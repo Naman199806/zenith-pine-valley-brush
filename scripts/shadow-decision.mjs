@@ -7,6 +7,8 @@
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { assessBars, barsUrl, reconcilePaperPosition } from "../src/lib/apex/research/shadow.ts";
 import { runCanonicalDecision } from "../src/lib/apex/research/canonical-decision.ts";
+import { scanUniverse } from "../src/lib/apex/research/scanner.ts";
+import { buildProposal } from "../src/lib/apex/research/proposal.ts";
 import { PAPER_POST_ENABLED } from "../src/lib/apex/broker/paper-equity-transport.ts";
 
 const env = Object.fromEntries(readFileSync(".env", "utf8").split("\n").filter((l) => l && !l.startsWith("#") && l.includes("=")).map((l) => {
@@ -49,15 +51,17 @@ const traces = ["SPY", "QQQ", "IWM"].map((symbol) => {
     broker: { ownedQty: broker[symbol].ownedQty, openExitQty: broker[symbol].openExitQty, asOf: asOf || "" },
   });
 });
+const scan = scanUniverse({ SPY: loaded.SPY.bars, QQQ: loaded.QQQ.bars, IWM: loaded.IWM.bars }, loaded.SPY.bars);
 const report = {
   mode: "SHADOW",
   strategyApproved: false,
   paperPostEnabled: PAPER_POST_ENABLED,
   liveDisabled: true,
   submitted: false,
+  scan,
   data: quality,
   broker,
-  decisions: traces.map((t) => ({ symbol: t.symbol, recommendation: t.researchRecommendation, reason: t.reason, executionAuthorized: t.executionAuthorized, decisionId: `${t.strategyVersion}:${t.symbol}:${t.asOf}` })),
+  decisions: traces.map((t) => ({ symbol: t.symbol, recommendation: t.researchRecommendation, reason: t.reason, executionAuthorized: t.executionAuthorized, decisionId: `${t.strategyVersion}:${t.symbol}:${t.asOf}`, proposal: buildProposal(t) })),
 };
 mkdirSync("research/lab", { recursive: true });
 writeFileSync("research/lab/shadow-decision.json", JSON.stringify(report, null, 2));

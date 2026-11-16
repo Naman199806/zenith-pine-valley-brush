@@ -202,7 +202,7 @@ export function runCanonicalDecision(p: PipelineInput, billingLocked = true): De
     reason = "Vector WAIT.";
   }
 
-  roles.push(tr("Pilot", false, "BLOCKED", {}, { executionAuthorized: false, brokerExecutable: false }, "BLOCKED", "LIVE disabled; synthetic fixtures cannot execute"));
+  roles.push(tr("Pilot", true, "DETERMINISTIC", { recommendation: research }, { executionAuthorized: false, brokerExecutable: false, proposalPrepared: research !== "NO_TRADE" }, "ADVISORY_ONLY", "research-side handoff only; cannot submit"));
   const clientOrderId = research === "NO_TRADE" ? null : `research-${p.symbol}-${p.asOf}`;
   let persistence: "persistent" | "in-memory" = "in-memory";
   if (p.journalPath) {

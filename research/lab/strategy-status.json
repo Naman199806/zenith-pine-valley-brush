@@ -1,0 +1,17 @@
+{
+  "strategies": [
+    {
+      "name": "etf-xs-breakout-20-v1",
+      "verdict": "NO_WINNER",
+      "strategyApproved": false,
+      "note": "Rejected on holdout. Not reopened."
+    },
+    {
+      "name": "etf-weekly-momentum-v1",
+      "verdict": "NO_WINNER",
+      "strategyApproved": false,
+      "note": "Rejected after cost and dividend-timing correction. Parameters unchanged."
+    }
+  ],
+  "promotion": false
+}
