@@ -19,7 +19,7 @@ import { markUnknown, reconcileRecord, type LifecycleRecord, type LookupFacts } 
 import { acquireWriterLock, releaseWriterLock } from "./lock.ts";
 import { MODE_GATE } from "./mode.ts";
 import { atomicWrite, readRequiredJson } from "./persist.ts";
-import { fillEventFromBroker, toResearchOutcome, type FillEvent, type FillProvenance } from "./fill-event.ts";
+import { fillsFromExecutions, toResearchOutcome, trustedEvidence, type FillEvent, type FillProvenance, type IncompleteFill } from "./fill-event.ts";
 import { assessRisk, flatSnapshot, type MarketSnapshot } from "./risk.ts";
 
 export const POST_ENABLED = false;
@@ -53,6 +53,7 @@ interface Snapshot {
   entriesBlocked?: boolean;
   decisions?: DecisionMeta[];
   fills?: FillEvent[];
+  incompleteFills?: IncompleteFill[];
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): ExecutorConfig {
@@ -104,6 +105,7 @@ export class Executor {
   private marketAt = 0;
   private decisions = new Map<string, DecisionMeta>();
   private fills: FillEvent[] = [];
+  private incompleteFills: IncompleteFill[] = [];
   readonly redact: string[];
 
   constructor(config: ExecutorConfig, creds: PaperCreds | null) {
@@ -150,7 +152,9 @@ export class Executor {
       this.decisions.set(row.clientOrderId, row);
     }
     if (snap.fills != null && !Array.isArray(snap.fills)) throw new Error("executor state corrupt; fail closed");
+    if (snap.incompleteFills != null && !Array.isArray(snap.incompleteFills)) throw new Error("executor state corrupt; fail closed");
     this.fills = snap.fills ?? [];
+    this.incompleteFills = snap.incompleteFills ?? [];
   }
 
   private save(): void {
@@ -161,6 +165,7 @@ export class Executor {
       entriesBlocked: this.entriesBlocked,
       decisions: [...this.decisions.values()],
       fills: this.fills,
+      incompleteFills: this.incompleteFills,
     };
     atomicWrite(this.config.statePath, JSON.stringify(snap));
   }
@@ -447,29 +452,38 @@ export class Executor {
     return this.fills.map((event) => ({ ...event }));
   }
 
+  incompleteFillEvents(): IncompleteFill[] {
+    return this.incompleteFills.map((event) => ({ ...event }));
+  }
+
   outcomes(): ExecutionOutcome[] {
     return this.fills.map(toResearchOutcome);
   }
 
+  trustedEvidence(): ReturnType<typeof trustedEvidence> {
+    return trustedEvidence(this.fills);
+  }
+
   private recordFill(rec: LifecycleRecord, body: unknown, provenance: FillProvenance): void {
     const meta = this.decisions.get(rec.clientOrderId);
-    const event = fillEventFromBroker({
+    const extracted = fillsFromExecutions({
       decisionId: meta?.decisionId ?? "",
       strategyVersion: meta?.strategyVersion ?? "",
       clientOrderId: rec.clientOrderId,
       symbol: rec.symbol,
       side: rec.side,
       intendedPrice: meta?.limitPrice ?? Number.NaN,
-      previousFilled: rec.filledQty,
       body,
       provenance,
       source: "PAPER",
+      seenFillIds: this.fills.map((event) => event.fillId).filter((id): id is string => Boolean(id)),
     });
-    if (!event) return;
-    this.fills.push(event);
+    if (!extracted.events.length && !extracted.incomplete.length) return;
+    this.fills.push(...extracted.events);
+    this.incompleteFills.push(...extracted.incomplete);
     const fd = openSync(this.config.fillsPath, "a");
     try {
-      writeSync(fd, JSON.stringify(event) + "\n");
+      for (const row of [...extracted.events, ...extracted.incomplete]) writeSync(fd, JSON.stringify(row) + "\n");
       fsyncSync(fd);
     } finally {
       closeSync(fd);

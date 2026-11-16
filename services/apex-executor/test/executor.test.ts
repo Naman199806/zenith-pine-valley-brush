@@ -340,7 +340,7 @@ test("sell fill confirms flat; partial and canceled exits do not", async () => {
   assert.equal(flat.state, "FLAT");
   assert.equal(flat.clientOrderId, "px-sell-2");
   assert.equal(ex.get("px-buy")?.state, "FLAT");
-  const report = ingestOutcomes(ex.outcomes());
+  const report = ingestOutcomes(ex.outcomes(), ex.trustedEvidence());
   assert.equal(report.paper.length, 0);
   assert.equal(report.mockIgnored, ex.outcomes().length);
   ex.release();
