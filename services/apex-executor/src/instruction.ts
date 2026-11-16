@@ -18,6 +18,15 @@ export interface TradeInstruction extends CanonicalApproval {
   gateProof: GateProof | null;
 }
 
+export function unsignedResearchProposal(value: unknown): string | null {
+  if (!value || typeof value !== "object") return "unsigned research proposal is not executable";
+  const row = value as Record<string, unknown>;
+  if (row.source === "RESEARCH_PROPOSAL" || row.executable === false || row.executionAuthorized === false || row.operatorProof == null) {
+    return "unsigned research proposal is not executable";
+  }
+  return null;
+}
+
 export function verifyInstruction(msg: TradeInstruction, secrets: { operator: string | null; gate: string | null }, now = Date.now()): string | null {
   if (msg.strategyApproved !== false) return "strategy approval cannot be asserted by research";
   if (msg.category === "STRATEGY_TRADE") return "STRATEGY_TRADE blocked while strategyApproved=false";

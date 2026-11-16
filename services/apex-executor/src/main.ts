@@ -5,9 +5,11 @@
  */
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import { pathToFileURL } from "node:url";
+import { assertPaperUrl } from "../../../src/lib/apex/broker/allowlist.ts";
+import { paperGet } from "../../../src/lib/apex/broker/paper-read.ts";
 import { readPaperSnapshot } from "./broker.ts";
 import { assertNoLiveCreds, loadPaperCredentials } from "./credentials.ts";
-import { Executor, loadConfig } from "./runtime.ts";
+import { Executor, loadConfig, nextPollDelay } from "./runtime.ts";
 
 function send(res: ServerResponse, status: number, body: unknown): void {
   const payload = typeof body === "string" ? body : JSON.stringify(body);
@@ -64,14 +66,19 @@ export async function boot(env: NodeJS.ProcessEnv = process.env): Promise<{ exec
       exec.notePoll("paper credentials not configured");
       return;
     }
-    const failures = exec.pollFailures;
+    let failed = false;
     try {
       const snapshot = await readPaperSnapshot(paper);
       exec.observeMarket(snapshot, Date.now());
+      await exec.recoverOutstanding(async (url) => {
+        const parsed = assertPaperUrl(url);
+        return paperGet(paper, `${parsed.pathname}${parsed.search}`);
+      }, "broker");
     } catch {
       exec.notePoll("paper read failed");
+      failed = true;
     }
-    delay = exec.pollFailures > failures ? Math.min(delay * 2, 30_000) : 1_000;
+    delay = nextPollDelay(delay, failed);
   };
 
   const schedule = () => {

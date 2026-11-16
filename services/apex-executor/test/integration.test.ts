@@ -11,6 +11,7 @@ const record = (over: Partial<LifecycleRecord> = {}): LifecycleRecord => ({
   state: "SUBMISSION_ATTEMPTED",
   filledQty: 0,
   linkedExitId: null,
+  linkedEntryId: null,
   unknown: false,
   alerted: false,
   submitted: true,

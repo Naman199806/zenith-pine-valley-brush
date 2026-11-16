@@ -23,6 +23,7 @@ export interface LifecycleRecord {
   state: PositionState;
   filledQty: number;
   linkedExitId: string | null;
+  linkedEntryId: string | null;
   unknown: boolean;
   alerted: boolean;
   /** True only after a submission attempt was recorded. Accept never sets this. */
@@ -47,8 +48,8 @@ export function onObservedFill(rec: LifecycleRecord, filledQty: number): Lifecyc
   if (!(filledQty >= 0) || !Number.isFinite(filledQty)) throw new Error("nonfinite fill");
   if (filledQty + 1e-12 < rec.filledQty) throw new Error("fill decreased");
   if (filledQty === 0) return { ...rec, filledQty: rec.filledQty, unknown: false };
-  const state: PositionState = filledQty + 1e-12 < rec.qty ? "PARTIAL" : rec.side === "sell" ? "FLAT" : "OPEN";
-  return { ...rec, state: rec.state === "EXIT_PENDING" ? "EXIT_PENDING" : state, filledQty, unknown: false };
+  const state: PositionState = filledQty + 1e-12 < rec.qty ? "PARTIAL" : "OPEN";
+  return { ...rec, state, filledQty, unknown: false };
 }
 
 function ownedOf(rec: LifecycleRecord, positions: { symbol?: string; qty?: string }[]): number | null {
@@ -84,28 +85,30 @@ export function reconcileRecord(rec: LifecycleRecord, facts: LookupFacts): Lifec
   const owned = ownedOf(rec, facts.positions as { symbol?: string; qty?: string }[]);
   if (owned == null) return markUnknown(rec);
   const openCount = (facts.openOrders as unknown[]).length;
+  if (observed + 1e-12 < rec.filledQty) return markUnknown(rec);
   const filled = Math.max(rec.filledQty, observed);
+  const canceled = status === "canceled" || status === "cancelled" || status === "expired";
 
-  if (rec.state === "EXIT_PENDING" && owned === 0 && openCount === 0 && (status === "filled" || status === "canceled" || status === "cancelled")) {
-    return { ...rec, state: "FLAT", filledQty: 0, unknown: false, alerted: false };
+  if (rec.side === "sell" && status === "filled" && observed + 1e-12 >= rec.qty && owned === 0 && openCount === 0) {
+    return { ...rec, state: "FLAT", filledQty: observed, unknown: false, alerted: false };
+  }
+  if (rec.side === "sell" && (status === "partially_filled" || (status === "filled" && observed + 1e-12 < rec.qty))) {
+    if (!(owned > 0)) return markUnknown(rec);
+    return { ...rec, state: "PARTIAL", filledQty: observed, unknown: false, alerted: false };
+  }
+  if (rec.side === "sell" && canceled) {
+    return { ...rec, state: observed > 0 ? "PARTIAL" : "PROPOSED", filledQty: observed, unknown: false, alerted: false };
   }
 
-  if ((status === "canceled" || status === "cancelled" || status === "expired") && filled > 0) {
-    if (owned > 0) {
-      return {
-        ...rec,
-        state: filled + 1e-12 < rec.qty ? "PARTIAL" : "OPEN",
-        filledQty: owned,
-        unknown: false,
-        alerted: false,
-      };
-    }
-    return markUnknown(rec);
+  if (rec.side === "buy" && canceled && filled > 0 && owned === 0) return markUnknown(rec);
+  if (rec.side === "buy" && canceled && owned > 0) {
+    return { ...rec, state: owned + 1e-12 < rec.qty ? "PARTIAL" : "OPEN", filledQty: filled, unknown: false, alerted: false };
   }
+  if (rec.side === "buy" && filled > 0 && owned > 0 && Math.abs(owned - filled) > 1e-6) return markUnknown(rec);
 
-  if (owned > 0) {
-    const state: PositionState = rec.state === "EXIT_PENDING" ? "EXIT_PENDING" : owned + 1e-12 < rec.qty ? "PARTIAL" : "OPEN";
-    return { ...rec, state, filledQty: owned, unknown: false, alerted: false };
+  if (owned > 0 && rec.side === "buy") {
+    const state: PositionState = filled + 1e-12 < rec.qty ? "PARTIAL" : "OPEN";
+    return { ...rec, state, filledQty: filled, unknown: false, alerted: false };
   }
 
   if (owned === 0 && openCount === 0 && filled === 0 && rec.state === "PROPOSED" && rec.submitted === false) {

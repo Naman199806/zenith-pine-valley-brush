@@ -7,7 +7,13 @@ import test from "node:test";
 import { issueGateProof } from "../../../src/lib/apex/live/executor.ts";
 import { architectureReadiness } from "../../../src/lib/apex/live/architecture.ts";
 import { ROLES } from "../../../src/lib/apex/research/canonical-decision.ts";
+import { buildProposal } from "../../../src/lib/apex/research/proposal.ts";
+import { ingestOutcomes } from "../../../src/lib/apex/research/hermes-outcomes.ts";
+import { runCanonicalDecision, type Bar } from "../../../src/lib/apex/research/canonical-decision.ts";
 import { proposedTicket, signApproval, verifyApproval, type CanonicalApproval } from "../src/approval.ts";
+import { checkDeployConfig } from "../src/deploy-config.ts";
+import { nextPollDelay } from "../src/runtime.ts";
+import { boot } from "../src/main.ts";
 import { buildMondaySpyTicket } from "../../../scripts/monday-spy-preflight.mjs";
 import { Executor, POST_ENABLED, STRATEGY_APPROVED, assertNoLiveCreds, openMarket, type ExecutorConfig } from "../src/runtime.ts";
 import type { TradeInstruction } from "../src/instruction.ts";
@@ -51,7 +57,7 @@ function paths(dir: string): ExecutorConfig {
   return {
     mode: "PAPER", postEnabled: false, liveCredentialsLoaded: false,
     statePath: join(dir, "state.json"), lockPath: join(dir, "writer.lock"), inboxPath: join(dir, "inbox.jsonl"),
-    journalPath: join(dir, "journal.jsonl"), hermesPath: join(dir, "hermes.json"),
+    journalPath: join(dir, "journal.jsonl"), hermesPath: join(dir, "hermes.json"), fillsPath: join(dir, "fills.jsonl"),
   };
 }
 
@@ -190,8 +196,21 @@ test("partial fill survives cancellation, exit uses broker quantity, restart sta
   assert.equal(ok.ok, true);
   const dup = await ex.authorizeExit(buy.clientOrderId, sized, view({ filled_qty: "0", status: "accepted" }, [{ symbol: "SPY", qty: "0.01" }], []), now);
   assert.match(dup.reason, /duplicate/);
-  const flat = await ex.reconcile(view({ filled_qty: "0.01", status: "canceled" }, [], []), buy.clientOrderId);
-  assert.equal(flat.state, "FLAT");
+  const notFlat = await ex.reconcile(view({ filled_qty: "0.01", status: "canceled" }, [], []), buy.clientOrderId);
+  assert.equal(notFlat.state, "UNKNOWN");
+  assert.notEqual(notFlat.state, "FLAT");
+  const sellView = (url: string) => {
+    if (url.includes("life-sell")) return Promise.resolve({ status: 200, body: { filled_qty: "0.01", status: "filled" } });
+    if (url.includes("/v2/positions")) return Promise.resolve({ status: 200, body: [] });
+    if (url.includes("/v2/orders")) return Promise.resolve({ status: 200, body: [] });
+    return Promise.resolve({ status: 200, body: { filled_qty: "0.01", status: "canceled" } });
+  };
+  const flatSell = await ex.reconcile(sellView, "life-sell");
+  assert.equal(flatSell.state, "FLAT");
+  assert.equal(flatSell.clientOrderId, "life-sell");
+  assert.notEqual(flatSell.clientOrderId, buy.clientOrderId);
+  const flat = ex.get(buy.clientOrderId);
+  assert.equal(flat?.state, "FLAT");
   ex.release();
   const restarted = start(dir);
   assert.equal(restarted.get(buy.clientOrderId)?.state, "FLAT");
@@ -254,6 +273,151 @@ test("health stays on the frozen gate", async () => {
     ex.release();
     rmSync(dir, { recursive: true, force: true });
   }
+});
+
+test("unsigned research proposals are not executable and a signed handoff stays proposed", () => {
+  const bars = (n: number, start = 100): Bar[] => Array.from({ length: n }, (_, i) => {
+    const date = new Date(Date.UTC(2026, 0, 1 + i)).toISOString().slice(0, 10);
+    return { date, open: start + i, high: start + i + 1, low: start + i - 1, close: start + i };
+  });
+  const spy = bars(220, 400);
+  const trace = runCanonicalDecision({
+    strategyVersion: "etf-xs-breakout-20-v1", symbol: "SPY", bars: spy, spyBars: spy,
+    asOf: `${spy.at(-1)!.date}T21:00:00Z`, provenance: "test", dataOk: true, proposedNotional: 25,
+    broker: { ownedQty: 0, openExitQty: 0, asOf: `${spy.at(-1)!.date}T21:00:00Z` },
+  });
+  const proposal = buildProposal(trace, 25);
+  const dir = mkdtempSync(join(tmpdir(), "hand-"));
+  const ex = start(dir);
+  assert.match(ex.accept(proposal as never, now).reason, /not executable/);
+  const msg = signed({ nonce: proposal.nonce, clientOrderId: "handoff-1" });
+  msg.decisionId = proposal.decisionId;
+  assert.equal(ex.accept(msg, now).state, "PROPOSED");
+  assert.equal(ex.get("handoff-1")?.filledQty, 0);
+  assert.equal(ex.get("handoff-1")?.submitted, false);
+  ex.release();
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test("sell fill confirms flat; partial and canceled exits do not", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "exit-"));
+  const ex = start(dir);
+  const buy = signed({ qty: 0.02, clientOrderId: "px-buy", nonce: "px-buy" });
+  ex.accept(buy, now);
+  const book = {
+    orders: { "px-buy": { filled_qty: "0.02", status: "filled" } } as Record<string, { filled_qty: string; status: string }>,
+    position: [{ symbol: "SPY", qty: "0.02" }],
+    open: [] as object[],
+  };
+  const get = async (url: string) => {
+    if (url.includes("by_client_order_id")) {
+      const id = new URL(url).searchParams.get("client_order_id") ?? "";
+      const row = book.orders[id];
+      return row ? { status: 200, body: row } : { status: 404, body: null };
+    }
+    if (url.includes("/v2/positions")) return { status: 200, body: book.position };
+    return { status: 200, body: book.open };
+  };
+  assert.equal((await ex.reconcile(get, "px-buy")).state, "OPEN");
+  const sell = signed({ side: "sell", qty: 0.01, clientOrderId: "px-sell", nonce: "px-sell", exitAuthorizationId: "exit-px", linkedEntryId: "px-buy" });
+  assert.equal((await ex.authorizeExit("px-buy", sell, get, now)).ok, true);
+  assert.equal(ex.get("px-sell")?.state, "PROPOSED");
+  book.orders["px-sell"] = { filled_qty: "0.005", status: "partially_filled" };
+  book.position = [{ symbol: "SPY", qty: "0.015" }];
+  assert.equal((await ex.reconcile(get, "px-sell")).state, "PARTIAL");
+  assert.notEqual(ex.get("px-buy")?.state, "FLAT");
+  book.orders["px-sell"] = { filled_qty: "0.005", status: "canceled" };
+  const canceled = await ex.reconcile(get, "px-sell");
+  assert.notEqual(canceled.state, "FLAT");
+  assert.equal(ex.get("px-buy")?.linkedExitId, null);
+  const sell2 = signed({ side: "sell", qty: 0.015, clientOrderId: "px-sell-2", nonce: "px-sell-2", exitAuthorizationId: "exit-px-2", linkedEntryId: "px-buy" });
+  assert.equal((await ex.authorizeExit("px-buy", sell2, get, now)).ok, true);
+  book.orders["px-sell-2"] = { filled_qty: "0.015", status: "filled" };
+  book.position = [];
+  const flat = await ex.reconcile(get, "px-sell-2");
+  assert.equal(flat.state, "FLAT");
+  assert.equal(flat.clientOrderId, "px-sell-2");
+  assert.equal(ex.get("px-buy")?.state, "FLAT");
+  const report = ingestOutcomes(ex.outcomes());
+  assert.equal(report.paper.length, 0);
+  assert.equal(report.mockIgnored, ex.outcomes().length);
+  ex.release();
+  const restarted = start(dir);
+  assert.equal(restarted.get("px-buy")?.state, "FLAT");
+  assert.equal(restarted.get("px-sell-2")?.state, "FLAT");
+  assert.equal(restarted.submit().submitted, false);
+  restarted.release();
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test("disconnect, delayed fill, stale evidence, and unexpected positions fail closed", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "edge-"));
+  const ex = start(dir);
+  const buy = signed({ qty: 0.02, clientOrderId: "edge-buy", nonce: "edge-buy" });
+  ex.accept(buy, now);
+  const down = await ex.reconcile(async () => { throw new Error("socket down"); }, buy.clientOrderId);
+  assert.equal(down.state, "UNKNOWN");
+  assert.equal(ex.submit().submitted, false);
+  const fresh = start(mkdtempSync(join(tmpdir(), "delay-")));
+  fresh.accept(signed({ qty: 0.02, clientOrderId: "delay-buy", nonce: "delay-buy" }), now);
+  const step = async (filled: string, position: string, status: string) => fresh.reconcile(async (url) => {
+    if (url.includes("by_client")) return { status: 200, body: { filled_qty: filled, status } };
+    if (url.includes("/v2/positions")) return { status: 200, body: [{ symbol: "SPY", qty: position }] };
+    return { status: 200, body: [] };
+  }, "delay-buy");
+  assert.equal((await step("0.01", "0.01", "partially_filled")).state, "PARTIAL");
+  assert.equal((await step("0.02", "0.02", "filled")).state, "OPEN");
+  assert.equal((await step("0.01", "0.02", "filled")).state, "UNKNOWN");
+  const odd = start(mkdtempSync(join(tmpdir(), "odd-")));
+  odd.accept(signed({ qty: 0.02, clientOrderId: "odd-buy", nonce: "odd-buy" }), now);
+  const unexpected = await odd.reconcile(async (url) => {
+    if (url.includes("by_client")) return { status: 200, body: { filled_qty: "0.01", status: "partially_filled" } };
+    if (url.includes("/v2/positions")) return { status: 200, body: [{ symbol: "SPY", qty: "5" }] };
+    return { status: 200, body: [] };
+  }, "odd-buy");
+  assert.equal(unexpected.state, "UNKNOWN");
+  assert.equal(odd.accept(signed({ nonce: "stale", clientOrderId: "stale-buy" }), now + 10_000).reason, "stale broker evidence");
+  odd.notePoll("paper read failed");
+  odd.notePoll("paper read failed");
+  odd.notePoll("paper read failed");
+  assert.ok(odd.alerts.includes("prolonged paper read failure"));
+  assert.equal(nextPollDelay(1_000, true), 2_000);
+  assert.equal(nextPollDelay(16_000, true), 30_000);
+  assert.equal(nextPollDelay(30_000, false), 1_000);
+  ex.release();
+  fresh.release();
+  odd.release();
+});
+
+test("deployment files match the runtime paths", () => {
+  const unit = readFileSync("services/apex-executor/deploy/apex-executor.service", "utf8");
+  const env = readFileSync("services/apex-executor/deploy/apex-executor.env.example", "utf8");
+  assert.deepEqual(checkDeployConfig(unit, env), []);
+});
+
+test("clean shutdown lets the next process take the lock", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "boot-"));
+  const keys = ["APEX_EXECUTOR_DATA", "APEX_EXECUTOR_STATE", "APEX_EXECUTOR_LOCK", "APEX_EXECUTOR_INBOX", "APEX_EXECUTOR_JOURNAL", "APEX_EXECUTOR_HERMES", "APEX_EXECUTOR_PORT", "APEX_EXECUTOR_HEALTH_TOKEN", "APEX_EXECUTOR_PAPER_KEY_ID", "APEX_EXECUTOR_PAPER_SECRET"] as const;
+  const saved = Object.fromEntries(keys.map((key) => [key, process.env[key]]));
+  process.env.APEX_EXECUTOR_DATA = dir;
+  process.env.APEX_EXECUTOR_STATE = join(dir, "state.json");
+  process.env.APEX_EXECUTOR_LOCK = join(dir, "writer.lock");
+  process.env.APEX_EXECUTOR_INBOX = join(dir, "inbox.jsonl");
+  process.env.APEX_EXECUTOR_JOURNAL = join(dir, "journal.jsonl");
+  process.env.APEX_EXECUTOR_HERMES = join(dir, "hermes.json");
+  process.env.APEX_EXECUTOR_PORT = "0";
+  process.env.APEX_EXECUTOR_HEALTH_TOKEN = "local-token";
+  delete process.env.APEX_EXECUTOR_PAPER_KEY_ID;
+  delete process.env.APEX_EXECUTOR_PAPER_SECRET;
+  const running = await boot();
+  running.stop();
+  const next = start(dir);
+  next.release();
+  for (const key of keys) {
+    if (saved[key] === undefined) delete process.env[key];
+    else process.env[key] = saved[key];
+  }
+  rmSync(dir, { recursive: true, force: true });
 });
 
 test("mock lifecycle script is explicit that it is not a real fill", () => {

@@ -11,13 +11,15 @@ import { PAPER_TRADING_ORIGIN, assertPaperUrl, redactSecrets } from "../../../sr
 import { assertPaperCreds, type PaperCreds } from "../../../src/lib/apex/broker/paper-read.ts";
 import { HermesJournal } from "../../../src/lib/apex/live/journal.ts";
 import type { IntentRecord } from "../../../src/lib/apex/live/executor.ts";
+import type { ExecutionOutcome } from "../../../src/lib/apex/research/hermes-outcomes.ts";
 import { verifyApproval } from "./approval.ts";
-import { verifyInstruction, type TradeInstruction } from "./instruction.ts";
+import { unsignedResearchProposal, verifyInstruction, type TradeInstruction } from "./instruction.ts";
 import { OrderJournal } from "./journal.ts";
-import { reconcileRecord, type LifecycleRecord, type LookupFacts } from "./lifecycle.ts";
+import { markUnknown, reconcileRecord, type LifecycleRecord, type LookupFacts } from "./lifecycle.ts";
 import { acquireWriterLock, releaseWriterLock } from "./lock.ts";
 import { MODE_GATE } from "./mode.ts";
 import { atomicWrite, readRequiredJson } from "./persist.ts";
+import { fillEventFromBroker, toResearchOutcome, type FillEvent, type FillProvenance } from "./fill-event.ts";
 import { assessRisk, flatSnapshot, type MarketSnapshot } from "./risk.ts";
 
 export const POST_ENABLED = false;
@@ -34,6 +36,14 @@ export interface ExecutorConfig {
   inboxPath: string;
   journalPath: string;
   hermesPath: string;
+  fillsPath: string;
+}
+
+interface DecisionMeta {
+  clientOrderId: string;
+  decisionId: string;
+  strategyVersion: string;
+  limitPrice: number;
 }
 
 interface Snapshot {
@@ -41,6 +51,8 @@ interface Snapshot {
   clientOrderIds: string[];
   records: LifecycleRecord[];
   entriesBlocked?: boolean;
+  decisions?: DecisionMeta[];
+  fills?: FillEvent[];
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): ExecutorConfig {
@@ -54,6 +66,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ExecutorConfig
     inboxPath: env.APEX_EXECUTOR_INBOX || `${root}/inbox.jsonl`,
     journalPath: env.APEX_EXECUTOR_JOURNAL || `${root}/journal.jsonl`,
     hermesPath: env.APEX_EXECUTOR_HERMES || `${root}/hermes.json`,
+    fillsPath: env.APEX_EXECUTOR_FILLS || `${root}/fills.jsonl`,
   };
 }
 
@@ -66,6 +79,7 @@ function blankRecord(msg: TradeInstruction): LifecycleRecord {
     state: "PROPOSED",
     filledQty: 0,
     linkedExitId: null,
+    linkedEntryId: null,
     unknown: false,
     alerted: false,
     submitted: false,
@@ -88,6 +102,8 @@ export class Executor {
   private hermes: HermesJournal;
   private market: MarketSnapshot | null = null;
   private marketAt = 0;
+  private decisions = new Map<string, DecisionMeta>();
+  private fills: FillEvent[] = [];
   readonly redact: string[];
 
   constructor(config: ExecutorConfig, creds: PaperCreds | null) {
@@ -96,6 +112,7 @@ export class Executor {
     this.redact = creds ? [creds.keyId, creds.secret] : [];
     this.journal = new OrderJournal(config.journalPath);
     this.hermes = new HermesJournal(config.hermesPath);
+    mkdirSync(dirname(config.fillsPath), { recursive: true });
     try {
       this.lockFd = acquireWriterLock(config.lockPath);
       this.restore();
@@ -124,9 +141,16 @@ export class Executor {
     }
     for (const rec of snap.records) {
       if (!rec || typeof rec.clientOrderId !== "string" || typeof rec.state !== "string") throw new Error("executor state corrupt; fail closed");
-      this.records.set(rec.clientOrderId, rec);
+      this.records.set(rec.clientOrderId, { ...rec, linkedEntryId: rec.linkedEntryId ?? null });
     }
     this.entriesBlocked = snap.entriesBlocked === true;
+    if (snap.decisions != null && !Array.isArray(snap.decisions)) throw new Error("executor state corrupt; fail closed");
+    for (const row of snap.decisions ?? []) {
+      if (!row || typeof row.clientOrderId !== "string" || typeof row.decisionId !== "string") throw new Error("executor state corrupt; fail closed");
+      this.decisions.set(row.clientOrderId, row);
+    }
+    if (snap.fills != null && !Array.isArray(snap.fills)) throw new Error("executor state corrupt; fail closed");
+    this.fills = snap.fills ?? [];
   }
 
   private save(): void {
@@ -135,6 +159,8 @@ export class Executor {
       clientOrderIds: [...this.ids],
       records: [...this.records.values()],
       entriesBlocked: this.entriesBlocked,
+      decisions: [...this.decisions.values()],
+      fills: this.fills,
     };
     atomicWrite(this.config.statePath, JSON.stringify(snap));
   }
@@ -233,13 +259,32 @@ export class Executor {
   }
 
   notePoll(failure: string | null): void {
-    if (!failure) return;
+    if (!failure) {
+      this.pollFailures = 0;
+      this.ready = true;
+      return;
+    }
     this.pollFailures += 1;
     this.ready = false;
-    this.alerts.push(redactSecrets(failure, this.redact));
+    if (this.pollFailures >= 3 && !this.alerts.includes("prolonged paper read failure")) {
+      this.alerts.push("prolonged paper read failure");
+    }
+  }
+
+  outstanding(): LifecycleRecord[] {
+    return [...this.records.values()].filter((rec) => rec.state !== "FLAT" && rec.state !== "CLOSED");
+  }
+
+  async recoverOutstanding(get: (url: string) => Promise<{ status: number; body: unknown }>, provenance: FillProvenance = "mock"): Promise<LifecycleRecord[]> {
+    const ids = this.outstanding().map((rec) => rec.clientOrderId);
+    const out: LifecycleRecord[] = [];
+    for (const id of ids) out.push(await this.reconcile(get, id, provenance));
+    return out;
   }
 
   accept(msg: TradeInstruction, now = Date.now()): { accepted: boolean; reason: string; state: "PROPOSED" | null } {
+    const unsigned = unsignedResearchProposal(msg);
+    if (unsigned) return this.reject(unsigned);
     if (this.config.mode === "LIVE") return { accepted: false, reason: "LIVE submission disabled", state: null };
     const verified = verifyInstruction(msg, { operator: process.env.APEX_OPERATOR_SECRET ?? null, gate: process.env.APEX_GATE_SECRET ?? null }, now);
     if (verified) return this.reject(verified);
@@ -247,10 +292,12 @@ export class Executor {
     if (this.nonces.has(msg.nonce) || this.ids.has(msg.clientOrderId)) return this.reject("duplicate or replay");
     if (this.entriesBlocked) return this.reject("kill switch blocks new entries");
     if (!this.creds || assertPaperCreds(this.creds)) return this.reject("PAPER credentials rejected");
-    if (!this.market || now - this.marketAt > 5_000 || now < this.marketAt) return this.reject("broker evidence missing");
+    if (!this.market) return this.reject("broker evidence missing");
+    if (now - this.marketAt > 5_000 || now < this.marketAt) return this.reject("stale broker evidence");
     const risk = assessRisk(msg, this.market, { conflict: false, ownedQty: 0 }, this.entriesBlocked, now);
     if (risk) return this.reject(risk);
     const rec = blankRecord(msg);
+    this.decisions.set(msg.clientOrderId, { clientOrderId: msg.clientOrderId, decisionId: msg.decisionId, strategyVersion: msg.strategyVersion, limitPrice: msg.limitPrice });
     this.nonces.add(msg.nonce);
     this.ids.add(msg.clientOrderId);
     this.records.set(msg.clientOrderId, rec);
@@ -283,7 +330,7 @@ export class Executor {
     return this.accept(parsed, now);
   }
 
-  async reconcile(get: (url: string) => Promise<{ status: number; body: unknown }>, clientOrderId: string): Promise<LifecycleRecord> {
+  async reconcile(get: (url: string) => Promise<{ status: number; body: unknown }>, clientOrderId: string, provenance: FillProvenance = "mock"): Promise<LifecycleRecord> {
     const rec = this.records.get(clientOrderId);
     if (!rec) throw new Error("unknown instruction");
     const positionsUrl = assertPaperUrl(`${PAPER_TRADING_ORIGIN}/v2/positions`).toString();
@@ -299,7 +346,7 @@ export class Executor {
       this.store(unknown, redactSecrets(error instanceof Error ? error.message : "broker lookup failed", this.redact));
       return unknown;
     }
-    const next = reconcileRecord(rec, {
+    let next = reconcileRecord(rec, {
       orderStatus: order.status,
       orderBody: order.body,
       positionsStatus: positions.status,
@@ -307,8 +354,22 @@ export class Executor {
       openStatus: open.status,
       openOrders: open.body,
     } satisfies LookupFacts);
+    if (rec.side === "buy" && next.state === "FLAT") next = { ...markUnknown(rec), filledQty: rec.filledQty };
+    this.recordFill(rec, order.body, provenance);
     this.store(next, next.unknown ? `unknown broker outcome ${clientOrderId}; not resubmitted` : `reconciled ${next.state}`);
-    return next;
+    const status = order.body && typeof order.body === "object" ? String((order.body as { status?: string }).status ?? "") : "";
+    if (rec.side === "sell" && next.state === "FLAT" && rec.linkedEntryId) {
+      const entry = this.records.get(rec.linkedEntryId);
+      if (entry) this.store({ ...entry, state: "FLAT", unknown: false, alerted: false }, `flat confirmed by sell fill ${rec.clientOrderId}`);
+    }
+    if (rec.side === "sell" && next.state !== "FLAT" && (status === "canceled" || status === "cancelled") && rec.linkedEntryId) {
+      const entry = this.records.get(rec.linkedEntryId);
+      if (entry && entry.linkedExitId === rec.clientOrderId) {
+        const stillOpen: LifecycleRecord["state"] = entry.filledQty + 1e-12 < entry.qty ? "PARTIAL" : "OPEN";
+        this.store({ ...entry, linkedExitId: null, state: stillOpen, unknown: false }, "exit canceled; position remains");
+      }
+    }
+    return this.records.get(clientOrderId) ?? next;
   }
 
   async authorizeExit(
@@ -337,9 +398,19 @@ export class Executor {
     if (positions.status !== 200 || !Array.isArray(positions.body)) return { ok: false, reason: "owned quantity unresolved" };
     const owned = Number((positions.body as { symbol?: string; qty?: string }[]).find((row) => row.symbol === sell.symbol)?.qty ?? Number.NaN);
     if (!Number.isFinite(owned) || !(owned > 0) || sell.qty > owned + 1e-12) return { ok: false, reason: "sell exceeds broker-owned quantity" };
+    const sellRec: LifecycleRecord = {
+      ...blankRecord(sell),
+      linkedEntryId: entryId,
+      state: "PROPOSED",
+      submitted: false,
+      filledQty: 0,
+    };
     const next: LifecycleRecord = { ...rec, state: "EXIT_PENDING", linkedExitId: sell.clientOrderId };
+    this.decisions.set(sell.clientOrderId, { clientOrderId: sell.clientOrderId, decisionId: sell.decisionId, strategyVersion: sell.strategyVersion, limitPrice: sell.limitPrice });
     this.nonces.add(sell.nonce);
     this.ids.add(sell.clientOrderId);
+    this.records.set(sell.clientOrderId, sellRec);
+    this.store(sellRec, "sell recorded; not submitted");
     this.store(next, "exit authorized; POST disabled");
     return { ok: true, reason: "exit authorized; POST disabled" };
   }
@@ -371,6 +442,40 @@ export class Executor {
     return this.records.get(clientOrderId);
   }
 
+  /** Telemetry for Hermes. Mock rows are never broker-confirmed performance. */
+  fillEvents(): FillEvent[] {
+    return this.fills.map((event) => ({ ...event }));
+  }
+
+  outcomes(): ExecutionOutcome[] {
+    return this.fills.map(toResearchOutcome);
+  }
+
+  private recordFill(rec: LifecycleRecord, body: unknown, provenance: FillProvenance): void {
+    const meta = this.decisions.get(rec.clientOrderId);
+    const event = fillEventFromBroker({
+      decisionId: meta?.decisionId ?? "",
+      strategyVersion: meta?.strategyVersion ?? "",
+      clientOrderId: rec.clientOrderId,
+      symbol: rec.symbol,
+      side: rec.side,
+      intendedPrice: meta?.limitPrice ?? Number.NaN,
+      previousFilled: rec.filledQty,
+      body,
+      provenance,
+      source: "PAPER",
+    });
+    if (!event) return;
+    this.fills.push(event);
+    const fd = openSync(this.config.fillsPath, "a");
+    try {
+      writeSync(fd, JSON.stringify(event) + "\n");
+      fsyncSync(fd);
+    } finally {
+      closeSync(fd);
+    }
+  }
+
   release(): void {
     if (this.lockFd == null && this.config == null) return;
     const fd = this.lockFd;
@@ -394,4 +499,9 @@ export function assertNoLiveCreds(env: NodeJS.ProcessEnv): void {
 
 export function openMarket(now: number): MarketSnapshot {
   return flatSnapshot(now);
+}
+
+export function nextPollDelay(previous: number, failed: boolean): number {
+  if (!failed) return 1_000;
+  return Math.min(Math.max(previous, 1_000) * 2, 30_000);
 }

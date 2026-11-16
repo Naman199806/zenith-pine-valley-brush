@@ -54,11 +54,15 @@ function ticket(over) {
   };
 }
 
-function broker(order) {
+function broker(book) {
   return async (url) => {
-    if (url.includes("by_client_order_id")) return { status: 200, body: order };
-    if (url.includes("/v2/positions")) return { status: 200, body: order.position };
-    if (url.includes("/v2/orders")) return { status: 200, body: order.open };
+    if (url.includes("by_client_order_id")) {
+      const id = new URL(url).searchParams.get("client_order_id");
+      const row = book.orders[id];
+      return row ? { status: 200, body: row } : { status: 404, body: null };
+    }
+    if (url.includes("/v2/positions")) return { status: 200, body: book.position };
+    if (url.includes("/v2/orders")) return { status: 200, body: book.open };
     return { status: 500, body: null };
   };
 }
@@ -73,16 +77,28 @@ const paths = {
   inboxPath: join(dir, "inbox.jsonl"),
   journalPath: join(dir, "journal.jsonl"),
   hermesPath: join(dir, "hermes.json"),
+  fillsPath: join(dir, "fills.jsonl"),
 };
 const first = new Executor(paths, { keyId: "PKMOCKKEY1", secret: "mock-paper-secret" });
 first.observeMarket(openMarket(now), now);
 const buy = ticket();
 const accepted = first.accept(buy, now);
-const partial = await first.reconcile(broker({ filled_qty: "0.01", status: "partially_filled", position: [{ symbol: "SPY", qty: "0.01" }], open: [{ id: "1" }] }), buy.clientOrderId);
-const held = await first.reconcile(broker({ filled_qty: "0.01", status: "canceled", position: [{ symbol: "SPY", qty: "0.01" }], open: [] }), buy.clientOrderId);
+const proposed = first.get(buy.clientOrderId);
+const book = { orders: { "mock-buy": { filled_qty: "0.01", status: "partially_filled" } }, position: [{ symbol: "SPY", qty: "0.01" }], open: [{ id: "1" }] };
+const partial = await first.reconcile(broker(book), buy.clientOrderId);
+book.orders["mock-buy"] = { filled_qty: "0.01", status: "canceled" };
+book.open = [];
+const held = await first.reconcile(broker(book), buy.clientOrderId);
 const sell = ticket({ side: "sell", clientOrderId: "mock-sell", nonce: "mock-sell-nonce", qty: 0.01, exitAuthorizationId: "exit-1", linkedEntryId: buy.clientOrderId });
-const exit = await first.authorizeExit(buy.clientOrderId, sell, broker({ position: [{ symbol: "SPY", qty: "0.01" }], open: [], filled_qty: "0", status: "accepted" }), now);
-const flat = await first.reconcile(broker({ filled_qty: "0.01", status: "canceled", position: [], open: [] }), buy.clientOrderId);
+const exit = await first.authorizeExit(buy.clientOrderId, sell, broker(book), now);
+const sellRecord = first.get("mock-sell");
+book.orders["mock-buy"] = { filled_qty: "0.01", status: "canceled" };
+book.position = [];
+const buyNotFlat = await first.reconcile(broker(book), buy.clientOrderId);
+book.orders["mock-sell"] = { filled_qty: "0.01", status: "filled" };
+book.position = [];
+book.open = [];
+const flat = await first.reconcile(broker(book), "mock-sell");
 first.release();
 const restarted = new Executor(paths, { keyId: "PKMOCKKEY1", secret: "mock-paper-secret" });
 restarted.observeMarket(openMarket(now), now);
@@ -95,17 +111,24 @@ const report = {
   realFill: false,
   note: "This demonstration uses a fake broker. It does not prove a real fill.",
   accepted: accepted.state,
+  acceptedFilledQty: proposed?.filledQty ?? null,
+  acceptedSubmitted: proposed?.submitted ?? null,
   partial: partial.state,
   partialQty: partial.filledQty,
   afterCancel: held.state,
   afterCancelQty: held.filledQty,
   exit: exit.ok,
+  sellClientOrderId: sellRecord?.clientOrderId ?? null,
+  sellSubmitted: sellRecord?.submitted ?? null,
+  buyCanceledWithEmptyBook: buyNotFlat.state,
   flat: flat.state,
+  flatClientOrderId: flat.clientOrderId,
   restarted: again?.state ?? null,
+  restartedSell: restarted.get("mock-sell")?.state ?? null,
   replay: replay.reason,
   postEnabled: POST_ENABLED,
 };
 console.log(JSON.stringify(report));
-if (accepted.state !== "PROPOSED" || partial.state !== "PARTIAL" || held.state !== "PARTIAL" || held.filledQty !== 0.01 || !exit.ok || flat.state !== "FLAT" || again?.state !== "FLAT" || replay.reason !== "duplicate or replay" || POST_ENABLED !== false) {
+if (accepted.state !== "PROPOSED" || proposed?.submitted !== false || proposed?.filledQty !== 0 || partial.state !== "PARTIAL" || held.state !== "PARTIAL" || held.filledQty !== 0.01 || !exit.ok || sellRecord?.state !== "PROPOSED" || sellRecord.submitted !== false || buyNotFlat.state !== "UNKNOWN" || flat.state !== "FLAT" || flat.clientOrderId !== "mock-sell" || again?.state !== "FLAT" || restarted.get("mock-sell")?.state !== "FLAT" || replay.reason !== "duplicate or replay" || POST_ENABLED !== false) {
   process.exit(1);
 }
