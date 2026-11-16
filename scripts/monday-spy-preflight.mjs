@@ -39,7 +39,8 @@ if (clock.body?.is_open) {
   const ask = Number(q.ap);
   const age = Date.now() - Date.parse(q.t);
   if (!(bid > 0) || !(ask > bid)) blockers.push("bid/ask invalid");
-  if (!Number.isFinite(age) || age > 5_000) blockers.push("quote older than 5 seconds");
+  if (!Number.isFinite(age) || age < 0) blockers.push("quote timestamp future or invalid");
+  if (age > 5_000) blockers.push("quote older than 5 seconds");
   const mid = (bid + ask) / 2;
   const spreadBps = mid ? (ask - bid) / mid * 10000 : Infinity;
   if (spreadBps > 20) blockers.push("spread above 20 bps");
@@ -48,7 +49,10 @@ if (clock.body?.is_open) {
 const limit = quote ? Math.round(quote.ask * 100) / 100 : null;
 const qty = limit ? Math.floor((25 / (limit * 1.001)) * 1000) / 1000 : null;
 const worst = limit && qty ? qty * limit * 1.001 : null;
-if (qty != null && (!(qty > 0) || !Number.isFinite(qty))) blockers.push("quantity invalid");
+if (!Array.isArray(positions.body)) blockers.push("positions response incomplete");
+else if (positions.body.length !== 0) blockers.push("unexpected positions");
+if (!Array.isArray(open.body)) blockers.push("open orders response incomplete");
+else if (open.body.length !== 0) blockers.push("unexpected open orders");
 const ticket = {
   verdict: blockers.length ? "NO-GO" : "READY_FOR_OPERATOR_APPROVAL",
   blockers,
