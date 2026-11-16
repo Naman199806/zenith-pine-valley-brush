@@ -1,21 +1,30 @@
 [Unit]
 Description=Apex Executor PAPER read-only
-After=network.target
+After=network-online.target
+Wants=network-online.target
 
 [Service]
 Type=simple
+User=apex-executor
+Group=apex-executor
 WorkingDirectory=/opt/apex-quant-x
-Environment=APEX_EXECUTOR_MODE=PAPER
 EnvironmentFile=-/etc/apex-executor/secrets.env
+Environment=APEX_EXECUTOR_MODE=PAPER
+Environment=APEX_EXECUTOR_DATA=/var/lib/apex-executor
+Environment=APEX_EXECUTOR_STATE=/var/lib/apex-executor/state.json
+Environment=APEX_EXECUTOR_LOCK=/var/lib/apex-executor/writer.lock
+Environment=APEX_EXECUTOR_INBOX=/var/lib/apex-executor/inbox.jsonl
+Environment=APEX_EXECUTOR_JOURNAL=/var/lib/apex-executor/journal.jsonl
+Environment=APEX_EXECUTOR_HERMES=/var/lib/apex-executor/hermes.json
+Environment=APEX_EXECUTOR_FILLS=/var/lib/apex-executor/fills.jsonl
+Environment=APEX_EXECUTOR_PAPER_SECRETS_FILE=/etc/apex-executor/paper.json
 ExecStart=/usr/bin/node --experimental-strip-types services/apex-executor/src/main.ts
 Restart=on-failure
+RestartSec=3
 NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
 ReadWritePaths=/var/lib/apex-executor
-Environment=APEX_EXECUTOR_STATE=/var/lib/apex-executor/state.json
-Environment=APEX_EXECUTOR_LOCK=/var/lib/apex-executor/writer.lock
-Environment=APEX_EXECUTOR_INBOX=/var/lib/apex-executor/inbox.jsonl
 
 [Install]
 WantedBy=multi-user.target
