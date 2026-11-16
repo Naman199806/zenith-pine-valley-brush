@@ -1,23 +1,9 @@
 /**
- * Position lifecycle owned by Apex Executor.
- * FLAT → ENTRY_PENDING → PARTIAL/OPEN → EXIT_PENDING → CLOSED/FLAT
+ * Position lifecycle. Broker reconciliation is authoritative.
+ * A partial BUY cannot become FLAT until positions and open orders are both zero.
  */
 
-export type PositionState = "FLAT" | "ENTRY_PENDING" | "PARTIAL" | "OPEN" | "EXIT_PENDING" | "CLOSED";
-
-const NEXT: Record<PositionState, PositionState[]> = {
-  FLAT: ["ENTRY_PENDING"],
-  ENTRY_PENDING: ["PARTIAL", "OPEN", "FLAT", "CLOSED"],
-  PARTIAL: ["OPEN", "EXIT_PENDING", "CLOSED"],
-  OPEN: ["EXIT_PENDING", "CLOSED"],
-  EXIT_PENDING: ["CLOSED", "FLAT"],
-  CLOSED: ["FLAT"],
-};
-
-export function transitionPosition(from: PositionState, to: PositionState): PositionState {
-  if (!NEXT[from].includes(to)) throw new Error(`invalid lifecycle ${from} -> ${to}`);
-  return to;
-}
+export type PositionState = "FLAT" | "ENTRY_PENDING" | "PARTIAL" | "OPEN" | "EXIT_PENDING" | "UNKNOWN" | "CLOSED";
 
 export interface LifecycleRecord {
   clientOrderId: string;
@@ -25,13 +11,26 @@ export interface LifecycleRecord {
   filledQty: number;
   linkedExitId: string | null;
   unknown: boolean;
+  alerted: boolean;
 }
 
-export function applyBrokerStatus(rec: LifecycleRecord, status: string, filledQty: number): LifecycleRecord {
-  if (status === "rejected" || status === "canceled") return { ...rec, state: transitionPosition(rec.state, "FLAT"), unknown: false };
-  if (status === "unknown") return { ...rec, unknown: true };
-  if (status === "partially_filled") return { ...rec, state: transitionPosition(rec.state === "FLAT" ? "ENTRY_PENDING" : rec.state, "PARTIAL"), filledQty };
-  if (status === "filled" && rec.state === "EXIT_PENDING") return { ...rec, state: "CLOSED", filledQty, unknown: false };
-  if (status === "filled") return { ...rec, state: transitionPosition(rec.state === "FLAT" ? "ENTRY_PENDING" : rec.state, "OPEN"), filledQty, unknown: false };
-  return rec;
+export function onObservedFill(rec: LifecycleRecord, filledQty: number): LifecycleRecord {
+  if (!(filledQty >= 0) || !Number.isFinite(filledQty)) throw new Error("nonfinite fill");
+  if (filledQty > 0 && filledQty < rec.filledQty) throw new Error("fill decreased");
+  const state: PositionState = filledQty === 0 ? rec.state : filledQty > 0 && rec.state === "ENTRY_PENDING" ? "PARTIAL" : rec.state;
+  return { ...rec, state, filledQty, unknown: false };
+}
+
+export function markUnknown(rec: LifecycleRecord): LifecycleRecord {
+  return { ...rec, state: "UNKNOWN", unknown: true, alerted: true };
+}
+
+export function reconcileToBroker(rec: LifecycleRecord, ownedQty: number, openOrders: number): LifecycleRecord {
+  if (!Number.isFinite(ownedQty) || ownedQty < 0 || !Number.isFinite(openOrders) || openOrders < 0) {
+    return markUnknown(rec);
+  }
+  if (ownedQty === 0 && openOrders === 0) return { ...rec, state: "FLAT", filledQty: 0, unknown: false };
+  if (ownedQty > 0 && rec.state === "EXIT_PENDING") return { ...rec, state: "PARTIAL", filledQty: ownedQty };
+  if (ownedQty > 0) return { ...rec, state: ownedQty < rec.filledQty ? "PARTIAL" : "OPEN", filledQty: ownedQty, unknown: false };
+  return { ...rec, state: "UNKNOWN", unknown: true, alerted: true };
 }

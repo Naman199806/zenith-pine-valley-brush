@@ -4,6 +4,8 @@ Independent execution runtime. Apex Quant X proposes. This service is the only p
 
 ## Startup
 
+Health token comes from `/etc/apex-executor/secrets.env`, not from the unit file.
+
 ```powershell
 cd C:\Users\sharm\apex-quant-x-clean
 $env:APEX_EXECUTOR_MODE = "PAPER"
@@ -11,7 +13,7 @@ $env:APEX_EXECUTOR_HEALTH_TOKEN = "<local token>"
 node --experimental-strip-types services/apex-executor/src/main.ts
 ```
 
-Health: `GET http://127.0.0.1:8787/health` with header `x-executor-token`.
+POST is hard-disabled. Operator proof is verified against `APEX_OPERATOR_SECRET`. Research cannot mint it.
 
 ## Invariants
 

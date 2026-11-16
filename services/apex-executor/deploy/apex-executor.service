@@ -6,7 +6,7 @@ After=network.target
 Type=simple
 WorkingDirectory=/opt/apex-quant-x
 Environment=APEX_EXECUTOR_MODE=PAPER
-Environment=APEX_EXECUTOR_HEALTH_TOKEN=replace-me
+EnvironmentFile=-/etc/apex-executor/secrets.env
 ExecStart=/usr/bin/node --experimental-strip-types services/apex-executor/src/main.ts
 Restart=on-failure
 NoNewPrivileges=true

@@ -4,7 +4,7 @@
  * node --experimental-strip-types services/apex-executor/src/main.ts
  */
 import { createServer } from "node:http";
-import { loadConfig, Executor, activationAllowed, assertNoLiveCreds } from "./runtime.ts";
+import { loadConfig, Executor, assertNoLiveCreds } from "./runtime.ts";
 
 assertNoLiveCreds(process.env);
 const config = loadConfig();
@@ -15,7 +15,7 @@ const token = process.env.APEX_EXECUTOR_HEALTH_TOKEN || "";
 createServer((req, res) => {
   if (req.url === "/health" && req.headers["x-executor-token"] === token && token) {
     res.writeHead(200, { "content-type": "application/json" });
-    res.end(JSON.stringify({ ...exec.health(), activation: activationAllowed() }));
+    res.end(JSON.stringify(exec.health()));
     return;
   }
   res.writeHead(401);
