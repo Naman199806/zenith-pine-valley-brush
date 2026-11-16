@@ -13,7 +13,9 @@ $env:APEX_EXECUTOR_HEALTH_TOKEN = "<local token>"
 node --experimental-strip-types services/apex-executor/src/main.ts
 ```
 
-POST is hard-disabled. Operator proof is verified against `APEX_OPERATOR_SECRET`. Research cannot mint it.
+POST is hard-disabled. Accepting an instruction marks it `PROPOSED`, not transmitted.
+Operator proofs use the versioned payload in `src/approval.ts`, shared with `scripts/operator-sign-ticket.mjs`.
+The health token and operator secret come from the environment or `/etc/apex-executor/secrets.env`. They are not logged.
 
 ## Invariants
 

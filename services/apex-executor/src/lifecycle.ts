@@ -3,7 +3,7 @@
  * A partial BUY cannot become FLAT until positions and open orders are both zero.
  */
 
-export type PositionState = "FLAT" | "ENTRY_PENDING" | "PARTIAL" | "OPEN" | "EXIT_PENDING" | "UNKNOWN" | "CLOSED";
+export type PositionState = "PROPOSED" | "FLAT" | "ENTRY_PENDING" | "PARTIAL" | "OPEN" | "EXIT_PENDING" | "UNKNOWN" | "CLOSED";
 
 export interface LifecycleRecord {
   clientOrderId: string;
