@@ -1,8 +1,10 @@
 /**
- * Research-side multi-strategy decision engine.
- * Scores are eligibility ranks, not win probabilities.
- * No strategy is approved. Nothing here can submit an order.
+ * Research-side multi-strategy decision framework.
+ * Research eligibility is not trading authorization.
+ * Scores are ranks, not probabilities. No order can be submitted from here.
  */
+
+import { STRATEGY_REGISTRY as CANONICAL } from "./canonical-decision.ts";
 
 export const LOGICAL_ROLES = [
   "Scout", "Vector", "Atlas", "Oracle", "Pulse", "Volta",
@@ -11,6 +13,7 @@ export const LOGICAL_ROLES = [
 ] as const;
 
 export type Regime = "TREND" | "RANGE" | "HIGH_VOL" | "UNKNOWN";
+export type EvidenceStatus = "ACTUAL_ANALYSIS" | "SYNTHETIC_FIXTURE" | "UNAVAILABLE" | "STALE" | "MISSING_EVIDENCE" | "BLOCKED";
 
 export interface RegisteredStrategy {
   id: string;
@@ -18,32 +21,43 @@ export interface RegisteredStrategy {
   entry: string;
   exit: string;
   regimes: Regime[];
-  dataRequirements: string[];
+  requiredData: string[];
+  optionalData: string[];
   validationVerdict: "NO_WINNER" | "INSUFFICIENT" | "SYNTHETIC_FIXTURE";
   approved: false;
   brokerExecutable: false;
 }
 
-export const STRATEGY_REGISTRY: Record<string, RegisteredStrategy> = {
+const REGISTRY_MUTABLE: Record<string, RegisteredStrategy> = {
   "etf-xs-breakout-20-v1": {
     id: "etf-xs-breakout-20-v1", version: "etf-xs-breakout-20-v1",
     entry: "20-day breakout above 200-SMA", exit: "10-day low or 50-SMA",
-    regimes: ["TREND"], dataRequirements: ["bars", "spy"],
+    regimes: ["TREND"], requiredData: ["bars", "spy"], optionalData: ["macro"],
     validationVerdict: "NO_WINNER", approved: false, brokerExecutable: false,
   },
   "etf-weekly-momentum-v1": {
     id: "etf-weekly-momentum-v1", version: "etf-weekly-momentum-v1",
     entry: "weekly rank among SPY QQQ IWM", exit: "rank loss or trend break",
-    regimes: ["TREND"], dataRequirements: ["bars", "spy"],
+    regimes: ["TREND"], requiredData: ["bars", "spy"], optionalData: ["macro"],
     validationVerdict: "NO_WINNER", approved: false, brokerExecutable: false,
   },
   "synthetic-eligible-fixture": {
     id: "synthetic-eligible-fixture", version: "synthetic-eligible-fixture",
     entry: "test fixture only", exit: "test fixture only",
-    regimes: ["TREND", "RANGE", "HIGH_VOL"], dataRequirements: ["bars"],
+    regimes: ["TREND", "RANGE", "HIGH_VOL"], requiredData: ["bars"], optionalData: ["macro"],
     validationVerdict: "SYNTHETIC_FIXTURE", approved: false, brokerExecutable: false,
   },
 };
+
+function freezeDeep<T>(value: T): T {
+  if (value && typeof value === "object") {
+    for (const child of Object.values(value)) freezeDeep(child);
+    Object.freeze(value);
+  }
+  return value;
+}
+
+export const STRATEGY_REGISTRY = freezeDeep(REGISTRY_MUTABLE);
 
 export interface EvidencePacket {
   role: string;
@@ -53,7 +67,7 @@ export interface EvidencePacket {
   missing: boolean;
   relevantStrategies: string[];
   output: Record<string, unknown>;
-  status: "ACTIVE" | "BLOCKED" | "UNAVAILABLE" | "STALE";
+  status: EvidenceStatus;
 }
 
 export interface MarketSnapshot {
@@ -63,41 +77,57 @@ export interface MarketSnapshot {
   sma200: number | null;
   vol20: number | null;
   dataAgeMs: number;
-  macroPresent: boolean;
-  positioningPresent: boolean;
+  present: Record<string, boolean>;
   ownedQty: number;
+  ownedSymbol: "SPY" | "QQQ" | "IWM" | null;
+  ownedStrategyVersion: string | null;
   correlatedExposure: number;
+}
+
+export interface RankRow {
+  id: string;
+  baseline: number;
+  score: number | "NOT_RANKABLE";
+  reason: string;
 }
 
 export interface DecisionPacket {
   recommendation: "BUY" | "EXIT" | "NO_TRADE";
+  tradingAuthorized: false;
   regime: Regime;
-  eligible: string[];
+  researchEligible: string[];
   rejected: { id: string; reason: string }[];
-  ranking: { baseline: string | null; scored: string | null; score: number | null; scoreIsProbability: false };
+  ranking: { status: "RANKED" | "NOT_RANKABLE"; rows: RankRow[]; selected: string | null; scoreIsProbability: false };
   evidence: EvidencePacket[];
   sigmaVeto: boolean;
   sentinelVeto: boolean;
   sizedNotional: number | null;
-  pilot: { source: "RESEARCH_PROPOSAL"; executable: false; strategyApproved: false; operatorProof: null };
-  hermes: { strategyVersion: string | null; regime: Regime; realPerformance: false };
+  pilot: { source: "RESEARCH_PROPOSAL"; executable: false; strategyApproved: false; operatorProof: null; strategyVersion: string | null; symbol: string };
+  hermes: { strategyVersion: string | null; symbol: string; regime: Regime; realPerformance: false };
   warden: string[];
   reason: string;
 }
 
 const STALE_MS = 15 * 60 * 1000;
 
+function finite(n: number): boolean {
+  return Number.isFinite(n);
+}
+
 export function classifyRegime(m: MarketSnapshot): Regime {
-  if (m.sma200 == null || m.vol20 == null) return "UNKNOWN";
+  if (!finite(m.close) || m.sma200 == null || m.vol20 == null || !finite(m.sma200) || !finite(m.vol20)) return "UNKNOWN";
   if (m.vol20 > 0.02) return "HIGH_VOL";
   if (m.close > m.sma200) return "TREND";
   return "RANGE";
 }
 
-function packet(role: string, m: MarketSnapshot, missing: boolean, status: EvidencePacket["status"], output: Record<string, unknown>): EvidencePacket {
+function packet(role: string, m: MarketSnapshot, status: EvidenceStatus, output: Record<string, unknown>): EvidencePacket {
   return {
-    role, timestamp: m.asOf, provenance: "research-snapshot", confidence: missing ? null : 1,
-    missing, relevantStrategies: Object.keys(STRATEGY_REGISTRY), output, status,
+    role, timestamp: m.asOf, provenance: status === "ACTUAL_ANALYSIS" ? "computed-from-snapshot" : status,
+    confidence: status === "ACTUAL_ANALYSIS" ? 1 : null,
+    missing: status === "MISSING_EVIDENCE" || status === "UNAVAILABLE",
+    relevantStrategies: Object.keys(STRATEGY_REGISTRY),
+    output, status,
   };
 }
 
@@ -106,76 +136,104 @@ export function evaluate(m: MarketSnapshot, signals: Record<string, "BUY" | "EXI
   bull?: "BUY" | "NO";
   bear?: "BUY" | "NO";
   timeoutRoles?: string[];
+  exitReason?: string;
 } = {}): DecisionPacket {
-  const billingLocked = opts.billingLocked !== false;
-  const regime = classifyRegime(m);
-  const stale = m.dataAgeMs > STALE_MS;
   const warden: string[] = [];
+  if (!finite(m.close) || !finite(m.dataAgeMs) || !finite(m.ownedQty) || !finite(m.correlatedExposure) || m.ownedQty < 0 || m.correlatedExposure < 0 || m.correlatedExposure > 1) {
+    warden.push("invalid numerical input");
+  }
+  if (!Number.isFinite(Date.parse(m.asOf))) warden.push("invalid timestamp");
+  const stale = m.dataAgeMs > STALE_MS;
   if (stale) warden.push("stale market data");
-  if (!m.macroPresent) warden.push("missing macro");
-  if (!m.positioningPresent) warden.push("missing positioning");
+  if (!m.present.macro) warden.push("missing macro");
+  if (!m.present.positioning) warden.push("missing positioning");
+  const regime = classifyRegime(m);
+  const billingLocked = opts.billingLocked !== false;
   const evidence = [
-    packet("Scout", m, false, "ACTIVE", { symbol: m.symbol }),
-    packet("Vector", m, m.sma200 == null, m.sma200 == null ? "UNAVAILABLE" : "ACTIVE", { regime }),
-    packet("Atlas", m, !m.macroPresent, m.macroPresent ? "ACTIVE" : "UNAVAILABLE", { macro: m.macroPresent }),
-    packet("Oracle", m, opts.timeoutRoles?.includes("Oracle") ?? false, opts.timeoutRoles?.includes("Oracle") ? "UNAVAILABLE" : "ACTIVE", {}),
-    packet("Pulse", m, opts.timeoutRoles?.includes("Pulse") ?? true, "UNAVAILABLE", {}),
-    packet("Volta", m, m.vol20 == null, m.vol20 == null ? "UNAVAILABLE" : "ACTIVE", { vol20: m.vol20 }),
-    packet("Bull", m, billingLocked, billingLocked ? "BLOCKED" : "ACTIVE", { view: opts.bull ?? null }),
-    packet("Bear", m, billingLocked, billingLocked ? "BLOCKED" : "ACTIVE", { view: opts.bear ?? null }),
+    packet("Scout", m, m.symbol ? "ACTUAL_ANALYSIS" : "MISSING_EVIDENCE", { symbol: m.symbol }),
+    packet("Vector", m, m.sma200 == null ? "MISSING_EVIDENCE" : "ACTUAL_ANALYSIS", { regime, sma200: m.sma200 }),
+    packet("Atlas", m, m.present.macro ? "ACTUAL_ANALYSIS" : "MISSING_EVIDENCE", { macro: m.present.macro === true }),
+    packet("Oracle", m, opts.timeoutRoles?.includes("Oracle") ? "UNAVAILABLE" : "MISSING_EVIDENCE", {}),
+    packet("Pulse", m, "UNAVAILABLE", {}),
+    packet("Volta", m, m.vol20 == null ? "MISSING_EVIDENCE" : stale ? "STALE" : "ACTUAL_ANALYSIS", { vol20: m.vol20 }),
+    packet("Bull", m, billingLocked ? "BLOCKED" : "ACTUAL_ANALYSIS", { view: opts.bull ?? null }),
+    packet("Bear", m, billingLocked ? "BLOCKED" : "ACTUAL_ANALYSIS", { view: opts.bear ?? null }),
   ];
   if (opts.bull && opts.bear && opts.bull !== opts.bear) warden.push("Bull/Bear conflict");
   if (evidence.some((e) => e.status === "UNAVAILABLE")) warden.push("unavailable agent");
 
   const rejected: { id: string; reason: string }[] = [];
-  const eligible: string[] = [];
-  for (const s of Object.values(STRATEGY_REGISTRY)) {
-    if (s.approved !== false || s.validationVerdict === "NO_WINNER") {
-      rejected.push({ id: s.id, reason: s.validationVerdict === "NO_WINNER" ? "unapproved NO_WINNER" : "not approved" });
+  const researchEligible: string[] = [];
+  const rows: RankRow[] = [];
+  for (const [id, signal] of Object.entries(signals)) {
+    const local = STRATEGY_REGISTRY[id];
+    const canonical = CANONICAL[id];
+    if (!local) {
+      rejected.push({ id, reason: "unknown strategy" });
+      continue;
+    }
+    if ((canonical && (canonical.approved !== false || canonical.verdict === "NO_WINNER")) || local.validationVerdict === "NO_WINNER") {
+      rejected.push({ id, reason: "unapproved NO_WINNER" });
+      continue;
+    }
+    const missingRequired = local.requiredData.filter((key) => m.present[key] !== true);
+    if (missingRequired.length) {
+      rejected.push({ id, reason: `missing required ${missingRequired.join(",")}` });
       continue;
     }
     if (stale) {
-      rejected.push({ id: s.id, reason: "stale data" });
+      rejected.push({ id, reason: "stale data" });
       continue;
     }
-    if (!s.regimes.includes(regime) && regime !== "UNKNOWN") {
-      rejected.push({ id: s.id, reason: "regime mismatch" });
+    if (regime === "UNKNOWN" || !local.regimes.includes(regime)) {
+      rejected.push({ id, reason: "regime mismatch" });
       continue;
     }
-    if (signals[s.id] !== "BUY" && signals[s.id] !== "EXIT") {
-      rejected.push({ id: s.id, reason: "no signal" });
+    if (signal !== "BUY" && signal !== "EXIT") {
+      rejected.push({ id, reason: "no signal" });
       continue;
     }
-    eligible.push(s.id);
+    researchEligible.push(id);
+    const optionalMissing = local.optionalData.some((key) => m.present[key] !== true);
+    rows.push({
+      id,
+      baseline: 1,
+      score: optionalMissing || m.vol20 == null ? "NOT_RANKABLE" : Number((m.close / (m.sma200 || m.close)).toFixed(6)),
+      reason: optionalMissing ? "optional evidence missing; not treated as verified" : "measured close/sma200",
+    });
   }
+  rows.sort((a, b) => a.id.localeCompare(b.id));
+  const rankable = rows.every((row) => row.score !== "NOT_RANKABLE");
+  const selected = rankable && rows.length ? [...rows].sort((a, b) => Number(b.score) - Number(a.score) || a.id.localeCompare(b.id))[0]!.id : null;
 
-  const protective = m.ownedQty > 0 && Object.values(signals).includes("EXIT");
-  const sentinelVeto = stale || regime === "UNKNOWN" || (!m.macroPresent && !protective);
-  const sigmaVeto = eligible.every((id) => STRATEGY_REGISTRY[id]!.approved === false) || eligible.length === 0;
+  const protectiveCandidate = m.ownedQty > 0 && m.ownedSymbol === m.symbol && m.ownedStrategyVersion && signals[m.ownedStrategyVersion] === "EXIT";
+  const protective = Boolean(protectiveCandidate && opts.exitReason === "risk-reduction" && STRATEGY_REGISTRY[m.ownedStrategyVersion!]);
+  if (m.ownedQty > 0 && signals[m.ownedStrategyVersion ?? ""] === "EXIT" && !protective) warden.push("exit rejected: not bound to owned position");
+  const sentinelVeto = stale || regime === "UNKNOWN" || warden.includes("invalid numerical input") || (!m.present.macro && !protective);
   const conflict = m.correlatedExposure > 0.5;
   let recommendation: DecisionPacket["recommendation"] = "NO_TRADE";
-  let reason = "no eligible approved strategy";
+  let reason = "no trading authorization; research eligibility is not approval";
   if (protective) {
     recommendation = "EXIT";
-    reason = "protective exit does not wait for LLM consensus";
-  } else if (sentinelVeto || sigmaVeto || conflict) {
+    reason = "protective exit bound to owned position; does not wait for LLM consensus";
+  } else if (sentinelVeto || conflict || researchEligible.length === 0) {
     recommendation = "NO_TRADE";
-    reason = conflict ? "correlated exposure" : sentinelVeto ? "Sentinel veto" : "Sigma rejects unapproved strategy";
+    reason = conflict ? "correlated exposure" : sentinelVeto ? "Sentinel veto" : "Sigma rejects unapproved or ineligible strategy";
   }
 
-  const scored = eligible[0] ?? null;
   return {
     recommendation,
+    tradingAuthorized: false,
     regime,
-    eligible,
+    researchEligible,
     rejected,
-    ranking: { baseline: scored, scored, score: scored ? eligible.length : null, scoreIsProbability: false },
+    ranking: { status: rankable && rows.length ? "RANKED" : "NOT_RANKABLE", rows, selected, scoreIsProbability: false },
     evidence,
-    sigmaVeto: recommendation === "BUY" ? false : true,
+    sigmaVeto: true,
     sentinelVeto,
-    sizedNotional: recommendation === "NO_TRADE" ? null : Math.min(25, 25 / (1 + m.correlatedExposure)),
-    pilot: { source: "RESEARCH_PROPOSAL", executable: false, strategyApproved: false, operatorProof: null },
-    hermes: { strategyVersion: scored, regime, realPerformance: false },
+    sizedNotional: recommendation === "EXIT" ? null : null,
+    pilot: { source: "RESEARCH_PROPOSAL", executable: false, strategyApproved: false, operatorProof: null, strategyVersion: selected, symbol: m.symbol },
+    hermes: { strategyVersion: m.ownedStrategyVersion, symbol: m.symbol, regime, realPerformance: false },
     warden,
     reason,
   };
