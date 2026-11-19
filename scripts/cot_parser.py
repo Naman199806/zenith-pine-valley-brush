@@ -34,6 +34,8 @@ def trailing_signal(rows: list[dict]) -> list[dict]:
         window = [r["commercialNet"] for r in ordered[max(0, i - 51):i + 1]]
         if len(window) < 52:
             continue
-        median = sorted(window)[len(window) // 2]
+        ordered_window = sorted(window)
+        mid = len(ordered_window) // 2
+        median = (ordered_window[mid - 1] + ordered_window[mid]) / 2 if len(window) % 2 == 0 else ordered_window[mid]
         out.append({**row, "median": median, "aboveMedian": row["commercialNet"] > median})
     return out

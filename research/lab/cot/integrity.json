@@ -1,0 +1,10 @@
+{
+  "id": "cot-es-commercial-median-v1",
+  "implementation": "UNVERIFIED",
+  "reason": "The evaluation script and trade ledger are not committed. The prior ending-equity figure is not reproducible evidence.",
+  "reportCountExplanation": "Exact market-name match found 152 rows because the contract name changed from E-MINI S&P 500 STOCK INDEX to E-MINI S&P 500. Earlier years were excluded by the exact filter.",
+  "publicationAssumption": "usableFrom was assumed as as-of plus 6 days. Actual CFTC release timestamps, including 2023 publication interruptions, were not verified.",
+  "median": "corrected to the average of the two central values for an even window. The stored result used the upper central value and is not reissued.",
+  "verdict": "NO_WINNER",
+  "strategyApproved": false
+}

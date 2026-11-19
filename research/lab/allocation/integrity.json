@@ -1,0 +1,7 @@
+{
+  "id": "allocation-v1",
+  "implementation": "UNVERIFIED",
+  "reason": "The evaluation code and trade ledger are not committed. Stored ending-equity figures are not reproducible evidence.",
+  "verdict": "NO_WINNER",
+  "strategyApproved": false
+}
