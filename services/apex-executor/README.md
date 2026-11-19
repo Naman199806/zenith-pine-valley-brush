@@ -242,6 +242,26 @@ Every step below is NO-GO unless it is true. Do not continue past a NO-GO.
 9. **Close the window.** Set `PAPER_POST_ENABLED=false`, restart, and confirm health still shows paper post disabled. LIVE remains disabled.
 10. **Archive.** Keep the journal excerpt, the health JSON, and the Alpaca order ids. Do not copy secrets into that archive.
 
+## Enablement build: first supervised SPY buy-and-exit
+
+This branch is the proposed PAPER enablement. It is a draft and is not a merge. `LIVE_POST_ENABLED` and `strategyApproved` stay false. `supervisedActivation` on `/health` starts `closed`. A dev flag does not open it. The disabled adapter still throws `PAPER POST DISABLED` before `fetch`. The production process (`src/main.ts`) is the only path that can reach the PAPER host, and only while both of these are true: `PAPER_POST_ENABLED=true`, and an operator-signed activation window of at most 15 minutes. A restart drops the window. After `expiresAt`, writes stop without another step.
+
+Startup runs recovery before the process accepts an instruction. One write is in flight at a time, under the writer lock. A POST that times out becomes `UNKNOWN` and is not sent again. Cancel is `DELETE /v2/orders/{id}` followed by GET until the broker reports `canceled`, `filled`, or `partially_filled`. The executor does not invent `filled_qty: 0`. FILL pages use `page_size`, `page_token`, and `direction`. A short page ends the read. A full page that is not followed by a short page is not absence.
+
+GO only when every line below is true. Stop at the first NO-GO.
+
+1. **Review this draft.** The diff is the production wiring, not a strategy change. NO-GO if LIVE is reachable or `strategyApproved` can become true.
+2. **Rotate the PAPER key.** Do not reuse the leaked key. Install the new key only on the VM, mode `0600`. NO-GO if a LIVE key is present.
+3. **Deploy this SHA** with the versioned rsync and the rollback tree above. Leave `PAPER_POST_ENABLED` unset. NO-GO if the deploy writes `/var/lib/apex-executor` or `/etc/apex-executor`.
+4. **Health before the window.** Authenticated `/health`: `stale` false, `reconciliation.outcome` `OK`, `unknown` 0, `supervisedActivation` `closed`, `strategyApproved` false, `livePost` `DISABLED`. NO-GO on `MISMATCH`, `UNKNOWN_ORDERS`, or a stale poll.
+5. **Open a short window during regular hours.** The broker clock `is_open` is true. Set `PAPER_POST_ENABLED=true` and restart. Post `/activation` with an operator HMAC over `PAPER_ACTIVATION`, the start, and the end. The end is at most 15 minutes after the start. `/health` then shows `supervisedActivation` `open` and `activationExpiresAt`. NO-GO if a dev flag was the only change, or if the clock is closed.
+6. **Sign the buy.** One `market_notional` SPY buy, notional string at most `25.00`, `time_in_force` `day`, `extended_hours` false. Operator HMAC and Sigma/Sentinel HMAC cover those fields plus `client_order_id` and expiry. Post it to `/instructions`. Check the journal intent, then the broker GET by that client order id, then `/health`. Hermes has an operational fill: order id, activity id, qty, price, time, provenance. `feeKnown: false` means net profit is not attributable. The row does not qualify a strategy. NO-GO above $25, on a second working order, or if the POST body is not the signed fields.
+7. **Sign the exit.** A separate `market_qty` sell for the broker-confirmed remaining quantity, linked to the filled buy. Same checks. NO-GO if the qty exceeds the position minus pending sells.
+8. **Flat.** Positions GET qty 0 for SPY, open orders empty, reconciliation `OK`, both records `FLAT`. NO-GO if flat is only the local journal.
+9. **Deactivate.** Let the window expire or restart the process. Set `PAPER_POST_ENABLED=false` and restart again. `/health` shows `supervisedActivation` `closed`. LIVE stays disabled.
+10. **Rollback.** If health is stale, the process crashes, or a write happens outside the window, stop the service and restore the previous tree with the commands above. Do not roll back to hide `UNKNOWN` or `MISMATCH`.
+11. **Archive.** Journal excerpt, `/health` JSON from before, during, and after, and the Alpaca order ids. No secrets in the archive.
+
 ## Invariants
 
 - One writer lock. A live pid is never replaced. `EPERM` from `process.kill(pid, 0)` counts as alive. A dead pid can be recovered only after that pid is provably gone.

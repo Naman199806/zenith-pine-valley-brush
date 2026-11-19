@@ -13,6 +13,7 @@ import { SUPERVISED_PAPER_TEST } from "../../../src/lib/apex/live/connectivity.t
 import { HermesJournal } from "../../../src/lib/apex/live/journal.ts";
 import type { IntentRecord } from "../../../src/lib/apex/live/executor.ts";
 import type { ExecutionOutcome } from "../../../src/lib/apex/research/hermes-outcomes.ts";
+import { verifyActivation, type PaperActivation } from "./activation.ts";
 import { verifyApproval } from "./approval.ts";
 import { BUDGET_RESERVE, outstandingOrderCap, PER_ORDER_TRADING_GETS, pollTradingCost, RequestBudget, TRADING_API_BUDGET_PER_MIN } from "./budget.ts";
 import { BrokerPollError, loadPaperPollSnapshot, type BrokerPollClient } from "./broker.ts";
@@ -107,6 +108,12 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ExecutorConfig
   };
 }
 
+function writerEvidenceChannel(writer: PaperWriter): "alpaca-http" | "injected" {
+  const tagged = writer as PaperWriter & { evidenceChannel?: string };
+  if (tagged.evidenceChannel === "injected") return "injected";
+  return writer.networkWrite === "alpaca-http" ? "alpaca-http" : "injected";
+}
+
 function blankRecord(msg: TradeInstruction): LifecycleRecord {
   return {
     clientOrderId: msg.clientOrderId,
@@ -153,6 +160,9 @@ export class Executor {
   private poll: BrokerPollState = blankBrokerPoll();
   private budget = new RequestBudget();
   private recoveryPending = false;
+  private startupComplete = true;
+  private activation: { startsAt: number; expiresAt: number } | null = null;
+  private chain: Promise<unknown> = Promise.resolve();
   private fillFeePolicy: "require" | "explicit_zero" = "require";
   /** Full-success clock for THIS process. Never restored from disk. */
   private processSuccessAt: number | null = null;
@@ -343,6 +353,8 @@ export class Executor {
     durabilityWarning: string | null;
     brokerPoll: BrokerPollHealth;
     requestBudget: { limitPerMin: number; used: number; reserve: number; outstandingCap: number; inFlight: number };
+    supervisedActivation: "closed" | "open";
+    activationExpiresAt: string | null;
   } {
     const directoriesSynced = directoryFsyncSupported();
     this.ready = this.computeReady(now);
@@ -370,7 +382,39 @@ export class Executor {
         outstandingCap: this.orderCap(),
         inFlight: this.inFlightCount(),
       },
+      supervisedActivation: this.activationOpen(now) ? "open" : "closed",
+      activationExpiresAt: this.activation ? new Date(this.activation.expiresAt).toISOString() : null,
     };
+  }
+
+  startupIsReady(): boolean {
+    return this.startupComplete;
+  }
+
+  markStartupPending(): void {
+    this.startupComplete = false;
+  }
+
+  markStartupReady(): void {
+    this.startupComplete = true;
+  }
+
+  activationOpen(now = Date.now()): boolean {
+    if (!this.activation) return false;
+    return now >= this.activation.startsAt && now < this.activation.expiresAt;
+  }
+
+  armPaperActivation(window: PaperActivation, env: NodeJS.ProcessEnv, now = Date.now()): { ok: boolean; reason: string } {
+    const problem = verifyActivation(window, env, now);
+    if (problem) return { ok: false, reason: problem };
+    this.activation = { startsAt: Date.parse(window.startsAt), expiresAt: Date.parse(window.expiresAt) };
+    return { ok: true, reason: "activation window open" };
+  }
+
+  serialize<T>(fn: () => Promise<T>): Promise<T> {
+    const run = this.chain.then(fn, fn);
+    this.chain = run.then(() => undefined, () => undefined);
+    return run;
   }
 
   /**
@@ -1001,9 +1045,11 @@ export class Executor {
   }
 
   private async readOwned(writer: PaperWriter, symbol: string, t: number): Promise<number | string> {
-    if (!this.budget.tryTake(t, 1, "exit")) return "request budget exceeded";
+    if (writer.networkWrite === "alpaca-http") {
+      if (!this.budget.canTake(t, 1, "exit")) return "request budget exceeded";
+    } else if (!this.budget.tryTake(t, 1, "exit")) return "request budget exceeded";
     try {
-      const positions = await writer.getPositions();
+      const positions = await writer.getPositions(writer.networkWrite === "alpaca-http" ? "exit" : undefined);
       if (positions.status !== 200 || !Array.isArray(positions.body)) return "owned quantity unresolved";
       const row = (positions.body as { symbol?: string; qty?: string }[]).find((item) => item.symbol === symbol);
       const qty = row ? Number(row.qty) : 0;
@@ -1020,6 +1066,8 @@ export class Executor {
     if (converted) return { submitted: false, reason: converted, orderState: null };
     if (writer.networkWrite !== "injected" && writer.networkWrite !== "alpaca-http") return { submitted: false, reason: "REAL_BROKER_WRITE_DISABLED", orderState: null };
     const order = instruction as SupervisedOrder;
+    if (writer.networkWrite === "alpaca-http" && !this.startupComplete) return this.refuseSupervised(order, "startup recovery incomplete");
+    if (writer.networkWrite === "alpaca-http" && !this.activationOpen(this.clock(now))) return this.refuseSupervised(order, "activation window closed");
     const purpose = order.side === "buy" ? "entry" as const : "exit" as const;
     const early = this.supervisedGate(order, env, this.clock(now), purpose, true);
     if (early) return this.refuseSupervised(order, early);
@@ -1041,7 +1089,9 @@ export class Executor {
     const t = this.clock(now);
     if (!this.freshAt(t)) return this.refuseSupervised(order, "stale broker evidence");
     if (Date.parse(order.expiresAt) <= t) return this.refuseSupervised(order, "instruction expired");
-    if (!this.budget.tryTake(t, 1, purpose)) return this.refuseSupervised(order, "request budget exceeded");
+    if (writer.networkWrite === "alpaca-http") {
+      if (!this.budget.canTake(t, 1, purpose)) return this.refuseSupervised(order, "request budget exceeded");
+    } else if (!this.budget.tryTake(t, 1, purpose)) return this.refuseSupervised(order, "request budget exceeded");
     const immediate = this.clock(now);
     if (!this.freshAt(immediate) || Date.parse(order.expiresAt) <= immediate) {
       return this.refuseSupervised(order, !this.freshAt(immediate) ? "stale broker evidence" : "instruction expired");
@@ -1050,9 +1100,14 @@ export class Executor {
     if (problem) return this.refuseSupervised(order, problem);
     const submitted: LifecycleRecord = { ...rec, state: "SUBMISSION_ATTEMPTED", submitted: true, orderState: "submitted" };
     this.store(submitted, "submitted; durable intent fsynced before broker write");
+    const finalBody = exactBrokerBody(stored);
+    if (brokerBodyMismatch(stored, finalBody)) {
+      const unknown = this.becomeUnknown(submitted, "broker body does not match the signed order");
+      return { submitted: false, reason: "broker body does not match the signed order", orderState: unknown.orderState ?? "UNKNOWN" };
+    }
     let result: WriteResult;
     try {
-      result = await writer.submit(body);
+      result = await writer.submit(finalBody);
     } catch (error) {
       if (error instanceof ProcessCrash) throw error;
       const unknown = this.becomeUnknown(submitted, "submit interrupted; not retried");
@@ -1071,7 +1126,10 @@ export class Executor {
     if (this.poll.reconciliation.outcome !== "OK") return { canceled: false, reason: "broker reconciliation failed", orderState: rec.orderState ?? null };
     const from = rec.orderState;
     if (from !== "accepted" && from !== "partially_filled") return { canceled: false, reason: "cancel refused", orderState: from ?? null };
-    if (!this.budget.tryTake(now, 1, "cancel")) return { canceled: false, reason: "request budget exceeded", orderState: from };
+    if (writer.networkWrite === "alpaca-http") {
+      if (!this.activationOpen(now)) return { canceled: false, reason: "activation window closed", orderState: from };
+      if (!this.budget.canTake(now, 2, "cancel")) return { canceled: false, reason: "request budget exceeded", orderState: from };
+    } else if (!this.budget.tryTake(now, 1, "cancel")) return { canceled: false, reason: "request budget exceeded", orderState: from };
     let result: WriteResult;
     try {
       result = await writer.cancel(clientOrderId);
@@ -1118,7 +1176,7 @@ export class Executor {
     const rounds = Number.isFinite(attempts) ? attempts : 0;
     for (let i = 0; i < rounds; i += 1) {
       const t = this.clock(now);
-      if (!this.budget.tryTake(t, 4, "recovery")) {
+      if (writer.networkWrite !== "alpaca-http" && !this.budget.tryTake(t, 4, "recovery")) {
         const rec = this.records.get(id);
         if (rec) this.becomeUnknown(rec, "recovery budget exhausted; absence not confirmed");
         return "unknown";
@@ -1212,7 +1270,9 @@ export class Executor {
   }
 
   private async readBroker(writer: PaperWriter, clientOrderId: string, now: number): Promise<{ ok: true; order: { status: number; body: unknown }; positions: { status: number; body: unknown }; open: { status: number; body: unknown } } | { ok: false; reason: string }> {
-    if (!this.budget.tryTake(now, PER_ORDER_TRADING_GETS, "recovery")) return { ok: false, reason: "request budget exceeded" };
+    if (writer.networkWrite === "alpaca-http") {
+      if (!this.budget.canTake(now, PER_ORDER_TRADING_GETS, "recovery")) return { ok: false, reason: "request budget exceeded" };
+    } else if (!this.budget.tryTake(now, PER_ORDER_TRADING_GETS, "recovery")) return { ok: false, reason: "request budget exceeded" };
     try {
       const positions = await writer.getPositions();
       const open = await writer.getOpenOrders();
@@ -1275,8 +1335,12 @@ export class Executor {
   }
 
   private async applyAck(rec: LifecycleRecord, result: { kind: "ack"; status: number; body: Record<string, unknown> }, writer: PaperWriter, now: number): Promise<LifecycleRecord> {
-    if (!this.budget.canTake(now, 2, "recovery")) return this.becomeUnknown(rec, "request budget exceeded");
-    this.budget.tryTake(now, 2, "recovery");
+    if (writer.networkWrite === "alpaca-http") {
+      if (!this.budget.canTake(now, 2, "recovery")) return this.becomeUnknown(rec, "request budget exceeded");
+    } else {
+      if (!this.budget.canTake(now, 2, "recovery")) return this.becomeUnknown(rec, "request budget exceeded");
+      this.budget.tryTake(now, 2, "recovery");
+    }
     let positions: { status: number; body: unknown };
     let open: { status: number; body: unknown };
     try {
@@ -1305,7 +1369,9 @@ export class Executor {
 
   private async noteActivities(rec: LifecycleRecord, writer: PaperWriter, now: number): Promise<void> {
     if (typeof rec.brokerOrderId !== "string" || rec.brokerOrderId.length === 0) return;
-    if (!this.budget.tryTake(now, 1, "recovery")) return;
+    if (writer.networkWrite === "alpaca-http") {
+      if (!this.budget.canTake(now, 1, "recovery")) return;
+    } else if (!this.budget.tryTake(now, 1, "recovery")) return;
     let activities: unknown = [];
     try {
       const listed = await writer.listFills();
@@ -1325,7 +1391,7 @@ export class Executor {
       side: rec.side,
       intendedPrice: rec.avgPrice != null && rec.avgPrice > 0 ? rec.avgPrice : 1,
       activities,
-      evidenceChannel: writer.networkWrite === "alpaca-http" ? "alpaca-http" : "injected",
+      evidenceChannel: writerEvidenceChannel(writer),
       seenFillIds: this.fills.map((event) => event.fillId).filter((id): id is string => Boolean(id)),
     });
     if (!extracted.events.length) return;

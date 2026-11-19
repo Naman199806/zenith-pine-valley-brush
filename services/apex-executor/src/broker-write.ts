@@ -1,3 +1,5 @@
+import type { BudgetPurpose } from "./budget.ts";
+
 /**
  * Real Trading API writes are unreachable in this build.
  * REAL_BROKER_WRITE_ENABLED is a constant false. Write methods throw before
@@ -31,13 +33,13 @@ export interface PaperWriter {
   readonly networkWrite: "disabled" | "injected" | "alpaca-http";
   submit(order: object): Promise<WriteResult>;
   cancel(clientOrderId: string): Promise<WriteResult>;
-  getOrder(clientOrderId: string): Promise<{ status: number; body: unknown }>;
-  getPositions(): Promise<{ status: number; body: unknown }>;
-  getOpenOrders(): Promise<{ status: number; body: unknown }>;
+  getOrder(clientOrderId: string, purpose?: BudgetPurpose): Promise<{ status: number; body: unknown }>;
+  getPositions(purpose?: BudgetPurpose): Promise<{ status: number; body: unknown }>;
+  getOpenOrders(purpose?: BudgetPurpose): Promise<{ status: number; body: unknown }>;
   /** GET /v2/orders?status=open|all&limit=500 */
-  listOrders(status: "open" | "all"): Promise<{ status: number; body: unknown }>;
+  listOrders(status: "open" | "all", purpose?: BudgetPurpose): Promise<{ status: number; body: unknown }>;
   /** GET /v2/account/activities/FILL */
-  listFills(): Promise<{ status: number; body: unknown }>;
+  listFills(purpose?: BudgetPurpose): Promise<{ status: number; body: unknown }>;
 }
 
 /**

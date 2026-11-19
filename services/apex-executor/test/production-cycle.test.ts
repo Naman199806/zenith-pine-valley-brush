@@ -7,6 +7,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 import { Executor, openMarket, type ExecutorConfig } from "../src/runtime.ts";
+import { signActivation } from "../src/activation.ts";
 import { exactBrokerBody, signSupervisedGate, signSupervisedOrder, type SupervisedOrder } from "../src/supervised-order.ts";
 import { createHttpPaperWriter, runSupervisedPaperCycle } from "../src/production-cycle.ts";
 import { createDisabledPaperWriter } from "../src/broker-write.ts";
@@ -43,20 +44,36 @@ function start(dir: string): Executor {
   return exec;
 }
 
+function env(): NodeJS.ProcessEnv {
+  return { ...process.env, APEX_OPERATOR_SECRET: SECRET, APEX_GATE_SECRET: GATE, PAPER_POST_ENABLED: "true" };
+}
+
+function arm(exec: Executor, at = now): void {
+  const startsAt = new Date(at).toISOString();
+  const expiresAt = new Date(at + 10 * 60 * 1000).toISOString();
+  const opened = exec.armPaperActivation({ v: 1, kind: "PAPER_ACTIVATION", startsAt, expiresAt, operatorProof: signActivation({ startsAt, expiresAt }, SECRET) }, env(), at);
+  assert.equal(opened.ok, true, opened.reason);
+}
+
 function fakeFetch(calls: { method: string; url: string; body: string | undefined }[]): typeof fetch {
   return (async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input);
-    calls.push({ method: init?.method ?? "GET", url, body: typeof init?.body === "string" ? init.body : undefined });
-    assert.equal(url.includes("://api.alpaca.markets"), false);
-    if (init?.method === "POST") {
+    const method = init?.method ?? "GET";
+    calls.push({ method, url, body: typeof init?.body === "string" ? init.body : undefined });
+    assert.equal(url.includes("://api.alpaca.markets") && !url.includes("paper-api.alpaca.markets"), false);
+    if (method === "POST") {
       return new Response(JSON.stringify({
         id: "brk-http", client_order_id: "http-buy", status: "accepted", filled_qty: "0", filled_avg_price: null,
         symbol: "SPY", side: "buy", type: "market", time_in_force: "day", extended_hours: false,
       }), { status: 200 });
     }
-    if (init?.method === "DELETE") return new Response(null, { status: 204 });
+    if (method === "DELETE") return new Response(null, { status: 204 });
     if (url.includes("by_client_order_id")) {
-      return new Response(JSON.stringify({ id: "brk-http", client_order_id: "http-buy", status: "accepted", filled_qty: "0", symbol: "SPY", side: "buy" }), { status: 200 });
+      const deleted = calls.some((call) => call.method === "DELETE");
+      return new Response(JSON.stringify({
+        id: "brk-http", client_order_id: "http-buy", status: deleted ? "canceled" : "accepted",
+        filled_qty: "0", filled_avg_price: null, symbol: "SPY", side: "buy",
+      }), { status: 200 });
     }
     return new Response("[]", { status: 200 });
   }) as typeof fetch;
@@ -67,19 +84,20 @@ test("the production cycle posts the signed body to the paper host and nowhere e
   const exec = start(dir);
   const calls: { method: string; url: string; body: string | undefined }[] = [];
   const signed = order();
-  const env = { ...process.env, APEX_OPERATOR_SECRET: SECRET, APEX_GATE_SECRET: GATE, PAPER_POST_ENABLED: "true" };
   try {
     exec.acceptSupervised(signed, now);
-    const result = await runSupervisedPaperCycle({ exec, fetchImpl: fakeFetch(calls), creds, env, now, order: signed });
+    arm(exec);
+    const result = await runSupervisedPaperCycle({ exec, fetchImpl: fakeFetch(calls), creds, env: env(), now, order: signed });
     assert.equal(result.submitted, true, result.reason);
     const post = calls.find((call) => call.method === "POST");
     assert.ok(post);
     assert.equal(post.url, "https://paper-api.alpaca.markets/v2/orders");
     assert.deepEqual(JSON.parse(post.body ?? "{}"), exactBrokerBody(signed));
     assert.equal(calls.some((call) => call.method === "POST" && call.url.includes("api.alpaca.markets") && !call.url.includes("paper-api")), false);
-    const writer = createHttpPaperWriter(fakeFetch(calls), creds);
+    const writer = createHttpPaperWriter(fakeFetch(calls), creds, { charge: () => true });
     const canceled = await writer.cancel("http-buy");
     assert.equal(canceled.kind, "ack");
+    if (canceled.kind === "ack") assert.equal(canceled.body.status, "canceled");
     assert.ok(calls.some((call) => call.method === "DELETE" && call.url === "https://paper-api.alpaca.markets/v2/orders/brk-http"));
   } finally {
     exec.release();
@@ -92,10 +110,10 @@ test("a stale supervised order does not reach fetch POST", async () => {
   const exec = start(dir);
   const calls: { method: string; url: string; body: string | undefined }[] = [];
   const signed = order();
-  const env = { ...process.env, APEX_OPERATOR_SECRET: SECRET, APEX_GATE_SECRET: GATE, PAPER_POST_ENABLED: "true" };
   try {
     exec.acceptSupervised(signed, now);
-    const result = await runSupervisedPaperCycle({ exec, fetchImpl: fakeFetch(calls), creds, env, now: now + 5_001, order: signed });
+    arm(exec);
+    const result = await runSupervisedPaperCycle({ exec, fetchImpl: fakeFetch(calls), creds, env: env(), now: now + 5_001, order: signed });
     assert.match(result.reason, /stale/);
     assert.equal(calls.some((call) => call.method === "POST"), false);
   } finally {
