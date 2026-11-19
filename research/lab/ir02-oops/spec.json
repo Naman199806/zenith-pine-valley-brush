@@ -1,0 +1,13 @@
+{
+  "id": "ir02-oops-gap-reversal-v1",
+  "frozenBeforeEvaluation": true,
+  "source": "Published opening-gap reversal. Apex adaptations are marked.",
+  "gap": "First regular-session minute opens strictly below the prior session low, or strictly above the prior session high.",
+  "entry": "Long if a later minute trades back through the prior low. Short if a later minute trades back through the prior high. Fill is the worse of the trigger and that minute's open.",
+  "stop": "Long stop is the lowest price before the entry minute. Short stop is the highest price before the entry minute.",
+  "exit": "Stop or the last regular-session minute close, whichever is reached first.",
+  "ambiguity": "If the entry minute also reaches the stop, the trade is stopped. No profitable intrabar ordering is assumed.",
+  "costsBpsPerSide": 6,
+  "data": "Verified chronological SIP minute bars only. Daily bars are not a substitute.",
+  "strategyApproved": false
+}

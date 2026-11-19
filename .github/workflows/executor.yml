@@ -29,7 +29,7 @@ jobs:
         # Explicit file list. PowerShell and cmd do not expand *.test.ts.
         run: node services/apex-executor/scripts/run-tests.mjs
       - name: IR-01 strategy tests
-        run: python -m unittest scripts/test_ir01.py scripts/test_ir03.py scripts/test_alpaca_sip_entitlement.py
+        run: python -m unittest scripts/test_ir01.py scripts/test_ir03.py scripts/test_alpaca_sip_entitlement.py scripts/test_oops.py
         env:
           PYTHONPATH: scripts
       - name: Research handoff and Hermes outcomes
