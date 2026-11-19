@@ -6,11 +6,12 @@
 import { closeSync, existsSync, fsyncSync, mkdirSync, openSync, readFileSync, writeSync } from "node:fs";
 import { dirname } from "node:path";
 import type { PositionState } from "./lifecycle.ts";
+import type { OrderState } from "./order-machine.ts";
 
 export interface JournalRecord {
   seq: number;
   at: string;
-  kind: "accept" | "reject" | "state" | "kill" | "recovery";
+  kind: "accept" | "reject" | "state" | "kill" | "recovery" | "intent" | "illegal";
   clientOrderId: string | null;
   nonce: string | null;
   decisionId: string | null;
@@ -24,6 +25,7 @@ export interface JournalRecord {
   expiresAt: string | null;
   linkedEntryId: string | null;
   state: PositionState | null;
+  orderState: OrderState | null;
   filledQty: number | null;
   avgPrice: number | null;
   submitCount: number | null;

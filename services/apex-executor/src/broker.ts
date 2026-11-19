@@ -10,6 +10,7 @@ import { assertLiveReadOnly } from "../../../src/lib/apex/broker/live-readonly.t
 import type { Transport } from "../../../src/lib/apex/broker/client.ts";
 import { assertPaperCreds, paperGet, type PaperCreds } from "../../../src/lib/apex/broker/paper-read.ts";
 import { fetchPaperEvidence, PAPER_EVIDENCE_URLS, type BrokerEvidence } from "../../../src/lib/apex/broker/paper-equity-transport.ts";
+import { assertRealBrokerWriteDisabled } from "./broker-write.ts";
 import { classifyHttpStatus, classifyThrown, type BrokerPollFailureKind } from "./broker-poll.ts";
 import type { MarketSnapshot } from "./risk.ts";
 import type { TransportKind } from "./mode.ts";
@@ -63,7 +64,10 @@ export function createAlpacaPaperTransport(creds: PaperCreds): ExecutorTransport
   return {
     kind: "alpaca-paper",
     async call(input) {
-      if (input.method !== "GET") throw new Error("PAPER POST DISABLED");
+      if (input.method !== "GET") {
+        assertRealBrokerWriteDisabled(input.method);
+        throw new Error("PAPER POST DISABLED");
+      }
       assertPaperUrl(input.url);
       const path = `${new URL(input.url).pathname}${new URL(input.url).search}`;
       return paperGet(creds, path);
@@ -111,7 +115,10 @@ export class BrokerPollError extends Error {
 export function createPaperPollClient(creds: PaperCreds): BrokerPollClient {
   return {
     async request(input) {
-      if (input.method !== "GET") throw new Error("PAPER POST DISABLED");
+      if (input.method !== "GET") {
+        assertRealBrokerWriteDisabled(input.method);
+        throw new Error("PAPER POST DISABLED");
+      }
       assertPaperUrl(input.url);
       const res = await fetch(input.url, {
         method: "GET",

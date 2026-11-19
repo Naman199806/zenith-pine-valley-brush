@@ -30,6 +30,7 @@ export function unsignedResearchProposal(value: unknown): string | null {
 export function verifyInstruction(msg: TradeInstruction, secrets: { operator: string | null; gate: string | null }, now = Date.now()): string | null {
   if (msg.strategyApproved !== false) return "strategy approval cannot be asserted by research";
   if (msg.category === "STRATEGY_TRADE") return "STRATEGY_TRADE blocked while strategyApproved=false";
+  if (msg.category !== "CONNECTIVITY_TEST" && msg.category !== "SUPERVISED_PAPER_TEST") return "unsupported category";
   if (!msg.decisionId || !msg.strategyId || !msg.strategyVersion) return "missing identity";
   if (msg.orderType !== "limit" || msg.session !== "REGULAR" || msg.timeInForce !== "day") return "limit day regular required";
   if (!(msg.qty > 0) || !Number.isFinite(msg.qty) || !(msg.limitPrice > 0) || !Number.isFinite(msg.limitPrice)) return "quantity or limit invalid";

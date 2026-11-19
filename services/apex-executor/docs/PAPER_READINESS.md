@@ -114,7 +114,24 @@ Gap: no shared budget, no reserve, no outstanding cap, and no refusal when a cal
 
 Gap, outside this service and not changed here: `research/lab/*.ts` and `src/lib/apex/broker/runtime.server.ts` reference `.grok/paper-credentials.json`. The executor does not read that file. Research code is not on this branch's edit list.
 
-## What this branch will add
+## After this branch
+
+| # | Item | Before | After |
+| --- | --- | --- | --- |
+| 1 | Signed single-use PAPER authorization | partial | present. Nonce is journaled (`runtime.ts` audit) and reloaded from the journal on start (`absorbJournal`). `SUPERVISED_PAPER_TEST` is a separate category. `STRATEGY_TRADE` stays blocked. `strategyApproved` stays false. |
+| 2 | Durable pre-submit intent | partial | present. Accept journals `intent` and fsyncs it. `submitPaper` fsyncs `submitted` before the injected writer is called. |
+| 3 | Idempotent broker submission | partial | present. The signed id must match `^[A-Za-z0-9_-]{1,47}$`. The journal keeps it across a wiped snapshot. A second submit does not call the writer. |
+| 4 | Unknown-order / timeout recovery | partial | present. Timeout, 5xx, and 429 become `UNKNOWN` with one attempt. `recoverInFlight` GETs by client order id. A 404 on a sent order is confirmed absence and is not resent. A new id needs a new approval. |
+| 5 | Partial and complete fills | partial | present. Cumulative qty and average move only when qty increases. The same fill id is not recorded twice. A repeated average at the same qty is kept. |
+| 6 | Authorized exits and oversell | partial | present. A sell needs its own signature, fresh evidence, and reconciliation. Qty must be within the broker position minus other pending sells. The kill switch does not waive those gates. |
+| 7 | Broker-confirmed FLAT | present | present. Unchanged rule: sell fill, position qty 0, and no open orders. A buy is not marked FLAT from an empty local book. |
+| 8 | Hermes PAPER fill attribution | partial | present for the supervised path. Broker fills carry provenance `broker`, source `PAPER`, and `feeSource` `broker` or `explicit_zero`. `productionFillProblem` rejects mock rows. The default reconcile path still labels direct test fills as mock. |
+| 9 | Kill switch and request budget | partial | present. `engageKillSwitch` blocks new buys and persists. Exits stay gated. Shared budget 150/min, reserve 10, outstanding cap 1. The 5000ms cap is unchanged. |
+| 10 | Credential and PAPER/LIVE isolation | partial | present inside the executor. Paper keys still come only from the VM env file. A live base URL is refused. Health has no secrets. The real write throws before `fetch`. Research files that mention `.grok/paper-credentials.json` are outside this service and are not read here. |
+
+The real broker write remains unreachable. Tests drive an injected writer. `POST_ENABLED`, `PAPER_POST_ENABLED`, `LIVE_POST_ENABLED`, and `strategyApproved` are still false constants.
+
+## Scope of the change
 
 The implementation that follows stays inside `services/apex-executor/` (and `.github/workflows/executor.yml` only if CI must learn a new test file; the runner already reads the test directory).
 

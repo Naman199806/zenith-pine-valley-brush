@@ -1,0 +1,771 @@
+/**
+ * Supervised PAPER lifecycle. Fake clock, fake broker, no network.
+ * STRATEGY_TRADE stays blocked. strategyApproved stays false.
+ * The real adapter throws before fetch.
+ */
+import assert from "node:assert/strict";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import test from "node:test";
+import { issueGateProof } from "../../../src/lib/apex/live/executor.ts";
+import { signApproval, proposedTicket, type CanonicalApproval } from "../src/approval.ts";
+import { TRADING_API_BUDGET_PER_MIN, outstandingOrderCap } from "../src/budget.ts";
+import { createAlpacaPaperTransport, createPaperPollClient } from "../src/broker.ts";
+import { ProcessCrash, createDisabledPaperWriter, type PaperWriter } from "../src/broker-write.ts";
+import { productionFillProblem } from "../src/fill-event.ts";
+import { LIVE_POST_ENABLED, PAPER_POST_ENABLED, POST_ENABLED, STRATEGY_APPROVED, Executor, openMarket, type ExecutorConfig } from "../src/runtime.ts";
+import { MODE_GATE } from "../src/mode.ts";
+import { transitionRefusal } from "../src/order-machine.ts";
+import { FRACTIONAL_TRADING_DOC, POST_ORDER_DOC, clientOrderIdProblem, formatNotional, spyNotionalBuy } from "../src/order-shape.ts";
+import { flatSnapshot } from "../src/risk.ts";
+import type { TradeInstruction } from "../src/instruction.ts";
+
+const now = Date.parse("2026-11-16T15:00:00Z");
+const SECRET = "operator-secret-32-characters-min";
+const GATE = "gate-secret-value-32-characters-ok";
+
+function approval(over: Partial<CanonicalApproval> = {}): CanonicalApproval {
+  return {
+    v: 1, source: "OPERATOR_SIGNED", clientOrderId: "spy-buy-1", symbol: "SPY", side: "buy", orderType: "limit",
+    timeInForce: "day", qty: 0.02, limitPrice: 100, session: "REGULAR", expiresAt: "2099-01-01T00:00:00Z", nonce: "spy-nonce-1",
+    category: "SUPERVISED_PAPER_TEST", exitAuthorizationId: null, linkedEntryId: null, ...over,
+  };
+}
+
+function instruction(over: Partial<CanonicalApproval> = {}, sized?: number, gateOpts?: { dataIntegrityOk?: boolean; riskOk?: boolean }): TradeInstruction {
+  const base = approval(over);
+  const notional = sized ?? Number((base.qty * base.limitPrice).toFixed(2));
+  const gate = issueGateProof(
+    { singleUseId: base.clientOrderId, symbol: base.symbol, side: base.side, qty: base.qty, limitPrice: base.limitPrice },
+    { dataIntegrityOk: gateOpts?.dataIntegrityOk !== false, riskOk: gateOpts?.riskOk !== false, notional: Math.min(notional, 24) },
+    new Date(now),
+    GATE,
+  );
+  return {
+    ...base,
+    decisionId: "supervised-decision",
+    strategyId: "supervised-paper",
+    strategyVersion: "v1",
+    strategyApproved: false,
+    evidenceTimestamp: new Date(now).toISOString(),
+    sizedNotional: notional,
+    operatorProof: signApproval(base, SECRET),
+    gateProof: gate,
+  };
+}
+
+function env(over: Record<string, string | undefined> = {}): NodeJS.ProcessEnv {
+  const next: NodeJS.ProcessEnv = { ...process.env, APEX_OPERATOR_SECRET: SECRET, APEX_GATE_SECRET: GATE, PAPER_POST_ENABLED: "true" };
+  for (const [key, value] of Object.entries(over)) {
+    if (value === undefined) delete next[key];
+    else next[key] = value;
+  }
+  return next;
+}
+
+function paths(dir: string): ExecutorConfig {
+  return {
+    mode: "PAPER", postEnabled: false, liveCredentialsLoaded: false,
+    statePath: join(dir, "state.json"), lockPath: join(dir, "writer.lock"), inboxPath: join(dir, "inbox.jsonl"),
+    journalPath: join(dir, "journal.jsonl"), hermesPath: join(dir, "hermes.json"), fillsPath: join(dir, "fills.jsonl"),
+  };
+}
+
+function start(dir: string): Executor {
+  process.env.APEX_OPERATOR_SECRET = SECRET;
+  process.env.APEX_GATE_SECRET = GATE;
+  const exec = new Executor(paths(dir), { keyId: "PKTESTKEY1", secret: "paper-secret" });
+  exec.observeMarket(openMarket(now), now);
+  return exec;
+}
+
+interface Book {
+  submits: object[];
+  cancels: string[];
+  positions: { symbol: string; qty: string }[];
+  open: Record<string, unknown>[];
+  orders: Map<string, Record<string, unknown>>;
+  mode: "fill" | "accept" | "reject" | "ambiguous" | "down" | "limit" | "crash" | "partial" | "throw";
+  crashAfterRecord: boolean;
+  missingFee: boolean;
+}
+
+function book(): Book {
+  return { submits: [], cancels: [], positions: [], open: [], orders: new Map(), mode: "fill", crashAfterRecord: false, missingFee: false };
+}
+
+function execution(id: string, qty: string, price: string, fee: string | null): Record<string, unknown> {
+  const row: Record<string, unknown> = { id, order_id: `brk-${id.split("-")[0]}`, qty, price, transaction_time: "2026-11-16T15:01:00.000Z" };
+  if (fee != null) row.fee = fee;
+  return row;
+}
+
+function writer(state: Book): PaperWriter {
+  return {
+    networkWrite: "injected",
+    async submit(order) {
+      state.submits.push(order);
+      const row = order as { client_order_id: string; side: string; qty?: string; notional?: string };
+      if (state.mode === "throw") throw new Error("timed out");
+      if (state.mode === "crash") {
+        if (state.crashAfterRecord) {
+          state.orders.set(row.client_order_id, { id: `brk-${row.client_order_id}`, client_order_id: row.client_order_id, status: "accepted", filled_qty: "0", symbol: "SPY", side: row.side });
+        }
+        throw new ProcessCrash();
+      }
+      if (state.mode === "ambiguous") return { kind: "ambiguous", reason: "timeout" };
+      if (state.mode === "down") return { kind: "unavailable", status: 503 };
+      if (state.mode === "limit") return { kind: "rate_limit" };
+      if (state.mode === "reject") return { kind: "rejected", status: 422, body: { code: 422 } };
+      if (state.mode === "accept") {
+        const body = { id: `brk-${row.client_order_id}`, client_order_id: row.client_order_id, status: "new", filled_qty: "0", symbol: "SPY", side: row.side };
+        state.orders.set(row.client_order_id, body);
+        state.open = [body];
+        return { kind: "ack", status: 200, body };
+      }
+      const qty = row.side === "sell" ? String(row.qty) : "0.02";
+      const fillId = `fill-${row.client_order_id}`;
+      const body: Record<string, unknown> = {
+        id: `brk-${row.client_order_id}`,
+        client_order_id: row.client_order_id,
+        status: state.mode === "partial" ? "partially_filled" : "filled",
+        filled_qty: state.mode === "partial" ? "0.01" : qty,
+        filled_avg_price: "100",
+        symbol: "SPY",
+        side: row.side,
+        executions: [execution(fillId, state.mode === "partial" ? "0.01" : qty, "100", state.missingFee ? null : "0")],
+      };
+      state.orders.set(row.client_order_id, body);
+      if (row.side === "buy") state.positions = [{ symbol: "SPY", qty: String(body.filled_qty) }];
+      else state.positions = [];
+      state.open = [];
+      return { kind: "ack", status: 200, body };
+    },
+    async cancel(id) {
+      state.cancels.push(id);
+      const body = { id: `brk-${id}`, client_order_id: id, status: "canceled", filled_qty: "0", symbol: "SPY", side: "buy" };
+      state.orders.set(id, body);
+      state.open = [];
+      state.positions = [];
+      return { kind: "ack", status: 200, body };
+    },
+    async getOrder(id) {
+      const row = state.orders.get(id);
+      return row ? { status: 200, body: row } : { status: 404, body: null };
+    },
+    async getPositions() {
+      return { status: 200, body: state.positions };
+    },
+    async getOpenOrders() {
+      return { status: 200, body: state.open };
+    },
+  };
+}
+
+test("order transitions, the $25 notional shape, and the outstanding cap are fixed", () => {
+  assert.equal(transitionRefusal("intent", "filled"), "illegal order transition intent -> filled");
+  assert.equal(transitionRefusal("filled", "submitted"), "illegal order transition filled -> submitted");
+  assert.equal(transitionRefusal("submitted", "UNKNOWN"), null);
+  assert.equal(transitionRefusal("UNKNOWN", "accepted"), null);
+  assert.equal(outstandingOrderCap(), 1);
+  assert.equal(TRADING_API_BUDGET_PER_MIN < 200, true);
+  assert.equal(formatNotional(25), "25.00");
+  assert.equal(formatNotional(25.01), null);
+  assert.equal(formatNotional(0.99), null);
+  assert.equal(clientOrderIdProblem("a".repeat(48)), "client_order_id must be 1 to 47 characters of letters, digits, underscore, or hyphen");
+  assert.equal(clientOrderIdProblem("a".repeat(47)), null);
+  const order = spyNotionalBuy("spy-buy-1", 2);
+  assert.equal(order.ok, true);
+  if (order.ok) {
+    assert.equal(order.order.type, "market");
+    assert.equal(order.order.time_in_force, "day");
+    assert.equal(order.order.extended_hours, false);
+    assert.equal(order.order.notional, "2.00");
+    assert.equal("qty" in order.order, false);
+  }
+  assert.match(FRACTIONAL_TRADING_DOC, /docs\.alpaca\.markets/);
+  assert.match(POST_ORDER_DOC, /postorder/);
+});
+
+test("real broker writer and poll client throw before fetch on POST, PATCH, and DELETE", async () => {
+  let calls = 0;
+  const fetchImpl = (async () => {
+    calls += 1;
+    return new Response("no");
+  }) as typeof fetch;
+  const disabled = createDisabledPaperWriter(fetchImpl);
+  await assert.rejects(() => disabled.submit({}), /PAPER POST DISABLED/);
+  await assert.rejects(() => disabled.cancel("spy-buy-1"), /PAPER POST DISABLED/);
+  assert.equal(calls, 0);
+  const original = globalThis.fetch;
+  const methods: string[] = [];
+  globalThis.fetch = (async (_url: unknown, init?: { method?: string }) => {
+    methods.push(init?.method ?? "GET");
+    return new Response("{}", { status: 401 });
+  }) as typeof fetch;
+  try {
+    const paper = createPaperPollClient({ keyId: "PKTESTKEY1", secret: "paper-secret" });
+    const transport = createAlpacaPaperTransport({ keyId: "PKTESTKEY1", secret: "paper-secret" });
+    for (const method of ["POST", "PATCH", "DELETE"] as const) {
+      await assert.rejects(() => paper.request({ method, url: "https://paper-api.alpaca.markets/v2/orders" }), /PAPER POST DISABLED/);
+      await assert.rejects(() => transport.call({ method, url: "https://paper-api.alpaca.markets/v2/orders" }), /PAPER POST DISABLED/);
+    }
+    assert.deepEqual(methods, []);
+  } finally {
+    globalThis.fetch = original;
+  }
+  assert.equal(POST_ENABLED, false);
+  assert.equal(PAPER_POST_ENABLED, false);
+  assert.equal(LIVE_POST_ENABLED, false);
+  assert.equal(STRATEGY_APPROVED, false);
+  assert.equal(MODE_GATE.autonomousStrategyTrading, "DISABLED");
+});
+
+test("supervised SPY buy and authorized exit reach broker-confirmed FLAT with Hermes costs", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "spy-flat-"));
+  const ex = start(dir);
+  const state = book();
+  const broker = writer(state);
+  const buy = instruction();
+  try {
+    assert.equal(ex.accept(buy, now).state, "PROPOSED");
+    assert.equal(buy.strategyApproved, false);
+    assert.equal(buy.category, "SUPERVISED_PAPER_TEST");
+    const sent = await ex.submitPaper(buy, broker, env(), now);
+    assert.equal(sent.submitted, true);
+    assert.equal(sent.orderState, "filled");
+    assert.notEqual(ex.get(buy.clientOrderId)?.state, "FLAT");
+    assert.equal(state.positions[0]?.qty, "0.02");
+    const body = state.submits[0] as { type: string; time_in_force: string; notional: string; side: string; extended_hours: boolean };
+    assert.equal(body.type, "market");
+    assert.equal(body.time_in_force, "day");
+    assert.equal(body.notional, "2.00");
+    assert.equal(body.side, "buy");
+    assert.equal(body.extended_hours, false);
+    assert.equal(ex.fillEvents().length, 1);
+    assert.equal(productionFillProblem(ex.fillEvents()[0]!), null);
+    assert.equal(ex.fillEvents()[0]?.fee, 0);
+    assert.equal(ex.fillEvents()[0]?.feeSource, "broker");
+    assert.equal(ex.trustedEvidence().length, 1);
+    assert.equal(ex.trustedEvidence()[0]?.source, "PAPER");
+    const tooSoon = await broker.getOpenOrders();
+    assert.equal(Array.isArray(tooSoon.body) && (tooSoon.body as unknown[]).length, 0);
+    const sell = instruction({ side: "sell", clientOrderId: "spy-sell-1", nonce: "spy-sell-nonce", qty: 0.02, exitAuthorizationId: "exit-spy", linkedEntryId: buy.clientOrderId });
+    const get = async (url: string) => {
+      if (url.includes("/v2/positions")) return { status: 200, body: state.positions };
+      return { status: 200, body: state.open };
+    };
+    assert.equal((await ex.authorizeExit(buy.clientOrderId, sell, get, now)).ok, true);
+    state.mode = "fill";
+    const exited = await ex.submitPaper(sell, broker, env(), now);
+    assert.equal(exited.orderState, "filled");
+    assert.equal(ex.get(sell.clientOrderId)?.state, "FLAT");
+    assert.equal(ex.get(buy.clientOrderId)?.state, "FLAT");
+    assert.deepEqual(state.positions, []);
+    assert.deepEqual(state.open, []);
+    const sellBody = state.submits[1] as { side: string; qty: string; type: string; time_in_force: string };
+    assert.equal(sellBody.side, "sell");
+    assert.equal(sellBody.qty, "0.02");
+    assert.equal(sellBody.type, "market");
+    assert.equal(sellBody.time_in_force, "day");
+    assert.equal("notional" in sellBody, false);
+    assert.equal(ex.trustedEvidence().length, 2);
+    const hermes = readFileSync(join(dir, "hermes.json"), "utf8");
+    assert.match(hermes, /SUPERVISED_PAPER_TEST/);
+    assert.match(hermes, /strategyApproved=false/);
+    assert.equal(hermes.includes(SECRET), false);
+    assert.equal(ex.health(now).strategyApproved, false);
+    assert.equal(ex.health(now).postEnabled, false);
+  } finally {
+    ex.release();
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("partial fills keep cumulative qty and average and a repeated snapshot does not double them", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "spy-part-"));
+  const ex = start(dir);
+  const state = book();
+  state.mode = "partial";
+  const broker = writer(state);
+  const buy = instruction({ clientOrderId: "spy-part", nonce: "spy-part" });
+  try {
+    ex.accept(buy, now);
+    const first = await ex.submitPaper(buy, broker, env(), now);
+    assert.equal(first.orderState, "partially_filled");
+    assert.equal(ex.get(buy.clientOrderId)?.state, "PARTIAL");
+    assert.equal(ex.get(buy.clientOrderId)?.filledQty, 0.01);
+    assert.equal(ex.get(buy.clientOrderId)?.avgPrice, 100);
+    state.orders.set(buy.clientOrderId, {
+      id: `brk-${buy.clientOrderId}`,
+      status: "filled",
+      filled_qty: "0.02",
+      filled_avg_price: "105",
+      symbol: "SPY",
+      side: "buy",
+      executions: [
+        execution(`fill-${buy.clientOrderId}`, "0.01", "100", "0"),
+        execution(`${buy.clientOrderId}-2`, "0.01", "110", "0.02"),
+      ],
+    });
+    state.positions = [{ symbol: "SPY", qty: "0.02" }];
+    const second = await ex.syncPaper(buy.clientOrderId, broker, now);
+    assert.equal(second.orderState, "filled");
+    assert.equal(ex.get(buy.clientOrderId)?.filledQty, 0.02);
+    assert.equal(ex.get(buy.clientOrderId)?.avgPrice, 105);
+    assert.deepEqual(ex.fillEvents().map((row) => row.fillPrice), [100, 110]);
+    const again = await ex.syncPaper(buy.clientOrderId, broker, now);
+    assert.equal(again.orderState, "filled");
+    assert.equal(ex.fillEvents().length, 2);
+    assert.equal(ex.get(buy.clientOrderId)?.filledQty, 0.02);
+    assert.equal(ex.get(buy.clientOrderId)?.avgPrice, 105);
+    state.orders.set(buy.clientOrderId, { ...state.orders.get(buy.clientOrderId), filled_avg_price: "106" });
+    const drifted = await ex.syncPaper(buy.clientOrderId, broker, now);
+    assert.equal(drifted.orderState, "UNKNOWN");
+    assert.equal(state.submits.length, 1);
+  } finally {
+    ex.release();
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("reject, cancel, and a duplicate submit send the broker one write", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "spy-term-"));
+  const ex = start(dir);
+  const state = book();
+  state.mode = "reject";
+  const broker = writer(state);
+  const buy = instruction({ clientOrderId: "spy-rej", nonce: "spy-rej" });
+  try {
+    ex.accept(buy, now);
+    const rejected = await ex.submitPaper(buy, broker, env(), now);
+    assert.equal(rejected.orderState, "rejected");
+    assert.equal(state.submits.length, 1);
+    const again = await ex.submitPaper(buy, broker, env(), now);
+    assert.match(again.reason, /duplicate|new approval|not resubmitted/);
+    assert.equal(state.submits.length, 1);
+
+    const dir2 = mkdtempSync(join(tmpdir(), "spy-can-"));
+    const ex2 = start(dir2);
+    const state2 = book();
+    state2.mode = "accept";
+    const broker2 = writer(state2);
+    const working = instruction({ clientOrderId: "spy-work", nonce: "spy-work" });
+    ex2.accept(working, now);
+    assert.equal((await ex2.submitPaper(working, broker2, env(), now)).orderState, "accepted");
+    const canceled = await ex2.cancelPaper(working.clientOrderId, broker2, env(), now);
+    assert.equal(canceled.orderState, "canceled");
+    assert.equal(state2.cancels.length, 1);
+    const late = await ex2.submitPaper(working, broker2, env(), now);
+    assert.equal(late.submitted, false);
+    assert.equal(state2.submits.length, 1);
+    ex2.release();
+    rmSync(dir2, { recursive: true, force: true });
+  } finally {
+    ex.release();
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("ambiguous submit is resolved by GET and is never retried", async () => {
+  const foundDir = mkdtempSync(join(tmpdir(), "spy-found-"));
+  const found = start(foundDir);
+  const foundBook = book();
+  foundBook.mode = "ambiguous";
+  const foundBroker = writer(foundBook);
+  const buy = instruction({ clientOrderId: "spy-found", nonce: "spy-found" });
+  try {
+    found.accept(buy, now);
+    const ambiguous = await found.submitPaper(buy, foundBroker, env(), now);
+    assert.match(ambiguous.reason, /not retried/);
+    assert.equal(ambiguous.orderState, "UNKNOWN");
+    assert.equal(foundBook.submits.length, 1);
+    foundBook.orders.set(buy.clientOrderId, {
+      id: "brk-spy-found", client_order_id: buy.clientOrderId, status: "accepted", filled_qty: "0", symbol: "SPY", side: "buy",
+    });
+    const recovered = await found.recoverInFlight(foundBroker, now);
+    assert.equal(foundBook.submits.length, 1);
+    assert.equal(found.get(buy.clientOrderId)?.orderState, "accepted", recovered.reason);
+    assert.equal(recovered.resolved, false);
+    const retry = await found.submitPaper(buy, foundBroker, env(), now);
+    assert.equal(retry.submitted, false);
+    assert.equal(foundBook.submits.length, 1);
+  } finally {
+    found.release();
+    rmSync(foundDir, { recursive: true, force: true });
+  }
+
+  const goneDir = mkdtempSync(join(tmpdir(), "spy-gone-"));
+  const gone = start(goneDir);
+  const goneBook = book();
+  goneBook.mode = "ambiguous";
+  const goneBroker = writer(goneBook);
+  const missed = instruction({ clientOrderId: "spy-gone", nonce: "spy-gone" });
+  try {
+    gone.accept(missed, now);
+    await gone.submitPaper(missed, goneBroker, env(), now);
+    const absent = await gone.recoverInFlight(goneBroker, now);
+    assert.equal(absent.resolved, true);
+    assert.equal(gone.get(missed.clientOrderId)?.confirmedAbsent, true);
+    assert.match(readFileSync(join(goneDir, "journal.jsonl"), "utf8"), /confirmed absent; not resubmitted/);
+    assert.equal(goneBook.submits.length, 1);
+    const same = await gone.submitPaper(missed, goneBroker, env(), now);
+    assert.match(same.reason, /new approval|duplicate|not resubmitted/);
+    assert.equal(goneBook.submits.length, 1);
+    const fresh = instruction({ clientOrderId: "spy-new", nonce: "spy-new" });
+    assert.equal(gone.accept(fresh, now).state, "PROPOSED");
+    goneBook.mode = "fill";
+    assert.equal((await gone.submitPaper(fresh, goneBroker, env(), now)).submitted, true);
+    assert.equal(goneBook.submits.length, 2);
+  } finally {
+    gone.release();
+    rmSync(goneDir, { recursive: true, force: true });
+  }
+});
+
+test("restart after intent, after an unacked submit, and after an ack does not blind-retry", async () => {
+  const intentDir = mkdtempSync(join(tmpdir(), "spy-intent-"));
+  let intentEx: Executor | null = null;
+  try {
+    const first = start(intentDir);
+    const buy = instruction({ clientOrderId: "spy-intent", nonce: "spy-intent" });
+    first.accept(buy, now);
+    assert.match(readFileSync(join(intentDir, "journal.jsonl"), "utf8"), /spy-intent/);
+    const snap = JSON.parse(readFileSync(join(intentDir, "state.json"), "utf8")) as { nonces: string[]; clientOrderIds: string[] };
+    snap.nonces = [];
+    snap.clientOrderIds = [];
+    writeFileSync(join(intentDir, "state.json"), JSON.stringify(snap));
+    first.release();
+    intentEx = start(intentDir);
+    assert.equal(intentEx.accept(buy, now).reason, "duplicate or replay");
+    assert.equal(intentEx.get(buy.clientOrderId)?.orderState, "intent");
+    const state = book();
+    const broker = writer(state);
+    const recovered = await intentEx.recoverInFlight(broker, now);
+    assert.match(recovered.reason, /no in-flight/);
+    assert.equal(state.submits.length, 0);
+    const polled = await intentEx.runBrokerPoll({
+      async request(input: { url: string }) {
+        if (input.url.includes("/v2/account")) return { status: 200, body: { status: "ACTIVE", trading_blocked: false } };
+        if (input.url.includes("/v2/clock")) return { status: 200, body: { is_open: true } };
+        if (input.url.includes("/v2/positions")) return { status: 200, body: [] };
+        if (input.url.includes("/quotes/")) return { status: 200, body: { quote: { bp: 100, ap: 100.02, t: new Date(now).toISOString() } } };
+        if (input.url.includes("by_client_order_id")) return { status: 404, body: null };
+        if (input.url.includes("/v2/orders")) return { status: 200, body: [] };
+        return { status: 404, body: null };
+      },
+    }, now);
+    assert.equal(polled.ok, true, polled.failureKind ?? "poll failed");
+    assert.equal(intentEx.get(buy.clientOrderId)?.orderState, "intent");
+    assert.equal((await intentEx.submitPaper(buy, broker, env(), now)).submitted, true);
+    assert.equal(state.submits.length, 1);
+  } finally {
+    intentEx?.release();
+    rmSync(intentDir, { recursive: true, force: true });
+  }
+
+  const crashDir = mkdtempSync(join(tmpdir(), "spy-crash-"));
+  let crashed: Executor | null = null;
+  try {
+    const first = start(crashDir);
+    const buy = instruction({ clientOrderId: "spy-crash", nonce: "spy-crash" });
+    const state = book();
+    state.mode = "crash";
+    const broker = writer(state);
+    first.accept(buy, now);
+    await assert.rejects(() => first.submitPaper(buy, broker, env(), now), ProcessCrash);
+    assert.equal(state.submits.length, 1);
+    first.release();
+    crashed = start(crashDir);
+    assert.equal(crashed.get(buy.clientOrderId)?.orderState, "submitted");
+    const nextBook = book();
+    const next = writer(nextBook);
+    const absent = await crashed.recoverInFlight(next, now);
+    assert.equal(absent.resolved, true);
+    assert.equal(nextBook.submits.length, 0);
+    assert.equal(crashed.get(buy.clientOrderId)?.confirmedAbsent, true);
+    assert.equal((await crashed.submitPaper(buy, next, env(), now)).submitted, false);
+  } finally {
+    crashed?.release();
+    rmSync(crashDir, { recursive: true, force: true });
+  }
+
+  const ackDir = mkdtempSync(join(tmpdir(), "spy-ack-"));
+  let acked: Executor | null = null;
+  try {
+    const first = start(ackDir);
+    const buy = instruction({ clientOrderId: "spy-ack", nonce: "spy-ack" });
+    const state = book();
+    first.accept(buy, now);
+    await first.submitPaper(buy, writer(state), env(), now);
+    assert.equal(first.get(buy.clientOrderId)?.orderState, "filled");
+    first.release();
+    acked = start(ackDir);
+    assert.equal(acked.get(buy.clientOrderId)?.state, "OPEN");
+    const nextBook = book();
+    nextBook.orders.set(buy.clientOrderId, { id: "brk-spy-ack", status: "filled", filled_qty: "0.02", filled_avg_price: "100", symbol: "SPY", side: "buy", executions: [] });
+    nextBook.positions = [{ symbol: "SPY", qty: "0.02" }];
+    await acked.recoverInFlight(writer(nextBook), now);
+    assert.equal(nextBook.submits.length, 0);
+    assert.notEqual(acked.get(buy.clientOrderId)?.state, "FLAT");
+  } finally {
+    acked?.release();
+    rmSync(ackDir, { recursive: true, force: true });
+  }
+});
+
+test("each missing gate refuses and a dev flag alone cannot authorize", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "spy-gate-"));
+  const ex = start(dir);
+  const state = book();
+  const broker = writer(state);
+  const buy = instruction();
+  ex.accept(buy, now);
+  const cases: { name: string; run: () => Promise<string> }[] = [
+    { name: "dev flag", run: async () => (await ex.submitPaper(buy, broker, env({ PAPER_POST_ENABLED: undefined, APEX_EXECUTOR_DEV_SUBMIT: "true" }), now)).reason },
+    { name: "paper off", run: async () => (await ex.submitPaper(buy, broker, env({ PAPER_POST_ENABLED: undefined }), now)).reason },
+    { name: "live url", run: async () => (await ex.submitPaper(buy, broker, env({ APCA_API_BASE_URL: "https://api.alpaca.markets" }), now)).reason },
+    { name: "real writer", run: async () => (await ex.submitPaper(buy, ex.realWriter(), env(), now)).reason },
+    { name: "sigma", run: async () => (await ex.submitPaper(instruction({ clientOrderId: "spy-sigma", nonce: "spy-sigma" }, undefined, { dataIntegrityOk: false }), broker, env(), now)).reason },
+    { name: "sentinel", run: async () => (await ex.submitPaper(instruction({ clientOrderId: "spy-sent", nonce: "spy-sent" }, undefined, { riskOk: false }), broker, env(), now)).reason },
+    { name: "strategy", run: async () => (await ex.submitPaper({ ...instruction({ clientOrderId: "spy-strat", nonce: "spy-strat" }), strategyApproved: true as false }, broker, env(), now)).reason },
+    { name: "trade category", run: async () => (await ex.submitPaper(instruction({ clientOrderId: "spy-trade", nonce: "spy-trade", category: "STRATEGY_TRADE" }), broker, env(), now)).reason },
+    { name: "connectivity", run: async () => (await ex.submitPaper(instruction({ clientOrderId: "spy-conn", nonce: "spy-conn", category: "CONNECTIVITY_TEST" }), broker, env(), now)).reason },
+    { name: "notional", run: async () => (await ex.submitPaper(instruction({ clientOrderId: "spy-big", nonce: "spy-big" }, 25.02), broker, env(), now)).reason },
+    { name: "qty", run: async () => (await ex.submitPaper(instruction({ clientOrderId: "spy-qty", nonce: "spy-qty", qty: 2, limitPrice: 1 }, 2), broker, env(), now)).reason },
+    { name: "stale", run: async () => (await ex.submitPaper(buy, broker, env(), now + 5_001)).reason },
+    { name: "closed", run: async () => {
+      ex.observeMarket(flatSnapshot(now, { clockOpen: false }), now);
+      const reason = (await ex.submitPaper(buy, broker, env(), now)).reason;
+      ex.observeMarket(openMarket(now), now);
+      return reason;
+    } },
+  ];
+  try {
+    for (const item of cases) {
+      const reason = await item.run();
+      assert.notEqual(reason, "", item.name);
+      assert.equal(state.submits.length, 0, `${item.name}: ${reason}`);
+    }
+    assert.match(cases[0] ? await cases[0].run() : "", /dev flag/);
+    const dev = await ex.submitPaper(buy, broker, env({ PAPER_POST_ENABLED: undefined, APEX_EXECUTOR_DEV_SUBMIT: "true" }), now);
+    assert.match(dev.reason, /dev flag cannot authorize/);
+    const live = await ex.submitPaper(buy, broker, env({ APCA_API_BASE_URL: "https://api.alpaca.markets" }), now);
+    assert.match(live.reason, /LIVE URL/);
+    const big = await ex.submitPaper(instruction({ clientOrderId: "spy-big-2", nonce: "spy-big-2" }, 25.5), broker, env(), now);
+    assert.match(big.reason, /\$25/);
+    const closed = await (async () => {
+      ex.observeMarket(flatSnapshot(now, { clockOpen: false }), now);
+      return ex.submitPaper(buy, broker, env(), now);
+    })();
+    assert.match(closed.reason, /market closed/);
+    ex.observeMarket(openMarket(now), now);
+    const stale = await ex.submitPaper(buy, broker, env(), now + 5_001);
+    assert.match(stale.reason, /stale/);
+    const mismatched = await ex.runBrokerPoll({
+      async request(input: { url: string }) {
+        if (input.url.includes("/v2/account")) return { status: 200, body: { status: "ACTIVE", trading_blocked: false } };
+        if (input.url.includes("/v2/clock")) return { status: 200, body: { is_open: true } };
+        if (input.url.includes("/v2/positions")) return { status: 200, body: [] };
+        if (input.url.includes("/quotes/")) return { status: 200, body: { quote: { bp: 100, ap: 100.02, t: new Date(now).toISOString() } } };
+        if (input.url.includes("by_client_order_id")) return { status: 404, body: null };
+        if (input.url.includes("/v2/orders")) return { status: 200, body: [] };
+        return { status: 404, body: null };
+      },
+    }, now);
+    assert.equal(mismatched.failureKind, "reconcile");
+    const blockedBook = await ex.submitPaper(buy, broker, env(), now);
+    assert.match(blockedBook.reason, /reconciliation/);
+    ex.release();
+    const unlocked = await ex.submitPaper(buy, broker, env(), now);
+    assert.match(unlocked.reason, /writer lock/);
+    assert.equal(PAPER_POST_ENABLED, false);
+    assert.equal(proposedTicket({ verdict: "READY_FOR_OPERATOR_APPROVAL", ...approval({ category: "STRATEGY_TRADE" }) }).ok, false);
+  } finally {
+    ex.release();
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("kill switch blocks a new buy and still allows a signed risk-reducing exit", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "spy-kill-"));
+  const ex = start(dir);
+  const state = book();
+  const broker = writer(state);
+  const buy = instruction({ clientOrderId: "spy-kill", nonce: "spy-kill" });
+  try {
+    ex.accept(buy, now);
+    assert.equal((await ex.submitPaper(buy, broker, env(), now)).orderState, "filled");
+    assert.notEqual(ex.get(buy.clientOrderId)?.state, "FLAT");
+    ex.engageKillSwitch(now);
+    const another = instruction({ clientOrderId: "spy-kill-2", nonce: "spy-kill-2" });
+    assert.match(ex.accept(another, now).reason, /kill switch/);
+    const held = instruction({ clientOrderId: "spy-kill-held", nonce: "spy-kill-held" });
+    ex.observeMarket(flatSnapshot(now, {}, []), now);
+    assert.match(ex.accept(held, now).reason, /kill switch/);
+    const sell = instruction({ side: "sell", clientOrderId: "spy-kill-sell", nonce: "spy-kill-sell", qty: 0.02, exitAuthorizationId: "exit-kill", linkedEntryId: buy.clientOrderId });
+    const get = async (url: string) => url.includes("/v2/positions") ? { status: 200, body: state.positions } : { status: 200, body: state.open };
+    assert.equal((await ex.authorizeExit(buy.clientOrderId, sell, get, now)).ok, true);
+    const exited = await ex.submitPaper(sell, broker, env(), now);
+    assert.equal(exited.submitted, true);
+    assert.equal(ex.get(sell.clientOrderId)?.state, "FLAT");
+    assert.equal(ex.get(buy.clientOrderId)?.state, "FLAT");
+    assert.deepEqual(state.positions, []);
+  } finally {
+    ex.release();
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("oversell and a pending sell are refused and a short is refused", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "spy-over-"));
+  const ex = start(dir);
+  const state = book();
+  const broker = writer(state);
+  const buy = instruction({ clientOrderId: "spy-over", nonce: "spy-over" });
+  try {
+    ex.accept(buy, now);
+    await ex.submitPaper(buy, broker, env(), now);
+    const get = async (url: string) => url.includes("/v2/positions") ? { status: 200, body: state.positions } : { status: 200, body: [] };
+    const tooBig = instruction({ side: "sell", clientOrderId: "spy-over-big", nonce: "spy-over-big", qty: 0.03, exitAuthorizationId: "exit-big", linkedEntryId: buy.clientOrderId });
+    assert.match((await ex.authorizeExit(buy.clientOrderId, tooBig, get, now)).reason, /exceeds/);
+    const first = instruction({ side: "sell", clientOrderId: "spy-over-1", nonce: "spy-over-1", qty: 0.01, exitAuthorizationId: "exit-1", linkedEntryId: buy.clientOrderId });
+    assert.equal((await ex.authorizeExit(buy.clientOrderId, first, get, now)).ok, true);
+    const second = instruction({ side: "sell", clientOrderId: "spy-over-2", nonce: "spy-over-2", qty: 0.02, exitAuthorizationId: "exit-2", linkedEntryId: buy.clientOrderId });
+    assert.match((await ex.authorizeExit(buy.clientOrderId, second, get, now)).reason, /exceeds/);
+    state.positions = [{ symbol: "SPY", qty: "0.005" }];
+    const shrunk = await ex.submitPaper(first, broker, env(), now);
+    assert.match(shrunk.reason, /exceeds/);
+    assert.equal(state.submits.filter((row) => (row as { side?: string }).side === "sell").length, 0);
+    const flatBook = book();
+    const naked = instruction({ side: "sell", clientOrderId: "spy-short", nonce: "spy-short", qty: 0.01, exitAuthorizationId: "exit-short", linkedEntryId: buy.clientOrderId });
+    const empty = async () => ({ status: 200, body: [] });
+    assert.match((await ex.authorizeExit(buy.clientOrderId, naked, empty, now)).reason, /exceeds|duplicate|owned/);
+  } finally {
+    ex.release();
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("timeouts, 5xx, and 429 during submit and poll are not retried", async () => {
+  const dirs: string[] = [];
+  const opened: Executor[] = [];
+  try {
+    for (const mode of ["throw", "down", "limit"] as const) {
+      const dir = mkdtempSync(join(tmpdir(), `spy-${mode}-`));
+      dirs.push(dir);
+      const ex = start(dir);
+      opened.push(ex);
+      const state = book();
+      state.mode = mode;
+      const broker = writer(state);
+      const buy = instruction({ clientOrderId: `spy-${mode}`, nonce: `spy-${mode}` });
+      assert.equal(ex.accept(buy, now).state, "PROPOSED", mode);
+      const result = await ex.submitPaper(buy, broker, env(), now);
+      assert.equal(result.orderState, "UNKNOWN", `${mode}: ${result.reason}`);
+      assert.match(result.reason, /not retried/);
+      assert.equal(state.submits.length, 1);
+      const second = await ex.submitPaper(buy, broker, env(), now);
+      assert.equal(second.submitted, false);
+      assert.equal(state.submits.length, 1);
+    }
+    const ex = opened[0]!;
+    const calls: string[] = [];
+    const timeout = await ex.runBrokerPoll({
+      async request() {
+        calls.push("timeout");
+        throw Object.assign(new Error("timed out"), { name: "TimeoutError" });
+      },
+    }, now);
+    assert.equal(timeout.failureKind, "timeout");
+    const down = await ex.runBrokerPoll({
+      async request() {
+        calls.push("down");
+        return { status: 503, body: null };
+      },
+    }, now + 1);
+    assert.equal(down.failureKind, "http");
+    const limited = await ex.runBrokerPoll({
+      async request() {
+        calls.push("limit");
+        return { status: 429, body: null };
+      },
+    }, now + 2);
+    assert.equal(limited.failureKind, "http");
+    assert.deepEqual(calls, ["timeout", "down", "limit"]);
+  } finally {
+    for (const exec of opened) exec.release();
+    for (const dir of dirs) rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("a full request budget and the outstanding cap refuse before another write", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "spy-budget-"));
+  const ex = start(dir);
+  const state = book();
+  const broker = writer(state);
+  const buy = instruction({ clientOrderId: "spy-budget", nonce: "spy-budget" });
+  const calls: string[] = [];
+  try {
+    ex.accept(buy, now);
+    assert.equal(ex.spendBudget(now, TRADING_API_BUDGET_PER_MIN), true);
+    const polled = await ex.runBrokerPoll({
+      async request() {
+        calls.push("poll");
+        return { status: 500, body: null };
+      },
+    }, now);
+    assert.equal(polled.ok, false);
+    assert.deepEqual(calls, []);
+    const blocked = await ex.submitPaper(buy, broker, env(), now);
+    assert.match(blocked.reason, /budget/);
+    assert.equal(state.submits.length, 0);
+  } finally {
+    ex.release();
+    rmSync(dir, { recursive: true, force: true });
+  }
+
+  const capDir = mkdtempSync(join(tmpdir(), "spy-cap-"));
+  const cap = start(capDir);
+  const capBook = book();
+  capBook.mode = "accept";
+  const capBroker = writer(capBook);
+  try {
+    const first = instruction({ clientOrderId: "spy-cap-1", nonce: "spy-cap-1" });
+    const second = instruction({ clientOrderId: "spy-cap-2", nonce: "spy-cap-2" });
+    cap.accept(first, now);
+    cap.accept(second, now);
+    assert.equal((await cap.submitPaper(first, capBroker, env(), now)).orderState, "accepted");
+    const refused = await cap.submitPaper(second, capBroker, env(), now);
+    assert.match(refused.reason, /outstanding/);
+    assert.equal(capBook.submits.length, 1);
+    assert.equal(cap.health(now).requestBudget.outstandingCap, 1);
+  } finally {
+    cap.release();
+    rmSync(capDir, { recursive: true, force: true });
+  }
+});
+
+test("explicit zero fees are marked and mock fills stay out of production evidence", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "spy-fee-"));
+  const ex = start(dir);
+  const state = book();
+  state.missingFee = true;
+  const broker = writer(state);
+  const buy = instruction({ clientOrderId: "spy-fee", nonce: "spy-fee" });
+  try {
+    ex.accept(buy, now);
+    await ex.submitPaper(buy, broker, env(), now);
+    const event = ex.fillEvents()[0];
+    assert.ok(event);
+    assert.equal(event.fee, 0);
+    assert.equal(event.feeSource, "explicit_zero");
+    assert.equal(productionFillProblem(event), null);
+    assert.equal(productionFillProblem({ ...event, provenance: "mock", source: "MOCK", venue: "mock" }), "mock or non-paper fill rejected");
+    assert.equal(STRATEGY_APPROVED, false);
+  } finally {
+    ex.release();
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

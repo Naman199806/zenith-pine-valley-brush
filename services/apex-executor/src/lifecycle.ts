@@ -5,6 +5,8 @@
  * A partial fill stays owned across cancellation.
  */
 
+import type { OrderState } from "./order-machine.ts";
+
 export type PositionState =
   | "PROPOSED"
   | "SUBMISSION_ATTEMPTED"
@@ -29,6 +31,13 @@ export interface LifecycleRecord {
   /** True only after a submission attempt was recorded. Accept never sets this. */
   submitted: boolean;
   expiresAt: string;
+  /** Parallel order machine. Absent on snapshots written before that machine. */
+  orderState?: OrderState;
+  nonce?: string | null;
+  avgPrice?: number | null;
+  brokerOrderId?: string | null;
+  confirmedAbsent?: boolean;
+  notional?: number | null;
 }
 
 export interface LookupFacts {

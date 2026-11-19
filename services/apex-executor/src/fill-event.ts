@@ -27,6 +27,8 @@ export interface FillEvent {
   fillPrice: number;
   intendedPrice: number;
   fee: number;
+  /** broker: the execution named a fee, including a numeric zero. explicit_zero: the broker omitted a fee and the event records 0. */
+  feeSource?: "broker" | "explicit_zero";
   venue: FillVenue;
   source: FillSource;
   eventTimestamp: string;
@@ -75,6 +77,22 @@ export function validateFillEvent(event: FillEvent): string | null {
   if (event.source !== "PAPER" && event.source !== "LIVE") return "broker provenance requires PAPER or LIVE source";
   if (event.venue !== (event.source === "LIVE" ? "alpaca-live" : "alpaca-paper")) return "venue does not match source";
   if (!event.brokerOrderId || !event.fillId) return "missing brokerOrderId or fillId";
+  if (event.feeSource != null && event.feeSource !== "broker" && event.feeSource !== "explicit_zero") return "missing fee";
+  if (event.feeSource === "explicit_zero" && event.fee !== 0) return "missing fee";
+  return null;
+}
+
+/**
+ * Production attribution. Mock and test rows are rejected.
+ * A zero fee is accepted only when feeSource says where the zero came from.
+ */
+export function productionFillProblem(event: FillEvent): string | null {
+  const base = validateFillEvent(event);
+  if (base) return base;
+  if (event.provenance !== "broker" || event.source !== "PAPER" || event.venue !== "alpaca-paper") return "mock or non-paper fill rejected";
+  if (!event.brokerOrderId || !event.fillId || !event.clientOrderId) return "missing broker provenance";
+  if (event.feeSource === "explicit_zero") return event.fee === 0 ? null : "explicit zero fee must be 0";
+  if (event.feeSource !== "broker") return "fee needs a broker source or an explicit zero";
   return null;
 }
 
@@ -113,6 +131,8 @@ export function fillsFromExecutions(input: {
   provenance: FillProvenance;
   source: "PAPER" | "LIVE";
   seenFillIds?: string[];
+  /** Default refuses a missing fee. explicit_zero records fee 0 with that source. */
+  missingFee?: "require" | "explicit_zero";
 }): FillExtraction {
   const at = new Date().toISOString();
   const base = {
@@ -143,7 +163,9 @@ export function fillsFromExecutions(input: {
     const qty = Number(row.qty);
     const fillPrice = Number(row.price);
     const when = typeof row.transaction_time === "string" ? row.transaction_time : typeof row.timestamp === "string" ? row.timestamp : "";
-    const feeRaw = row.fee ?? row.commission;
+    const feePresent = row.fee != null || row.commission != null;
+    const feeRaw = feePresent ? (row.fee ?? row.commission) : input.missingFee === "explicit_zero" ? 0 : null;
+    const feeSource: FillEvent["feeSource"] = !feePresent && input.missingFee === "explicit_zero" ? "explicit_zero" : "broker";
     const missing: string[] = [];
     if (!fillId) missing.push("fillId");
     if (!brokerOrderId) missing.push("brokerOrderId");
@@ -171,6 +193,7 @@ export function fillsFromExecutions(input: {
       fillPrice,
       intendedPrice: input.intendedPrice,
       fee: Number(feeRaw),
+      feeSource: mock ? undefined : feeSource,
       venue: mock ? "mock" : input.source === "LIVE" ? "alpaca-live" : "alpaca-paper",
       source: mock ? "MOCK" : input.source,
       eventTimestamp: when,

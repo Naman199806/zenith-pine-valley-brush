@@ -128,6 +128,16 @@ At the 3000ms baseline that is 20 polls a minute:
 
 200 Trading API requests/min is Alpaca's standard limit. This configuration is not safe for an unlimited number of outstanding orders. Three outstanding orders are 260 Trading API requests/min before the quote. An HTTP 429 is failure kind `http`. It does not count as a full success, and the gate closes once the last full success is older than 5000ms.
 
+The process now enforces a shared Trading API budget of 150 requests in a trailing 60 seconds, which is under that 200 limit. Ten of those requests are reserved for one submit, one cancel, and a recovery lookup. At a 3000ms poll the math is:
+
+- polls per minute = 60000 / 3000 = 20
+- room per poll after the reserve = (150 - 10) / 20 = 7
+- a poll spends 4 snapshot GETs, leaving 3
+- each in-flight order costs 3 GETs
+- outstanding cap = floor((7 - 4) / 3) = 1
+
+A poll, submit, cancel, or recovery lookup that would pass 150 is refused before the broker is called. The quote on `data.alpaca.markets` is still not part of this count. `staleAfterMs` stays capped at 5000. The cap is for in-flight orders (`submitted`, `accepted`, `partially_filled`, `UNKNOWN`). A filled position is not a second in-flight order, so the supervised exit can be the one working order after the buy fills. `requestBudget` on `/health` reports the limit, the window usage, the reserve, the cap, and the in-flight count. It does not include credentials.
+
 ## Safe deployment
 
 The production VM was filled by copy. It does not have a confirmed git checkout. Do not run `git fetch`, `git checkout`, or `git rev-parse` on it. Build the release on a trusted workstation from the merged commit. `PAPER_POST_ENABLED`, `LIVE_POST_ENABLED`, and `strategyApproved` stay false. Do not put tokens or brokerage keys in a ticket.
@@ -202,6 +212,29 @@ sudo systemctl start apex-executor
 ```
 
 If the process crashes, or `stale` stays true with `NOT_RUN` or `FAILED` after several intervals, roll back. `MISMATCH` or `UNKNOWN_ORDERS` means the gate sees a book that does not match the journal. Do not roll back to hide that. While POST is disabled, a journal `PROPOSED` order that was never sent mismatches until the operator reconciles it. The health check prints only those enums and counts.
+
+## Supervised PAPER acceptance: SPY fractional buy-and-exit ($25 cap)
+
+This SHA does not transmit. `REAL_BROKER_WRITE_ENABLED` is a constant false. The Alpaca adapter throws `PAPER POST DISABLED` before `fetch` on POST, PATCH, and DELETE. `PAPER_POST_ENABLED`, `LIVE_POST_ENABLED`, and `strategyApproved` stay false in code. Setting `PAPER_POST_ENABLED=true` in the environment does not by itself authorize a write, and it does not reach `fetch` until a separate reviewed PR removes that constant guard. LIVE stays disabled either way. A dev flag does not authorize a submit. `STRATEGY_TRADE` stays blocked while `strategyApproved` is false. A supervised test uses category `SUPERVISED_PAPER_TEST` and does not set or imply strategy approval.
+
+Alpaca's notional field is a market day order. The create-order reference says notional cannot be combined with `qty` and works only for `type=market` and `time_in_force=day` ([Create an Order](https://docs.alpaca.markets/us/reference/postorder)). The trading API overview still says fractional trading is market-only ([About Trading API](https://docs.alpaca.markets/us/docs/trading-api)). The fractional guide sets a $1 minimum, at most 2 decimal places on notional, at most 9 on qty, and no fractional short ([Fractional Trading](https://docs.alpaca.markets/us/docs/fractional-trading)). The signed ticket stays the existing limit-day-regular approval. The dollars sent are the signed `sizedNotional`, which must be between $1 and $25 in cents and must also satisfy the existing `qty * limitPrice * 1.001 <= 25` check. The broker body is `{ symbol: SPY, side, type: market, time_in_force: day, extended_hours: false, notional }` for the buy and `{ ..., qty }` for the exit. The exit qty is the signed quantity and must be less than or equal to the broker position minus other pending sells. The client order id is the signed id, 1 to 47 characters, and it is kept in the journal so a restart cannot reuse it.
+
+The order states are `intent`, `submitted`, `accepted`, `partially_filled`, `filled`, `rejected`, `canceled`, `expired`, and `UNKNOWN`. An illegal transition is journaled and refused. The intent line is fsynced before the injected writer is called. A timeout, a 5xx, or a 429 becomes `UNKNOWN` and is not retried. The next action is a GET by `client_order_id`. A found order is adopted. A 404 on an order that was sent is confirmed absence: that id is not posted again, and only a new operator approval can submit a new id. The round trip is complete only when a sell reconciles to `FLAT`: the broker position quantity for SPY is 0 and the open-order list has none for that order. An empty local book is not FLAT.
+
+The kill switch blocks new buys and other position increases. It does not block a separately authorized exit. The exit still needs a fresh signature, Sigma approval, no Sentinel veto, fresh evidence under 5000ms, reconciliation `OK`, the writer lock, budget, and the oversell check.
+
+Every step below is NO-GO unless it is true. Do not continue past a NO-GO.
+
+1. **Separate write-path PR.** A different, small PR that enables the real PAPER write is reviewed on its own and merged. This lifecycle PR is not that PR. NO-GO if that diff does more than remove the constant guard, or if LIVE becomes reachable.
+2. **Key rotation.** The owner rotates the PAPER key. The old leaked key is not reused. The new key is installed only in `/etc/apex-executor/secrets.env` or `/etc/apex-executor/paper.json` on the VM, mode `0600`, owner `apex-executor`. It is not committed, not logged, and not placed in a research tree. NO-GO if a LIVE key is present. The process still refuses to start in PAPER mode when a LIVE key is set.
+3. **Versioned deploy.** From a clean checkout of the merged SHA, follow the rsync steps in "Safe deployment" above, including `VERSION` and the rollback tree. NO-GO if the deploy touches `/var/lib/apex-executor` or `/etc/apex-executor`.
+4. **Health.** After the process is active, the authenticated health check is green: `brokerPoll.stale` is false, `reconciliation.outcome` is `OK`, outstanding and unknown counts are 0, the book is flat, and `requestBudget` is inside the cap. NO-GO on `MISMATCH`, `UNKNOWN_ORDERS`, `FAILED`, or a stale poll. Do not roll back just to hide a mismatch.
+5. **Window.** During regular hours, confirmed by the broker clock (`is_open` true), the owner sets `PAPER_POST_ENABLED=true` for this window only and restarts the process. NO-GO outside regular hours, or if the constant guard from step 1 is not the one that was reviewed.
+6. **One buy.** The operator signs one `SUPERVISED_PAPER_TEST` instruction for a SPY notional buy of at most $25. Sigma has approved and Sentinel has not vetoed. The executor journals the intent, then the broker GET shows the order and the fill. Hermes records a fill event with the broker order id, the client order id, qty, price, time, and a fee or an explicit 0 with its source. A mock row is not evidence. NO-GO if any gate is missing, if a second order is working, or if the notional is above $25.
+7. **Exit.** A separate signed sell, for the full broker-confirmed quantity, is authorized and submitted. NO-GO if the sell is larger than the position minus pending sells, if it is unsigned, or if the kill switch is being used as a substitute for that signature. The kill switch may be on; the exit gates still apply.
+8. **Flat.** A broker positions GET shows quantity 0 for SPY and the open-order list has no order for the symbol. Reconciliation is `OK`. The sell record is `FLAT`. NO-GO if flat is inferred only from the local journal.
+9. **Close the window.** Set `PAPER_POST_ENABLED=false`, restart, and confirm health still shows paper post disabled. LIVE remains disabled.
+10. **Archive.** Keep the journal excerpt, the health JSON, and the Alpaca order ids. Do not copy secrets into that archive.
 
 ## Invariants
 

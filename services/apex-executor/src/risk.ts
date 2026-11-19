@@ -10,6 +10,18 @@ import { worstCaseNotional } from "../../../src/lib/apex/live/equity.ts";
 import type { TradeInstruction } from "./instruction.ts";
 
 export const MAX_NOTIONAL = 25;
+/** Fail closed above this. Unset env uses the default. A bad env refuses every order. */
+export const MAX_ORDER_QTY = 1;
+
+export function readMaxOrderQty(env: NodeJS.ProcessEnv): number | null {
+  const raw = env.APEX_EXECUTOR_MAX_QTY;
+  if (raw == null || raw.trim() === "") return MAX_ORDER_QTY;
+  const text = raw.trim();
+  if (!/^\d+(\.\d+)?$/.test(text)) return null;
+  const value = Number(text);
+  if (!Number.isFinite(value) || !(value > 0)) return null;
+  return value;
+}
 
 export interface MarketSnapshot {
   evidence: BrokerEvidence;
@@ -51,7 +63,10 @@ export function assessRisk(
   local: { conflict: boolean; ownedQty: number },
   kill: boolean,
   now: number,
+  maxQty: number | null = MAX_ORDER_QTY,
 ): string | null {
+  if (maxQty == null || !Number.isFinite(maxQty) || !(maxQty > 0)) return "max qty unavailable";
+  if (!Number.isFinite(instruction.qty) || instruction.qty > maxQty) return "quantity exceeds max";
   const evidence = snapshot.evidence;
   if (!evidence.accountActive) return "account not eligible";
   if (evidence.tradingBlocked) return "halt: trading blocked";
