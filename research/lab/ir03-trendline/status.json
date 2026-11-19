@@ -1,7 +1,10 @@
 {
-  "id": "ir03-confirmed-pivot-v1",
-  "status": "IMPLEMENTATION_UNVERIFIED",
-  "reason": "A spec is registered, but the earlier 89-trade figure has no committed simulator or trade ledger. It is not evidence.",
+  "id": "ir03-confirmed-pivot-v1.1",
+  "status": "EXPLORATORY_CORRECTED",
+  "defectiveResults": "research/lab/ir03-trendline/defective-results.json",
+  "correctedResults": "research/lab/ir03-trendline/corrected-results.json",
   "independentValidation": false,
+  "previouslyInspected": true,
+  "verdict": "NO_WINNER",
   "strategyApproved": false
 }

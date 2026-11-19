@@ -1,0 +1,27 @@
+{
+  "registeredBeforeEvaluation": true,
+  "evaluated": false,
+  "notUsedToRescueIr01": true,
+  "hypotheses": [
+    {
+      "id": "cot-commercial-extreme-v1",
+      "idea": "Extreme commercial net positioning may mark crowded speculative positioning.",
+      "needs": "point-in-time CFTC COT",
+      "status": "REGISTERED_NOT_EVALUATED"
+    },
+    {
+      "id": "open-interest-confirmation-v1",
+      "idea": "A breakout with rising open interest has different participation than one with falling open interest.",
+      "needs": "point-in-time futures open interest",
+      "status": "REGISTERED_NOT_EVALUATED"
+    },
+    {
+      "id": "seasonal-window-v1",
+      "idea": "Calendar seasonality can be tested as a pre-registered window, not as a filter chosen after results.",
+      "needs": "frozen windows before testing",
+      "status": "REGISTERED_NOT_EVALUATED"
+    }
+  ],
+  "openbb": "not installed in this environment",
+  "strategyApproved": false
+}

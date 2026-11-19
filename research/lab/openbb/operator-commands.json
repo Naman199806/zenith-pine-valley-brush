@@ -1,0 +1,13 @@
+{
+  "id": "openbb-asus-readonly",
+  "runtimeAccess": false,
+  "reason": "OpenBB is on the operator ASUS. This runtime cannot access that machine.",
+  "operatorCommands": [
+    "C:\\Users\\sharm\\openbb-research.venv\\Scripts\\python.exe -c \"from openbb import obb; print(obb.economy.fred_series('DGS10').to_df().tail())\"",
+    "C:\\Users\\sharm\\openbb-research.venv\\Scripts\\python.exe -c \"from openbb import obb; print(obb.economy.fred_series('DGS2').to_df().tail())\"",
+    "C:\\Users\\sharm\\openbb-research.venv\\Scripts\\python.exe -c \"from openbb import obb; print(obb.economy.fred_series('DFF').to_df().tail())\""
+  ],
+  "backtestUse": "excluded until publication timestamps are verified",
+  "credentialsPrinted": false,
+  "strategyApproved": false
+}
