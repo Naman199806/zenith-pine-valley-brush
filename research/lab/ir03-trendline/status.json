@@ -1,7 +1,9 @@
 {
   "id": "ir03-confirmed-pivot-v1",
-  "status": "IMPLEMENTATION_UNVERIFIED",
-  "reason": "A spec is registered, but the earlier 89-trade figure has no committed simulator or trade ledger. It is not evidence.",
+  "status": "EXPLORATORY_IMPLEMENTED",
   "independentValidation": false,
+  "previouslyInspected": true,
+  "verdict": "NO_WINNER",
+  "note": "Implemented from the frozen spec. Results are exploratory, not independent validation.",
   "strategyApproved": false
 }

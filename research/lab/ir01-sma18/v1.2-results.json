@@ -1,18 +1,24 @@
 {
   "id": "ir01-sma18-v1.2",
   "strategyApproved": false,
-  "promotion": false,
+  "verdict": "NO_WINNER",
+  "walkForward": "NOT_EVALUATED",
+  "regime": "NOT_EVALUATED",
+  "qualification": {
+    "minTrades": 30,
+    "severeBpsPerSide": 50,
+    "operative": true,
+    "met": false
+  },
+  "accountingLimitations": [
+    "Opening equity is the first in-period bar's open mark, not the prior close.",
+    "Realized P&L includes the full trade even when the entry was before the segment.",
+    "Unrealized is marked against original entry cash, not the segment-start mark.",
+    "Fees include only trades completed inside the segment.",
+    "SPY benchmark is a price-ratio buy-and-hold, not the strategy cost model."
+  ],
   "symbols": {
     "SPY": {
-      "full": {
-        "sharpe": 0.5934671575039848,
-        "sortino": 0.8326358471338584,
-        "profitFactor": 2.00867198487479,
-        "expectancy": 3.0443647763042545,
-        "maxDrawdown": -0.2538339620265818,
-        "trades": 67,
-        "winRate": 0.5074626865671642
-      },
       "ledger": [
         {
           "symbol": "SPY",
@@ -866,15 +872,6 @@
       }
     },
     "QQQ": {
-      "full": {
-        "sharpe": 0.7790684180386085,
-        "sortino": 1.0996942159058767,
-        "profitFactor": 2.5308971735685657,
-        "expectancy": 7.619968093709841,
-        "maxDrawdown": -0.285744953273799,
-        "trades": 65,
-        "winRate": 0.5384615384615384
-      },
       "ledger": [
         {
           "symbol": "QQQ",
@@ -1704,15 +1701,6 @@
       }
     },
     "IWM": {
-      "full": {
-        "sharpe": 0.28673719905438877,
-        "sortino": 0.4136310980745781,
-        "profitFactor": 1.3759486973305814,
-        "expectancy": 1.1098381469761214,
-        "maxDrawdown": -0.3450691289219421,
-        "trades": 73,
-        "winRate": 0.4246575342465753
-      },
       "ledger": [
         {
           "symbol": "IWM",
@@ -2637,14 +2625,5 @@
         "spy": 1.0724840027144649
       }
     }
-  },
-  "verdict": "NO_WINNER",
-  "walkForward": "NOT_EVALUATED",
-  "regime": "NOT_EVALUATED",
-  "qualification": {
-    "minTrades": 30,
-    "severeBps": 50,
-    "operative": true,
-    "met": false
   }
 }
