@@ -2,7 +2,7 @@
 
 PR #8 does not enable a broker write. `REAL_BROKER_WRITE_ENABLED` stays false. The adapter throws `PAPER POST DISABLED` before `fetch` on POST, PATCH, and DELETE. `PAPER_POST_ENABLED`, `LIVE_POST_ENABLED`, and `strategyApproved` stay false.
 
-The proposed wiring lives on branch `cursor/paper-enablement-proposal-837c`. That branch is not a pull request and must not be deployed. This file is the contract that branch implements.
+The proposed wiring lives on branch `cursor/paper-enablement-proposal-837c` at `1b1c614aff1bb9866fef87badc5c4beda615b7c2`. That branch is not a pull request and must not be deployed. This file is the contract that branch implements.
 
 ## What production calls
 
@@ -37,4 +37,4 @@ See `src/absence.ts`. Absence is at least two, and by default three, clean misse
 
 ## Enablement branch
 
-`cursor/paper-enablement-proposal-837c` adds `production-cycle.ts` and an HTTP adapter that calls `fetch` for the sequence above. Tests replace `globalThis.fetch` and assert method, URL, and body. They do not flip the guard by deleting the check without a test. This PR's tree does not contain that adapter's live call.
+`cursor/paper-enablement-proposal-837c` at `1b1c614aff1bb9866fef87badc5c4beda615b7c2` adds `src/production-cycle.ts` and `test/production-cycle.test.ts`. `createHttpPaperWriter` calls `fetch` for POST `/v2/orders`, GET by client order id, list orders, positions, FILL activities, and DELETE `/v2/orders/{order_id}`. `runSupervisedPaperCycle` recovers, then submits. Tests replace `fetch` and check that the POST body equals `exactBrokerBody`, that the host is `paper-api.alpaca.markets`, and that a stale order does not POST. The disabled adapter on that branch still throws before `fetch`. This PR does not contain that HTTP writer.
