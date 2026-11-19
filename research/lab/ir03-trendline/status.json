@@ -1,6 +1,7 @@
 {
-  "id": "ir03-qualified-trendline",
-  "status": "DATA_BLOCKED",
-  "reason": "A qualified trendline needs confirmed swing pivots and a published pivot rule. Daily bars exist, but no frozen pivot definition was pre-registered, and using one after seeing results would be tuning. No fills were fabricated.",
-  "strategyApproved": false
+  "status": "EXPLORATORY_NOT_PROMOTED",
+  "trades": 89,
+  "verdict": "NO_WINNER",
+  "strategyApproved": false,
+  "note": "Previously inspected data. Not promoted."
 }

@@ -205,8 +205,8 @@ export function evaluate(m: MarketSnapshot, signals: Record<string, "BUY" | "EXI
     rows.push({
       id,
       baseline: 1,
-      score: optionalMissing || m.vol20 == null ? "NOT_RANKABLE" : Number((signal === "BUY" ? 1 : 0.5).toFixed(6)),
-      reason: optionalMissing ? "optional evidence missing; not treated as verified" : `strategy-specific ${id} signal rank`,
+      score: "NOT_RANKABLE",
+      reason: "no comparable strategy-performance evidence",
     });
   }
   rows.sort((a, b) => a.id.localeCompare(b.id));

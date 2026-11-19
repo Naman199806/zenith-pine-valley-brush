@@ -1,0 +1,14 @@
+{
+  "id": "ir03-confirmed-pivot-v1",
+  "status": "SPEC_PENDING",
+  "frozenBeforeRun": true,
+  "previouslyInspected": true,
+  "exploratory": true,
+  "pivot": "A swing high is confirmed when its high is strictly greater than the two bars before and the two bars after. Confirmation occurs two bars later. No future bar beyond the confirmation bar is used.",
+  "trendline": "Connect the last two confirmed higher lows. The line is valid only after the second pivot is confirmed.",
+  "qualification": "The prior completed candle must close above that line.",
+  "entry": "A later close above the prior swing high activates a long. Fill at the next open.",
+  "exit": "Exit at the next open after a close below the trendline.",
+  "costs": {"baselineBps": 6, "twoXBps": 12, "severeBps": 50},
+  "strategyApproved": false
+}

@@ -1,0 +1,15 @@
+{
+  "id": "ir01-sma18-v1.1",
+  "dataFingerprints": {
+    "SPY": "b7d2529962e3d4339fb0fe1e11bbc75bfba8df20d1b7e951b5a155497951a28b",
+    "QQQ": "bfd2870cb767de364fcaf18e770dab3718582152899ea0837b3d2be23aa6940c",
+    "IWM": "0ef7a4ccbb5b989cfccb72aea8c81f1f99e4c9a3a77149e4a231df27990354ce"
+  },
+  "command": "PYTHONPATH=scripts python3 -m unittest scripts/test_ir01.py",
+  "v1Preserved": "research/lab/ir01-sma18/v1-frozen.json",
+  "corrected": "research/lab/ir01-sma18/v1.1-results.json",
+  "verdict": "NO_WINNER",
+  "strategyApproved": false,
+  "equalRisk": "NOT_EVALUATED",
+  "agentAssisted": "NOT_EVALUATED"
+}

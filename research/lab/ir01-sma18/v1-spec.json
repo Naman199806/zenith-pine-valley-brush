@@ -1,0 +1,37 @@
+{
+  "id": "ir01-sma18-v1",
+  "frozenBeforeEvaluation": true,
+  "publishedRules": [
+    "SMA is 18 completed daily bars.",
+    "A setup candle has low above its own SMA18.",
+    "Two consecutive completed setup candles are required.",
+    "Inside bars are rejected and break the consecutive count.",
+    "Entry activates only after the second qualifying candle closes.",
+    "Entry is a subsequent breakout above the qualifying highs.",
+    "Exit is the corresponding opposite qualified signal.",
+    "Long or flat. No leverage. No pyramiding."
+  ],
+  "apexAssumptions": [
+    "Qualifying high is the max high of the two setup candles.",
+    "If the next open gaps through that high, fill at the open. Otherwise fill at the high.",
+    "Exit fill uses the same conservative rule on the opposite setup.",
+    "Signals use split-and-dividend adjusted OHLC.",
+    "Cost is 6 bps per side at baseline, 12 bps at 2x, 30 bps severe.",
+    "One position. No scale-in."
+  ],
+  "universe": ["SPY", "QQQ", "IWM"],
+  "data": "research/data/raw/yahoo/20261112",
+  "boundaries": {
+    "development": ["2010-01-04", "2017-12-29"],
+    "validation": ["2018-01-02", "2022-12-30"],
+    "previouslyInspected": ["2023-01-03", "2026-11-11"],
+    "untouchedHoldout": false
+  },
+  "promotionGate": {
+    "validationBeatsSpy": true,
+    "validationSharpe": 0.5,
+    "validationProfitFactor": 1.2,
+    "twoXCostsPositive": true,
+    "minTrades": 20
+  }
+}

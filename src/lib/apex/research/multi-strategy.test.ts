@@ -30,7 +30,8 @@ test("unknown strategy, missing required evidence and invalid inputs are rejecte
 test("ranking is deterministic and missing inputs are NOT_RANKABLE", () => {
   const ranked = evaluate(snap(), { "synthetic-eligible-fixture": "BUY" });
   assert.equal(ranked.ranking.scoreIsProbability, false);
-  assert.equal(ranked.ranking.rows[0]?.reason.includes("strategy-specific"), true);
+  assert.equal(ranked.ranking.status, "NOT_RANKABLE");
+  assert.equal(ranked.ranking.rows[0]?.reason, "no comparable strategy-performance evidence");
   const missingOptional = evaluate(snap({ present: { bars: true, spy: true, macro: false, positioning: true } }), { "synthetic-eligible-fixture": "BUY" });
   assert.equal(missingOptional.ranking.status, "NOT_RANKABLE");
   assert.equal(missingOptional.ranking.selected, null);
