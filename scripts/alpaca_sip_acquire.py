@@ -17,12 +17,15 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
+from alpaca_sip_entitlement import normalize_timestamp, ohlcv_ok, sanitize, summarize
+
 DATA = "https://data.alpaca.markets/v2"
 PAPER = "https://paper-api.alpaca.markets/v2"
 ET = ZoneInfo("America/New_York")
 OUT = Path("research/data/raw/alpaca-sip")
 SYMBOLS = ("SPY", "QQQ", "IWM")
 SESSIONS = ("2024-11-01", "2024-11-04", "2024-11-29")
+PYTHON = r"C:\Users\sharm\openbb-research.venv\Scripts\python.exe"
 
 
 def request(base: str, path: str, params: dict) -> tuple[int, dict | list]:
@@ -38,7 +41,7 @@ def request(base: str, path: str, params: dict) -> tuple[int, dict | list]:
             if exc.code == 429 and attempt < 3:
                 time.sleep(2 ** attempt)
                 continue
-            raise
+            raise RuntimeError(f"HTTP {exc.code}: {sanitize(exc.read().decode('utf-8', 'replace'))}") from None
     raise RuntimeError("retry limit")
 
 
@@ -49,30 +52,50 @@ def calendar(day: str) -> dict:
     return body[0]
 
 
-def bounds(day: str, session: dict) -> tuple[str, str]:
+def bounds(day: str, session: dict) -> tuple[datetime, datetime]:
     open_et = datetime.fromisoformat(f"{day}T{session['open']}:00").replace(tzinfo=ET)
     close_et = datetime.fromisoformat(f"{day}T{session['close']}:00").replace(tzinfo=ET)
-    last = close_et - timedelta(minutes=1)
-    return open_et.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"), last.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return open_et.astimezone(timezone.utc), (close_et - timedelta(minutes=1)).astimezone(timezone.utc)
 
 
-def bars(symbol: str, day: str, start: str, end: str) -> list[dict]:
+def expected_from_calendar(start: datetime, end: datetime) -> set[str]:
+    stamps = set()
+    cursor = start.replace(second=0, microsecond=0)
+    while cursor <= end:
+        stamps.add(cursor.strftime("%Y-%m-%dT%H:%M:00Z"))
+        cursor += timedelta(minutes=1)
+    return stamps
+
+
+def bars(symbol: str, start: str, end: str) -> list[dict]:
     token = None
+    seen = set()
     rows = []
-    while True:
+    for _ in range(20):
         params = {"timeframe": "1Min", "start": start, "end": end, "feed": "sip", "limit": 10000}
         if token:
             params["page_token"] = token
         status, body = request(DATA, f"/stocks/{symbol}/bars", params)
         if status != 200:
-            raise RuntimeError(f"bars {symbol} {day} status {status}")
+            raise RuntimeError(f"bars {symbol} status {status}")
         rows.extend(body.get("bars") or [])
         token = body.get("next_page_token")
         if not token:
             return rows
+        if token in seen:
+            raise RuntimeError("repeated pagination token")
+        seen.add(token)
+    raise RuntimeError("pagination limit reached")
 
 
-def atomic_write(path: Path, payload: dict) -> None:
+def fingerprint(rows: list[dict]) -> str:
+    return hashlib.sha256(json.dumps(rows, sort_keys=True).encode()).hexdigest()
+
+
+def accept(path: Path, payload: dict, expected: set[str]) -> None:
+    report = summarize(payload["rows"], expected)
+    if report["missingMinutes"] or report["duplicates"] or report["malformedTimestamps"] or report["ohlcvFailures"] or report["outOfSessionBars"]:
+        raise RuntimeError(f"session rejected {path}: {report}")
     path.parent.mkdir(parents=True, exist_ok=True)
     temp = path.with_suffix(".tmp")
     temp.write_text(json.dumps(payload, indent=2))
@@ -83,15 +106,28 @@ def main() -> None:
     for symbol in SYMBOLS:
         for day in SESSIONS:
             path = OUT / symbol / f"{day}.json"
-            if path.exists():
-                print(json.dumps({"symbol": symbol, "day": day, "status": "resumed"}))
-                continue
             session = calendar(day)
             start, end = bounds(day, session)
-            rows = bars(symbol, day, start, end)
-            digest = hashlib.sha256(json.dumps(rows, sort_keys=True).encode()).hexdigest()
-            atomic_write(path, {"symbol": symbol, "day": day, "feed": "sip", "calendar": session, "bars": len(rows), "sha256": digest, "rows": rows})
-            print(json.dumps({"symbol": symbol, "day": day, "bars": len(rows), "sha256": digest[:12]}))
+            expected = expected_from_calendar(start, end)
+            if path.exists():
+                existing = json.loads(path.read_text())
+                if existing.get("sha256") != fingerprint(existing.get("rows") or []):
+                    raise RuntimeError(f"fingerprint mismatch {path}")
+                accept(path, existing, expected)
+                print(json.dumps({"symbol": symbol, "day": day, "status": "revalidated"}))
+                continue
+            rows = bars(symbol, start.strftime("%Y-%m-%dT%H:%M:%SZ"), end.strftime("%Y-%m-%dT%H:%M:%SZ"))
+            payload = {
+                "symbol": symbol,
+                "day": day,
+                "feed": "sip",
+                "calendar": session,
+                "sha256": fingerprint(rows),
+                "provenance": {"endpoint": DATA, "retrievedBy": PYTHON, "downloadedOnAsus": False},
+                "rows": rows,
+            }
+            accept(path, payload, expected)
+            print(json.dumps({"symbol": symbol, "day": day, "bars": len(rows), "sha256": payload["sha256"]}))
 
 
 if __name__ == "__main__":

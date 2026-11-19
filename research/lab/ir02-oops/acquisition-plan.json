@@ -5,6 +5,6 @@
   "purpose": ["verified session", "next regular session", "shortened session"],
   "nextStage": "2024-2026 only after representative coverage passes",
   "entireMarket": false,
-  "downloadedOnAsus": false,
+  "restrictions": "Alpaca historical data is for the account holder. Do not redistribute. No forward-fill.",
   "command": "C:\\Users\\sharm\\openbb-research.venv\\Scripts\\python.exe scripts\\alpaca_sip_acquire.py"
 }

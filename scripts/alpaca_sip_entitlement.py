@@ -22,13 +22,17 @@ START = datetime(2024, 11, 1, 13, 30, tzinfo=timezone.utc)
 END = datetime(2024, 11, 1, 19, 59, tzinfo=timezone.utc)
 
 
-def expected_minutes() -> set[str]:
+def expected_minutes_between(start: datetime, end: datetime) -> set[str]:
     stamps = set()
-    cursor = START
-    while cursor <= END:
+    cursor = start
+    while cursor <= end:
         stamps.add(cursor.strftime("%Y-%m-%dT%H:%M:00Z"))
         cursor += timedelta(minutes=1)
     return stamps
+
+
+def expected_minutes() -> set[str]:
+    return expected_minutes_between(START, END)
 
 
 def normalize_timestamp(value: str) -> str | None:
@@ -50,8 +54,8 @@ def ohlcv_ok(bar: dict) -> bool:
     return all(math.isfinite(v) for v in (low, high, open_, close, volume)) and low <= open_ <= high and low <= close <= high and volume >= 0
 
 
-def summarize(bars: list[dict]) -> dict:
-    expected = expected_minutes()
+def summarize(bars: list[dict], expected: set[str] | None = None) -> dict:
+    expected = expected if expected is not None else expected_minutes()
     stamps = [normalize_timestamp(str(b.get("t", ""))) for b in bars]
     malformed = sum(stamp is None for stamp in stamps)
     counts: dict[str, int] = {}

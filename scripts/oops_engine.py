@@ -1,50 +1,64 @@
-"""Deterministic OOPS reversal on chronological SIP minute bars.
-
-Same-minute stop and entry is treated as a stop. No profitable ordering is assumed.
-"""
+"""Deterministic OOPS reversal on chronological SIP minute bars."""
 
 from __future__ import annotations
 
+from alpaca_sip_entitlement import normalize_timestamp, ohlcv_ok
 
-def run_session(prior: dict, minutes: list[dict], cost: float = 0.0006) -> dict | None:
-    if not minutes:
+
+def normalize_rows(rows: list[dict]) -> list[dict]:
+    bars = []
+    for row in rows:
+        stamp = normalize_timestamp(str(row.get("t", "")))
+        if stamp is None or not ohlcv_ok(row):
+            raise ValueError("invalid Alpaca bar")
+        bars.append({"t": stamp, "open": float(row["o"]), "high": float(row["h"]), "low": float(row["l"]), "close": float(row["c"]), "volume": float(row["v"])})
+    if bars != sorted(bars, key=lambda bar: bar["t"]):
+        raise ValueError("bars are not chronological")
+    return bars
+
+
+def prior_session(files: list[dict], day: str) -> dict | None:
+    earlier = [item for item in files if item["day"] < day and item.get("complete")]
+    if not earlier:
         return None
+    last = max(earlier, key=lambda item: item["day"])
+    return {"high": max(bar["high"] for bar in last["bars"]), "low": min(bar["low"] for bar in last["bars"])}
+
+
+def run_session(prior: dict, minutes: list[dict], cost_bps: float = 6.0, notional: float = 100.0) -> dict | None:
+    if len(minutes) < 2 or minutes != sorted(minutes, key=lambda bar: bar["t"]):
+        raise ValueError("incomplete or unordered session")
     first = minutes[0]
-    side = None
-    trigger = None
+    side = trigger = None
     if first["open"] < prior["low"]:
         side, trigger = "long", prior["low"]
     elif first["open"] > prior["high"]:
         side, trigger = "short", prior["high"]
     if side is None:
         return None
-    for bar in minutes[1:]:
+    for index, bar in enumerate(minutes[1:], start=1):
         crossed = bar["high"] >= trigger if side == "long" else bar["low"] <= trigger
         if not crossed:
             continue
         fill = max(trigger, bar["open"]) if side == "long" else min(trigger, bar["open"])
-        prior_extreme = min(b["low"] for b in minutes[:minutes.index(bar)]) if side == "long" else max(b["high"] for b in minutes[:minutes.index(bar)])
-        stop = prior_extreme
-        stopped_same_minute = bar["low"] <= stop if side == "long" else bar["high"] >= stop
-        exit_px = stop if stopped_same_minute else None
-        exit_time = bar["t"]
-        if exit_px is None:
-            for later in minutes[minutes.index(bar) + 1:]:
+        stop = min(item["low"] for item in minutes[:index]) if side == "long" else max(item["high"] for item in minutes[:index])
+        same = bar["low"] <= stop if side == "long" else bar["high"] >= stop
+        if same:
+            exit_px = min(bar["open"], stop) if side == "long" else max(bar["open"], stop)
+            exit_time = bar["t"]
+        else:
+            exit_px = exit_time = None
+            for later in minutes[index + 1:]:
                 hit = later["low"] <= stop if side == "long" else later["high"] >= stop
                 if hit:
-                    exit_px, exit_time = stop, later["t"]
+                    exit_px = min(later["open"], stop) if side == "long" else max(later["open"], stop)
+                    exit_time = later["t"]
                     break
-            else:
+            if exit_px is None:
                 exit_px, exit_time = minutes[-1]["close"], minutes[-1]["t"]
-        gross = (exit_px - fill) / fill if side == "long" else (fill - exit_px) / fill
-        return {
-            "side": side,
-            "entry": bar["t"],
-            "entryPx": fill,
-            "stop": stop,
-            "exit": exit_time,
-            "exitPx": exit_px,
-            "sameMinuteStop": stopped_same_minute,
-            "netReturn": gross - 2 * cost,
-        }
+        qty = notional / fill
+        entry_cost = qty * fill * cost_bps / 10000
+        exit_cost = qty * exit_px * cost_bps / 10000
+        gross = qty * (exit_px - fill) if side == "long" else qty * (fill - exit_px)
+        return {"side": side, "entry": bar["t"], "entryPx": fill, "stop": stop, "exit": exit_time, "exitPx": exit_px, "sameMinuteStop": same, "gross": gross, "costs": entry_cost + exit_cost, "net": gross - entry_cost - exit_cost}
     return None
