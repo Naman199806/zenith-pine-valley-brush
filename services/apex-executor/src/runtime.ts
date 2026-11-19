@@ -1018,7 +1018,7 @@ export class Executor {
   async submitPaper(instruction: SupervisedOrder | TradeInstruction, writer: PaperWriter, env: NodeJS.ProcessEnv = process.env, now: number | (() => number) = Date.now()): Promise<{ submitted: boolean; reason: string; orderState: OrderState | null }> {
     const converted = limitConversionRefusal(instruction);
     if (converted) return { submitted: false, reason: converted, orderState: null };
-    if (writer.networkWrite !== "injected") return { submitted: false, reason: "REAL_BROKER_WRITE_DISABLED", orderState: null };
+    if (writer.networkWrite !== "injected" && writer.networkWrite !== "alpaca-http") return { submitted: false, reason: "REAL_BROKER_WRITE_DISABLED", orderState: null };
     const order = instruction as SupervisedOrder;
     const purpose = order.side === "buy" ? "entry" as const : "exit" as const;
     const early = this.supervisedGate(order, env, this.clock(now), purpose, true);
@@ -1062,7 +1062,7 @@ export class Executor {
   }
 
   async cancelPaper(clientOrderId: string, writer: PaperWriter, env: NodeJS.ProcessEnv = process.env, now = Date.now()): Promise<{ canceled: boolean; reason: string; orderState: OrderState | null }> {
-    if (writer.networkWrite !== "injected") return { canceled: false, reason: "REAL_BROKER_WRITE_DISABLED", orderState: null };
+    if (writer.networkWrite !== "injected" && writer.networkWrite !== "alpaca-http") return { canceled: false, reason: "REAL_BROKER_WRITE_DISABLED", orderState: null };
     if (!paperPostEnvOn(env)) return { canceled: false, reason: "PAPER POST DISABLED", orderState: null };
     const rec = this.records.get(clientOrderId);
     if (!rec) return { canceled: false, reason: "unknown instruction", orderState: null };
@@ -1093,7 +1093,7 @@ export class Executor {
    * is confirmed absence: this id is not posted again. A found order is adopted.
    */
   async recoverInFlight(writer: PaperWriter, now: number | (() => number) = Date.now(), sleep: (ms: number) => Promise<void> = async () => {}): Promise<{ resolved: boolean; reason: string }> {
-    if (writer.networkWrite !== "injected") return { resolved: false, reason: "REAL_BROKER_WRITE_DISABLED" };
+    if (writer.networkWrite !== "injected" && writer.networkWrite !== "alpaca-http") return { resolved: false, reason: "REAL_BROKER_WRITE_DISABLED" };
     const ids = [...this.records.values()].filter((rec) => inFlightOrder(rec) || ((rec.unknown || rec.orderState === "UNKNOWN") && !rec.confirmedAbsent)).map((rec) => rec.clientOrderId);
     if (ids.length === 0) {
       this.recoveryPending = false;
@@ -1203,7 +1203,7 @@ export class Executor {
 
   /** Broker GET only. Used to fold a later partial or full fill into the journal. */
   async syncPaper(clientOrderId: string, writer: PaperWriter, now = Date.now()): Promise<{ ok: boolean; reason: string; orderState: OrderState | null }> {
-    if (writer.networkWrite !== "injected") return { ok: false, reason: "REAL_BROKER_WRITE_DISABLED", orderState: null };
+    if (writer.networkWrite !== "injected" && writer.networkWrite !== "alpaca-http") return { ok: false, reason: "REAL_BROKER_WRITE_DISABLED", orderState: null };
     const looked = await this.readBroker(writer, clientOrderId, now);
     if (!looked.ok) return { ok: false, reason: looked.reason, orderState: this.records.get(clientOrderId)?.orderState ?? null };
     const next = await this.applyLookup(clientOrderId, looked, now);
@@ -1325,7 +1325,7 @@ export class Executor {
       side: rec.side,
       intendedPrice: rec.avgPrice != null && rec.avgPrice > 0 ? rec.avgPrice : 1,
       activities,
-      evidenceChannel: "injected",
+      evidenceChannel: writer.networkWrite === "alpaca-http" ? "alpaca-http" : "injected",
       seenFillIds: this.fills.map((event) => event.fillId).filter((id): id is string => Boolean(id)),
     });
     if (!extracted.events.length) return;

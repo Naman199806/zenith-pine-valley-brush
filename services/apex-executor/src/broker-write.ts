@@ -28,7 +28,7 @@ export type WriteResult =
   | { kind: "unavailable"; status: number };
 
 export interface PaperWriter {
-  readonly networkWrite: "disabled" | "injected";
+  readonly networkWrite: "disabled" | "injected" | "alpaca-http";
   submit(order: object): Promise<WriteResult>;
   cancel(clientOrderId: string): Promise<WriteResult>;
   getOrder(clientOrderId: string): Promise<{ status: number; body: unknown }>;
