@@ -41,6 +41,13 @@ const REGISTRY_MUTABLE: Record<string, RegisteredStrategy> = {
     regimes: ["TREND"], requiredData: ["bars", "spy"], optionalData: ["macro"],
     validationVerdict: "NO_WINNER", approved: false, brokerExecutable: false,
   },
+  "ir01-sma18-v1": {
+    id: "ir01-sma18-v1", version: "ir01-sma18-v1",
+    entry: "two SMA18 setup candles then breakout above qualifying highs",
+    exit: "opposite qualified SMA18 signal",
+    regimes: ["TREND"], requiredData: ["bars", "sma18"], optionalData: ["macro"],
+    validationVerdict: "NO_WINNER", approved: false, brokerExecutable: false,
+  },
   "synthetic-eligible-fixture": {
     id: "synthetic-eligible-fixture", version: "synthetic-eligible-fixture",
     entry: "test fixture only", exit: "test fixture only",
@@ -198,8 +205,8 @@ export function evaluate(m: MarketSnapshot, signals: Record<string, "BUY" | "EXI
     rows.push({
       id,
       baseline: 1,
-      score: optionalMissing || m.vol20 == null ? "NOT_RANKABLE" : Number((m.close / (m.sma200 || m.close)).toFixed(6)),
-      reason: optionalMissing ? "optional evidence missing; not treated as verified" : "measured close/sma200",
+      score: "NOT_RANKABLE",
+      reason: "no comparable strategy-performance evidence",
     });
   }
   rows.sort((a, b) => a.id.localeCompare(b.id));

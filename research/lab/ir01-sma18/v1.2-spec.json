@@ -1,0 +1,17 @@
+{
+  "id": "ir01-sma18-v1.2",
+  "parent": "ir01-sma18-v1.1",
+  "kind": "chronology-correction",
+  "notARuleChange": true,
+  "command": "PYTHONPATH=scripts python3 -m unittest scripts/test_ir01.py",
+  "resultsCommand": "PYTHONPATH=scripts python3 scripts/ir01_v12_report.py",
+  "qualification": {
+    "minTrades": 30,
+    "severeBpsPerSide": 50,
+    "operative": true,
+    "reason": "Restored. Not met."
+  },
+  "walkForward": "NOT_EVALUATED",
+  "regime": "NOT_EVALUATED",
+  "strategyApproved": false
+}

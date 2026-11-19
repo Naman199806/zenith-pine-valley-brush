@@ -28,6 +28,10 @@ jobs:
       - name: Executor tests
         # Explicit file list. PowerShell and cmd do not expand *.test.ts.
         run: node services/apex-executor/scripts/run-tests.mjs
+      - name: IR-01 strategy tests
+        run: python -m unittest scripts/test_ir01.py
+        env:
+          PYTHONPATH: scripts
       - name: Research handoff and Hermes outcomes
         run: node --experimental-strip-types --test src/lib/apex/research/proposal.test.ts src/lib/apex/research/hermes-outcomes.test.ts src/lib/apex/research/multi-strategy.test.ts src/lib/apex/broker/paper-equity-transport.test.ts
       - name: Executor typecheck

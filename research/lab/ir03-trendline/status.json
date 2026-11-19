@@ -1,0 +1,7 @@
+{
+  "id": "ir03-confirmed-pivot-v1",
+  "status": "IMPLEMENTATION_UNVERIFIED",
+  "reason": "A spec is registered, but the earlier 89-trade figure has no committed simulator or trade ledger. It is not evidence.",
+  "independentValidation": false,
+  "strategyApproved": false
+}

@@ -1,0 +1,18 @@
+{
+  "id": "ir01-sma18-v1.1",
+  "parent": "ir01-sma18-v1",
+  "kind": "implementation-defect-correction",
+  "notARuleChange": true,
+  "publishedRulesUnchanged": true,
+  "defectsCorrected": [
+    "A completed setup is now armed explicitly and is consumed on fill.",
+    "An unused setup is cancelled by a completed opposite setup.",
+    "An armed long setup is invalidated if a later close has low at or below SMA18 before the breakout.",
+    "A bearish setup can exit a long only if it completed after that long was opened.",
+    "Same-bar entry and exit is not assumed. An open long that can exit does not also enter."
+  ],
+  "costs": {"baselineBps": 6, "twoXBps": 12, "severeBps": 50},
+  "promotionGate": {"validationBeatsSpy": true, "validationSharpe": 0.5, "validationProfitFactor": 1.2, "twoXCostsPositive": true, "minTrades": 30},
+  "previouslyInspected": ["2023-01-03", "2026-11-11"],
+  "untouchedHoldout": false
+}

@@ -1,0 +1,12 @@
+{
+  "id": "ir01-sma18-v1",
+  "verdict": "NO_WINNER",
+  "strategyApproved": false,
+  "previouslyInspectedHoldout": "2023-01-03 to 2026-11-11 was not treated as untouched.",
+  "comparisons": {
+    "strategyOnly": "evaluated",
+    "equalRiskPortfolio": "NOT_EVALUATED",
+    "agentAssisted": "NOT_EVALUATED"
+  },
+  "reason": "No symbol beat SPY buy-and-hold on validation. SPY strategy +30.8% vs SPY +55.0%, Sharpe 0.48."
+}
