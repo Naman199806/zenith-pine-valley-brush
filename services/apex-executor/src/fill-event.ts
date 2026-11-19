@@ -5,6 +5,7 @@
  * Missing execution fields stay INCOMPLETE. Mock provenance is not broker evidence.
  */
 
+import type { AuthorizationCategory } from "../../../src/lib/apex/live/connectivity.ts";
 import type { ExecutionOutcome, TrustedEvidence } from "../../../src/lib/apex/research/hermes-outcomes.ts";
 
 export const FILL_EVENT_VERSION = 1;
@@ -27,11 +28,16 @@ export interface FillEvent {
   qty: number;
   fillPrice: number;
   intendedPrice: number;
-  /** Null when the broker payload did not confirm a fee. Never synthesized as 0. */
+  /** Null when the broker payload did not confirm a fee. A present numeric 0 is a known zero. Never synthesized. */
   fee: number | null;
+  /** False means the payload did not name a fee. Net profit is then not attributable. Position and lifecycle still use the fill. */
   feeKnown?: boolean;
-  /** broker: the payload named a fee. unknown: the payload did not. explicit_zero is legacy and is not a broker confirmation. */
+  /** True only for a broker-named fee, including 0. False means net PnL is not attributable. */
+  netPnlAttributable?: boolean;
+  /** broker: the payload named a fee, including 0. unknown: the payload did not. explicit_zero is not a broker confirmation. */
   feeSource?: "broker" | "explicit_zero" | "unknown";
+  /** SUPERVISED_PAPER_TEST fills are operational records and never strategy-qualification inputs. */
+  category?: AuthorizationCategory;
   /** alpaca-http is the only channel the performance sink accepts. Injected fixtures use injected. */
   evidenceChannel?: EvidenceChannel;
   venue: FillVenue;
@@ -75,6 +81,8 @@ export function validateFillEvent(event: FillEvent): string | null {
   if (event.feeKnown === false) {
     if (event.fee !== null) return "unknown fee must be null";
   } else if (event.fee == null || !Number.isFinite(event.fee) || event.fee < 0) return "missing fee";
+  if (event.netPnlAttributable === true && (event.feeKnown === false || event.fee == null || event.feeSource !== "broker")) return "net pnl not attributable";
+  if (event.feeKnown === false && event.netPnlAttributable === true) return "net pnl not attributable";
   if (!Number.isFinite(Date.parse(event.at))) return "missing at";
   if (event.provenance === "injected" || event.evidenceChannel === "injected") {
     if (event.provenance !== "injected" || event.evidenceChannel !== "injected" || event.source !== "MOCK" || event.venue !== "mock") {
@@ -105,7 +113,7 @@ export function hermesPerformanceRefusal(event: FillEvent): string | null {
   if (event.evidenceChannel !== "alpaca-http" || event.provenance !== "broker" || event.source !== "PAPER" || event.venue !== "alpaca-paper") {
     return "test evidence cannot enter Hermes performance";
   }
-  if (event.feeKnown === false || event.fee == null || event.feeSource === "unknown" || event.feeSource === "explicit_zero") return "fee unknown";
+  if (event.netPnlAttributable === false || event.feeKnown === false || event.fee == null || event.feeSource !== "broker") return "fee unknown";
   return validateFillEvent(event);
 }
 
@@ -118,8 +126,8 @@ export function productionFillProblem(event: FillEvent): string | null {
   if (base) return base;
   if (event.provenance !== "broker" || event.source !== "PAPER" || event.venue !== "alpaca-paper") return "mock or non-paper fill rejected";
   if (!event.brokerOrderId || !event.fillId || !event.clientOrderId) return "missing broker provenance";
-  if (event.feeSource === "explicit_zero") return event.fee === 0 ? null : "explicit zero fee must be 0";
-  if (event.feeSource !== "broker") return "fee needs a broker source or an explicit zero";
+  if (event.feeSource !== "broker" || event.feeKnown === false || event.netPnlAttributable === false) return "net pnl not attributable";
+  if (event.fee == null || !Number.isFinite(event.fee) || event.fee < 0) return "missing fee";
   return null;
 }
 
@@ -190,22 +198,26 @@ export function fillsFromExecutions(input: {
     const qty = Number(row.qty);
     const fillPrice = Number(row.price);
     const when = typeof row.transaction_time === "string" ? row.transaction_time : typeof row.timestamp === "string" ? row.timestamp : "";
-    const feePresent = row.fee != null || row.commission != null;
-    const feeRaw = feePresent ? (row.fee ?? row.commission) : input.missingFee === "explicit_zero" ? 0 : null;
-    const feeSource: FillEvent["feeSource"] = !feePresent && input.missingFee === "explicit_zero" ? "explicit_zero" : "broker";
+    const feeNamed = Object.prototype.hasOwnProperty.call(row, "fee") || Object.prototype.hasOwnProperty.call(row, "commission");
+    const feeRaw = feeNamed ? (row.fee ?? row.commission) : null;
+    const feeParsed = typeof feeRaw === "number" || (typeof feeRaw === "string" && feeRaw.trim() !== "") ? Number(feeRaw) : Number.NaN;
+    const feeKnown = feeNamed && Number.isFinite(feeParsed) && feeParsed >= 0;
+    const explicitZero = !feeNamed && input.missingFee === "explicit_zero";
     const missing: string[] = [];
     if (!fillId) missing.push("fillId");
     if (!brokerOrderId) missing.push("brokerOrderId");
     if (!Number.isFinite(qty) || !(qty > 0)) missing.push("qty");
     if (!Number.isFinite(fillPrice) || !(fillPrice > 0)) missing.push("fillPrice");
     if (!when || !Number.isFinite(Date.parse(when))) missing.push("eventTimestamp");
-    if (feeRaw == null || !Number.isFinite(Number(feeRaw)) || Number(feeRaw) < 0) missing.push("fee");
+    if (feeNamed && !feeKnown) missing.push("fee");
     if (!Number.isFinite(input.intendedPrice) || !(input.intendedPrice > 0)) missing.push("intendedPrice");
     if (missing.length) {
       gaps.push(incomplete({ ...base, at: when || at, reason: `missing ${missing.join(", ")}` }));
       continue;
     }
     const mock = input.provenance === "mock";
+    const fee = feeKnown ? feeParsed : explicitZero ? 0 : null;
+    const feeSource: FillEvent["feeSource"] = feeKnown ? "broker" : explicitZero ? "explicit_zero" : "unknown";
     const event: FillEvent = {
       v: 1,
       status: "COMPLETE",
@@ -219,8 +231,10 @@ export function fillsFromExecutions(input: {
       qty,
       fillPrice,
       intendedPrice: input.intendedPrice,
-      fee: Number(feeRaw),
+      fee,
+      feeKnown: explicitZero ? undefined : feeKnown,
       feeSource: mock ? undefined : feeSource,
+      netPnlAttributable: feeKnown && !mock,
       venue: mock ? "mock" : input.source === "LIVE" ? "alpaca-live" : "alpaca-paper",
       source: mock ? "MOCK" : input.source,
       eventTimestamp: when,
@@ -255,6 +269,9 @@ export function toResearchOutcome(event: FillEvent): ExecutionOutcome {
     fillPrice: event.fillPrice,
     intendedPrice: event.intendedPrice,
     fee: event.fee ?? Number.NaN,
+    feeKnown: event.feeKnown,
+    netPnlAttributable: event.netPnlAttributable,
+    category: event.category,
     source: event.source,
     brokerOrderId: broker ? event.brokerOrderId : null,
     fillId: broker ? event.fillId : null,

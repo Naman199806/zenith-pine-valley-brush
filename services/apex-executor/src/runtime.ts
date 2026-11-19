@@ -9,6 +9,7 @@ import { closeSync, fsyncSync, mkdirSync, openSync, writeSync } from "node:fs";
 import { dirname } from "node:path";
 import { PAPER_TRADING_ORIGIN, assertPaperUrl, redactSecrets } from "../../../src/lib/apex/broker/allowlist.ts";
 import { assertPaperCreds, type PaperCreds } from "../../../src/lib/apex/broker/paper-read.ts";
+import { SUPERVISED_PAPER_TEST } from "../../../src/lib/apex/live/connectivity.ts";
 import { HermesJournal } from "../../../src/lib/apex/live/journal.ts";
 import type { IntentRecord } from "../../../src/lib/apex/live/executor.ts";
 import type { ExecutionOutcome } from "../../../src/lib/apex/research/hermes-outcomes.ts";
@@ -42,7 +43,7 @@ import { atomicWrite, directoryFsyncSupported, durabilityLevel, FILE_ONLY_DURABI
 import { fillsFromExecutions, hermesPerformanceRefusal, toResearchOutcome, trustedEvidence, type FillEvent, type FillProvenance, type IncompleteFill } from "./fill-event.ts";
 import { tradingOriginGuard } from "../../../src/lib/apex/broker/allowlist.ts";
 import { devSubmitFlag, paperPostEnvOn, submitRefusal, type SubmitFacts } from "./gates.ts";
-import { absenceVerdict, fillsHitOrder, listHasClientOrder, ORDER_LIST_LIMIT, readAbsenceAttempts, readAbsenceBackoffMs, type AbsenceProbe } from "./absence.ts";
+import { absenceVerdict, fillsHitOrder, readAbsenceAttempts, readAbsenceBackoffMs, readFillPage, readOrderList, type AbsenceProbe } from "./absence.ts";
 import { fillsFromActivities, readAlpacaOrder } from "./alpaca-fill.ts";
 import { applyCumulativeFill, inFlightOrder, isOrderState, orderStateFromBroker, transitionRefusal, type OrderState } from "./order-machine.ts";
 import { brokerBodyMismatch, exactBrokerBody, limitConversionRefusal, verifySupervisedOrder, type SupervisedOrder } from "./supervised-order.ts";
@@ -286,7 +287,7 @@ export class Executor {
       const intent: IntentRecord = {
         clientOrderId: rec.clientOrderId,
         ticket: {
-          category: "CONNECTIVITY_TEST",
+          category: rec.signedOrderType ? SUPERVISED_PAPER_TEST : "CONNECTIVITY_TEST",
           symbol: rec.symbol,
           side: rec.side,
           orderType: "limit",
@@ -1125,9 +1126,12 @@ export class Executor {
       const probe = await this.absenceProbe(writer, id);
       probes.push(probe);
       if (probe.byClientStatus === 200 && probe.foundBody) {
-        const rec = this.records.get(id);
-        if (rec) this.adoptFound(rec, probe.foundBody);
-        return "present";
+        const view = readAlpacaOrder(probe.foundBody);
+        if (view && view.clientOrderId === id) {
+          const rec = this.records.get(id);
+          if (rec) this.adoptFound(rec, probe.foundBody);
+          return "present";
+        }
       }
       const verdict = absenceVerdict(probes, attempts);
       if (verdict === "present") return "present";
@@ -1146,7 +1150,7 @@ export class Executor {
   private async absenceProbe(writer: PaperWriter, id: string): Promise<AbsenceProbe & { foundBody?: unknown }> {
     const blank = (status: AbsenceProbe["byClientStatus"]): AbsenceProbe => ({
       byClientStatus: status, openStatus: "error", allStatus: "error", fillsStatus: "error",
-      openHit: false, allHit: false, openTruncated: false, allTruncated: false, fillHit: false,
+      openHit: false, allHit: false, openTruncated: false, allTruncated: false, fillsTruncated: false, fillHit: false,
     });
     try {
       const by = await writer.getOrder(id);
@@ -1154,17 +1158,22 @@ export class Executor {
       const all = await writer.listOrders("all");
       const fills = await writer.listFills();
       const brokerId = this.records.get(id)?.brokerOrderId ?? null;
+      const byView = by.status === 200 ? readAlpacaOrder(by.body) : null;
+      const openPage = open.status === 200 ? readOrderList(open.body) : null;
+      const allPage = all.status === 200 ? readOrderList(all.body) : null;
+      const fillPage = fills.status === 200 ? readFillPage(fills.body) : null;
       return {
-        byClientStatus: by.status,
-        openStatus: open.status === 200 ? 200 : "error",
-        allStatus: all.status === 200 ? 200 : "error",
-        fillsStatus: fills.status === 200 ? 200 : "error",
-        openHit: listHasClientOrder(open.body, id),
-        allHit: listHasClientOrder(all.body, id),
-        openTruncated: Array.isArray(open.body) && open.body.length >= ORDER_LIST_LIMIT,
-        allTruncated: Array.isArray(all.body) && all.body.length >= ORDER_LIST_LIMIT,
+        byClientStatus: by.status === 200 && !byView ? "error" : by.status,
+        openStatus: open.status === 200 && openPage && !openPage.malformed ? 200 : "error",
+        allStatus: all.status === 200 && allPage && !allPage.malformed ? 200 : "error",
+        fillsStatus: fills.status === 200 && fillPage && !fillPage.malformed ? 200 : "error",
+        openHit: openPage?.list ? openPage.list.some((row) => !!row && typeof row === "object" && (row as { client_order_id?: unknown }).client_order_id === id) : false,
+        allHit: allPage?.list ? allPage.list.some((row) => !!row && typeof row === "object" && (row as { client_order_id?: unknown }).client_order_id === id) : false,
+        openTruncated: openPage?.truncated === true,
+        allTruncated: allPage?.truncated === true,
+        fillsTruncated: fillPage?.truncated === true,
         fillHit: fillsHitOrder(fills.body, brokerId),
-        foundBody: by.status === 200 ? by.body : undefined,
+        foundBody: byView ? by.body : undefined,
       };
     } catch {
       return blank("error");
@@ -1319,6 +1328,8 @@ export class Executor {
     });
     if (!extracted.events.length) return;
     this.fills.push(...extracted.events);
+    const feeNote = extracted.events.map((event) => `fillId=${event.fillId}; orderId=${event.brokerOrderId}; qty=${event.qty}; price=${event.fillPrice}; at=${event.at}; provenance=${event.provenance}; feeKnown=${event.feeKnown === true}; netPnlAttributable=${event.netPnlAttributable === true}`).join(" | ");
+    this.report(rec, `operational fill; ${feeNote}`);
     const fd = openSync(this.config.fillsPath, "a");
     try {
       for (const row of extracted.events) writeSync(fd, JSON.stringify(row) + "\n");

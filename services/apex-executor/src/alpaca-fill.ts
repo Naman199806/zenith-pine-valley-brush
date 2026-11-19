@@ -45,9 +45,13 @@ export function readAlpacaOrder(body: unknown): AlpacaOrderView | null {
   return { id: row.id, clientOrderId: row.client_order_id, status: row.status, filledQty, filledAvgPrice, symbol: row.symbol, side: row.side };
 }
 
+/** A present numeric fee, including 0. A missing field stays unknown. A blank or non-numeric field is not a zero. */
 function knownFee(row: Record<string, unknown>): number | null {
+  const named = Object.prototype.hasOwnProperty.call(row, "fee") || Object.prototype.hasOwnProperty.call(row, "commission");
+  if (!named) return null;
   const raw = row.fee ?? row.commission;
-  if (raw == null) return null;
+  if (typeof raw === "string" && raw.trim() === "") return null;
+  if (typeof raw !== "number" && typeof raw !== "string") return null;
   const fee = Number(raw);
   if (!Number.isFinite(fee) || fee < 0) return null;
   return fee;
@@ -85,6 +89,7 @@ export function fillsFromActivities(input: {
     if (seen.has(fillId)) continue;
     const fee = knownFee(row);
     const injected = input.evidenceChannel === "injected";
+    const feeKnown = fee != null;
     events.push({
       v: 1,
       status: "COMPLETE",
@@ -99,8 +104,10 @@ export function fillsFromActivities(input: {
       fillPrice,
       intendedPrice: input.intendedPrice,
       fee,
-      feeKnown: fee != null,
-      feeSource: fee == null ? "unknown" : "broker",
+      feeKnown,
+      feeSource: feeKnown ? "broker" : "unknown",
+      netPnlAttributable: feeKnown && !injected,
+      category: "SUPERVISED_PAPER_TEST",
       venue: injected ? "mock" : "alpaca-paper",
       source: injected ? "MOCK" : "PAPER",
       eventTimestamp: when,

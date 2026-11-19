@@ -4,6 +4,7 @@
  */
 
 import { createHmac, timingSafeEqual } from "node:crypto";
+import { expiryProblem, timestampProblem } from "./supervised-order.ts";
 
 export const APPROVAL_VERSION = 1;
 
@@ -57,7 +58,8 @@ export function verifyApproval(a: CanonicalApproval, proof: string | null, secre
   if (a.category !== "CONNECTIVITY_TEST" && a.category !== "SUPERVISED_PAPER_TEST") return "unsupported category";
   if (!secret) return "operator secret missing; research cannot mint approval";
   if (!proof) return "operator proof required";
-  if (Date.parse(a.expiresAt) <= now) return "instruction expired";
+  const expiry = expiryProblem(a.expiresAt, now);
+  if (expiry) return expiry;
   const expected = signApproval(a, secret);
   const left = Buffer.from(proof);
   const right = Buffer.from(expected);
@@ -87,7 +89,7 @@ export function proposedTicket(input: unknown): { ok: true; approval: CanonicalA
   const category = row.category;
   if (typeof row.qty !== "number" || !Number.isFinite(row.qty) || !(row.qty > 0)) return incomplete("qty");
   if (typeof row.limitPrice !== "number" || !Number.isFinite(row.limitPrice) || !(row.limitPrice > 0)) return incomplete("limitPrice");
-  if (typeof row.expiresAt !== "string" || !row.expiresAt || !Number.isFinite(Date.parse(row.expiresAt))) return incomplete("expiresAt");
+  if (typeof row.expiresAt !== "string" || timestampProblem(row.expiresAt)) return incomplete("expiresAt");
   if (!("exitAuthorizationId" in row)) return incomplete("exitAuthorizationId");
   if (!("linkedEntryId" in row)) return incomplete("linkedEntryId");
   if (row.exitAuthorizationId != null && typeof row.exitAuthorizationId !== "string") return incomplete("exitAuthorizationId");

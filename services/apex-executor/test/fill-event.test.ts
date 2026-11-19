@@ -81,8 +81,15 @@ test("partial fills keep each execution price and incomplete records invent noth
     intendedPrice: 100, provenance: "broker", source: "PAPER",
     body: { executions: [{ id: "f1", order_id: "brk-1", qty: "0.01", price: "100", transaction_time: "2026-11-16T15:01:00Z" }] },
   });
-  assert.equal(noFee.events.length, 0);
-  assert.match(noFee.incomplete[0]?.reason ?? "", /fee/);
+  assert.equal(noFee.events.length, 1);
+  assert.equal(noFee.events[0]?.fee, null);
+  assert.equal(noFee.events[0]?.feeKnown, false);
+  assert.equal(noFee.events[0]?.netPnlAttributable, false);
+  assert.equal(noFee.events[0]?.brokerOrderId, "brk-1");
+  assert.equal(noFee.incomplete.length, 0);
+  const unattributed = ingestOutcomes(noFee.events.map(toResearchOutcome), trustedEvidence(noFee.events));
+  assert.equal(unattributed.paper.length, 0);
+  assert.match(unattributed.notes.join(" "), /net pnl not attributable/);
   const report = ingestOutcomes(extracted.events.map(toResearchOutcome), trustedEvidence(extracted.events));
   assert.equal(report.paper.length, 1);
   assert.equal(report.paper[0]?.openQty, 0.02);

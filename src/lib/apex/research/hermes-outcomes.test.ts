@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { adaptExecutorJournal, ingestOutcomes, type ExecutionOutcome, type TrustedEvidence } from "./hermes-outcomes.ts";
+import { adaptExecutorJournal, contributesToStrategyQualification, ingestOutcomes, type ExecutionOutcome, type TrustedEvidence } from "./hermes-outcomes.ts";
 
 const fill = (over: Partial<ExecutionOutcome>): ExecutionOutcome => ({
   decisionId: "d1", strategyVersion: "v1", clientOrderId: "c", symbol: "SPY", side: "buy", qty: 0.03,
@@ -37,6 +37,20 @@ test("zero P&L flat book is CLOSED; oversized sell fails; correction replaces", 
   const corrected = fill({ clientOrderId: "buy", fillId: "f1", qty: 1, fillPrice: 101, fee: 0, corrected: true, at: "2026-11-16T15:03:00Z" });
   const replaced = ingestOutcomes([buy, corrected, sell], [buy, corrected, sell].map(trust));
   assert.ok(Math.abs(replaced.paper[0]!.realizedPnl - (100 - 101)) < 1e-9);
+});
+
+test("SUPERVISED_PAPER_TEST fills are excluded from strategy qualification", () => {
+  const supervised = fill({ fee: 0, feeKnown: true, netPnlAttributable: true, category: "SUPERVISED_PAPER_TEST" });
+  assert.equal(contributesToStrategyQualification(supervised), false);
+  assert.equal(contributesToStrategyQualification(fill({ fee: 0 })), true);
+  const report = ingestOutcomes([supervised], [trust(supervised)]);
+  assert.equal(report.paper.length, 0);
+  assert.equal(report.strategyExcluded, 1);
+  assert.match(report.notes.join(" "), /strategy qualification/);
+  const unknownFee = fill({ fee: Number.NaN, feeKnown: false, netPnlAttributable: false });
+  const blocked = ingestOutcomes([unknownFee], [trust(unknownFee)]);
+  assert.equal(blocked.paper.length, 0);
+  assert.match(blocked.notes.join(" "), /net pnl not attributable/);
 });
 
 test("untrusted strings, MOCK and kind-only journal lines are incomplete", () => {

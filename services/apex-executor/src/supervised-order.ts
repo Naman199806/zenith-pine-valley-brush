@@ -164,6 +164,28 @@ export function signSupervisedGate(order: SupervisedOrder, secret: string, now: 
   return { ...base, proof: hmac(secret, supervisedGateMaterial(base)) };
 }
 
+const EXPIRY_MIN_MS = Date.parse("2020-01-01T00:00:00.000Z");
+const EXPIRY_MAX_MS = Date.parse("2100-01-01T00:00:00.000Z");
+const ISO_UTC = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?Z$/;
+
+/** Rejects NaN, Infinity, non-ISO strings, and timestamps outside 2020–2100. Does not check "already expired". */
+export function timestampProblem(value: unknown): string | null {
+  if (typeof value !== "string" || value === "NaN" || value === "Infinity" || value === "-Infinity" || !ISO_UTC.test(value)) {
+    return "expiry is not a finite timestamp";
+  }
+  const parsed = Date.parse(value);
+  if (!Number.isFinite(parsed)) return "expiry is not a finite timestamp";
+  if (parsed < EXPIRY_MIN_MS || parsed > EXPIRY_MAX_MS) return "expiry is out of range";
+  return null;
+}
+
+export function expiryProblem(value: unknown, now: number): string | null {
+  const shape = timestampProblem(value);
+  if (shape) return shape;
+  if (!Number.isFinite(now) || Date.parse(value as string) <= now) return "instruction expired";
+  return null;
+}
+
 export function notionalProblem(notional: string): string | null {
   if (typeof notional !== "string" || !/^\d+\.\d{2}$/.test(notional)) return "notional must be the exact signed cents string";
   const value = Number(notional);
@@ -181,6 +203,8 @@ export function qtyStringProblem(qty: string): string | null {
 
 export function verifySupervisedOrder(order: SupervisedOrder, secrets: { operator: string | null; gate: string | null }, now: number): string | null {
   if (order.v !== SUPERVISED_ORDER_VERSION || order.source !== "OPERATOR_SIGNED") return "unsupported approval version";
+  const orderType = (order as { orderType?: unknown }).orderType;
+  if (orderType !== "market_notional" && orderType !== "market_qty") return "invalid order type";
   if (order.strategyApproved !== false) return "strategy approval cannot be asserted by research";
   if (order.category !== "SUPERVISED_PAPER_TEST") return "supervised paper test category required";
   if (order.symbol !== "SPY") return "supervised path is SPY only";
@@ -189,7 +213,8 @@ export function verifySupervisedOrder(order: SupervisedOrder, secrets: { operato
   if (order.session !== "REGULAR") return "regular session required";
   const id = clientOrderIdProblem(order.clientOrderId);
   if (id) return id;
-  if (Date.parse(order.expiresAt) <= now) return "instruction expired";
+  const expiry = expiryProblem(order.expiresAt, now);
+  if (expiry) return expiry;
   if (order.orderType === "market_notional") {
     if (order.side !== "buy") return "market_notional is buy only";
     const notional = notionalProblem(order.notional);

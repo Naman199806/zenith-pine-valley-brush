@@ -4,6 +4,8 @@
  * MOCK is never performance. PAPER and LIVE stay separate.
  */
 
+import type { AuthorizationCategory } from "../live/connectivity.ts";
+
 export type OutcomeSource = "MOCK" | "PAPER" | "LIVE";
 export type LotStatus = "UNREALIZED" | "INCOMPLETE" | "CLOSED";
 
@@ -17,6 +19,11 @@ export interface ExecutionOutcome {
   fillPrice: number;
   intendedPrice: number;
   fee: number;
+  /** False means this fill must not be used for net profit. Omitted stays compatible with older rows. */
+  feeKnown?: boolean;
+  /** False means net PnL is not attributable. A broker-confirmed 0 is true. */
+  netPnlAttributable?: boolean;
+  category?: AuthorizationCategory;
   source: OutcomeSource;
   brokerOrderId: string | null;
   fillId: string | null;
@@ -48,9 +55,18 @@ export interface OutcomeReport {
   paper: PositionView[];
   live: PositionView[];
   mockIgnored: number;
+  /** SUPERVISED_PAPER_TEST rows. They never enter the strategy books above. */
+  strategyExcluded: number;
   duplicates: string[];
   missing: string[];
   notes: string[];
+}
+
+/** Strategy qualification. A supervised PAPER fill is never an input, including when its fee is known. */
+export function contributesToStrategyQualification(row: Pick<ExecutionOutcome, "category" | "source">): boolean {
+  if (row.source === "MOCK") return false;
+  if (row.category === "SUPERVISED_PAPER_TEST") return false;
+  return true;
 }
 
 interface Lot { qty: number; price: number; feePerUnit: number; }
@@ -70,6 +86,7 @@ export function ingestOutcomes(rows: ExecutionOutcome[], trusted: TrustedEvidenc
   const missing: string[] = [];
   const notes: string[] = [];
   let mockIgnored = 0;
+  let strategyExcluded = 0;
   let lastAt = "";
   for (const row of rows) {
     const key = `${row.decisionId}|${row.strategyVersion}|${row.clientOrderId}|${row.fillId ?? ""}`;
@@ -86,6 +103,16 @@ export function ingestOutcomes(rows: ExecutionOutcome[], trusted: TrustedEvidenc
     if (row.source === "MOCK") {
       mockIgnored += 1;
       notes.push(`${row.clientOrderId} MOCK ignored`);
+      continue;
+    }
+    if (!contributesToStrategyQualification(row)) {
+      strategyExcluded += 1;
+      notes.push(`${row.clientOrderId} SUPERVISED_PAPER_TEST excluded from strategy qualification`);
+      continue;
+    }
+    if (row.feeKnown === false || row.netPnlAttributable === false) {
+      missing.push(key);
+      notes.push(`${row.clientOrderId} net pnl not attributable`);
       continue;
     }
     if (!finite(row.qty) || !finite(row.fillPrice) || !finite(row.fee) || row.qty === 0) {
@@ -145,7 +172,7 @@ export function ingestOutcomes(rows: ExecutionOutcome[], trusted: TrustedEvidenc
       failed: book.failed,
     };
   });
-  return { paper: views.filter((v) => v.source === "PAPER"), live: views.filter((v) => v.source === "LIVE"), mockIgnored, duplicates, missing, notes };
+  return { paper: views.filter((v) => v.source === "PAPER"), live: views.filter((v) => v.source === "LIVE"), mockIgnored, strategyExcluded, duplicates, missing, notes };
 }
 
 export function adaptExecutorJournal(lines: string[]): { usable: ExecutionOutcome[]; incomplete: number } {

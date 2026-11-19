@@ -15,6 +15,11 @@
  *   order_id is the known broker id (no broker id means this check cannot see a fill,
  *   so it does not by itself prove absence).
  *
+ * A 200 whose body is not the documented array is malformed and is not evidence.
+ * A FILL page is truncated when it carries a next_page_token or contains
+ * page_size (100) activities: pagination is incomplete, so absence stays UNKNOWN.
+ * https://docs.alpaca.markets/us/reference/getaccountactivitiesbyactivitytype-1
+ *
  * A timeout, 429, or 5xx is not a 404 and does not count. If the attempt budget
  * or the request budget runs out first, the order stays UNKNOWN. UNKNOWN is
  * journaled, restored after restart, blocks every new client_order_id, and is
@@ -31,6 +36,8 @@ export const DEFAULT_ABSENCE_ATTEMPTS = 3;
 export const DEFAULT_ABSENCE_BACKOFF_MS = 250;
 export const ABSENCE_ATTEMPT_CAP = 5;
 export const ORDER_LIST_LIMIT = 500;
+/** Alpaca activity page_size maximum. A full page is not proof that later pages are empty. */
+export const FILL_PAGE_LIMIT = 100;
 
 export interface AbsenceProbe {
   byClientStatus: number | "error";
@@ -41,6 +48,7 @@ export interface AbsenceProbe {
   allHit: boolean;
   openTruncated: boolean;
   allTruncated: boolean;
+  fillsTruncated: boolean;
   fillHit: boolean;
 }
 
@@ -70,12 +78,40 @@ export function listHasClientOrder(body: unknown, clientOrderId: string): boolea
 }
 
 export function fillsHitOrder(body: unknown, brokerOrderId: string | null): boolean {
-  if (!brokerOrderId || !Array.isArray(body)) return false;
-  return body.some((row) => {
+  const page = readFillPage(body);
+  if (!brokerOrderId || !page.list) return false;
+  return page.list.some((row) => {
     if (!row || typeof row !== "object") return false;
     const activity = row as { activity_type?: unknown; order_id?: unknown };
     return activity.activity_type === "FILL" && activity.order_id === brokerOrderId;
   });
+}
+
+export interface PageRead {
+  list: unknown[] | null;
+  truncated: boolean;
+  malformed: boolean;
+}
+
+/** Documented order lists are JSON arrays. Anything else is not a miss. */
+export function readOrderList(body: unknown): PageRead {
+  if (!Array.isArray(body)) return { list: null, truncated: false, malformed: true };
+  return { list: body, truncated: body.length >= ORDER_LIST_LIMIT, malformed: false };
+}
+
+/**
+ * Documented FILL activities are a JSON array. page_token/direction are request
+ * parameters; a full page_size, or a next_page_token, means another page may exist.
+ */
+export function readFillPage(body: unknown): PageRead {
+  if (Array.isArray(body)) return { list: body, truncated: body.length >= FILL_PAGE_LIMIT, malformed: false };
+  if (!body || typeof body !== "object") return { list: null, truncated: false, malformed: true };
+  const row = body as Record<string, unknown>;
+  const token = row.next_page_token;
+  const list = Array.isArray(row.activities) ? row.activities : Array.isArray(row.fills) ? row.fills : null;
+  const tokenSet = typeof token === "string" && token.length > 0;
+  if (!list) return { list: null, truncated: tokenSet, malformed: true };
+  return { list, truncated: tokenSet || list.length >= FILL_PAGE_LIMIT, malformed: false };
 }
 
 export function absenceVerdict(probes: readonly AbsenceProbe[], attemptsRequired: number): AbsenceVerdict {
@@ -83,7 +119,7 @@ export function absenceVerdict(probes: readonly AbsenceProbe[], attemptsRequired
   for (const probe of probes) {
     if (probe.byClientStatus === 200 || probe.openHit || probe.allHit || probe.fillHit) return "present";
   }
-  const cleanMisses = probes.filter((probe) => probe.byClientStatus === 404 && probe.openStatus === 200 && probe.allStatus === 200 && probe.fillsStatus === 200 && !probe.openHit && !probe.allHit && !probe.openTruncated && !probe.allTruncated && !probe.fillHit);
+  const cleanMisses = probes.filter((probe) => probe.byClientStatus === 404 && probe.openStatus === 200 && probe.allStatus === 200 && probe.fillsStatus === 200 && !probe.openHit && !probe.allHit && !probe.openTruncated && !probe.allTruncated && !probe.fillsTruncated && !probe.fillHit);
   if (cleanMisses.length >= attemptsRequired) return "absent";
   return "unknown";
 }
