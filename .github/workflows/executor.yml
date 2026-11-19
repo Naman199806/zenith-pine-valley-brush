@@ -32,6 +32,7 @@ jobs:
         run: python -m unittest scripts/test_ir01.py
         env:
           PYTHONPATH: scripts
+      - name: Research handoff and Hermes outcomes
         run: node --experimental-strip-types --test src/lib/apex/research/proposal.test.ts src/lib/apex/research/hermes-outcomes.test.ts src/lib/apex/research/multi-strategy.test.ts src/lib/apex/broker/paper-equity-transport.test.ts
       - name: Executor typecheck
         run: node services/apex-executor/scripts/typecheck.mjs

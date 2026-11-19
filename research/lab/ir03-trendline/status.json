@@ -1,7 +1,7 @@
 {
-  "status": "EXPLORATORY_NOT_PROMOTED",
-  "trades": 89,
-  "verdict": "NO_WINNER",
-  "strategyApproved": false,
-  "note": "Previously inspected data. Not promoted."
+  "id": "ir03-confirmed-pivot-v1",
+  "status": "IMPLEMENTATION_UNVERIFIED",
+  "reason": "A spec is registered, but the earlier 89-trade figure has no committed simulator or trade ledger. It is not evidence.",
+  "independentValidation": false,
+  "strategyApproved": false
 }

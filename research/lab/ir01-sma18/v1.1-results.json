@@ -1,6 +1,76 @@
 {
+  "spec": {
+    "id": "ir01-sma18-v1.1",
+    "parent": "ir01-sma18-v1",
+    "kind": "implementation-defect-correction",
+    "notARuleChange": true,
+    "publishedRulesUnchanged": true,
+    "defectsCorrected": [
+      "A completed setup is now armed explicitly and is consumed on fill.",
+      "An unused setup is cancelled by a completed opposite setup.",
+      "An armed long setup is invalidated if a later close has low at or below SMA18 before the breakout.",
+      "A bearish setup can exit a long only if it completed after that long was opened.",
+      "Same-bar entry and exit is not assumed. An open long that can exit does not also enter."
+    ],
+    "costs": {
+      "baselineBps": 6,
+      "twoXBps": 12,
+      "severeBps": 50
+    },
+    "promotionGate": {
+      "validationBeatsSpy": true,
+      "validationSharpe": 0.5,
+      "validationProfitFactor": 1.2,
+      "twoXCostsPositive": true,
+      "minTrades": 30
+    },
+    "previouslyInspected": [
+      "2023-01-03",
+      "2026-11-11"
+    ],
+    "untouchedHoldout": false
+  },
   "symbols": {
     "SPY": {
+      "development": {
+        "strategy": {
+          "totalReturn": 0.3664708060336901,
+          "realizedInPeriod": 31.932334331635133,
+          "unrealizedEnd": 21.286487960380583,
+          "completedTrades": 32,
+          "spanningTrades": 1,
+          "costs": 5.41902252010927
+        },
+        "twoX": 0.3149475380652762,
+        "severe50bps": 0.03028989079544364,
+        "spy": 1.769942403106993
+      },
+      "validation": {
+        "strategy": {
+          "totalReturn": 0.11386070252371683,
+          "realizedInPeriod": 43.561648737107475,
+          "unrealizedEnd": 0.0,
+          "completedTrades": 19,
+          "spanningTrades": 1,
+          "costs": 4.154966304998942
+        },
+        "twoX": 0.08938366613309934,
+        "severe50bps": -0.05391730066676392,
+        "spy": 0.5497635459696235
+      },
+      "previouslyInspected": {
+        "strategy": {
+          "totalReturn": 0.5278287742407373,
+          "realizedInPeriod": 108.26228566204998,
+          "unrealizedEnd": 0.0,
+          "completedTrades": 14,
+          "spanningTrades": 0,
+          "costs": 4.555660206933169
+        },
+        "twoX": 0.5023529187140552,
+        "severe50bps": 0.35026584688233786,
+        "spy": 1.0918036097972292
+      },
       "ledger": [
         {
           "symbol": "SPY",
@@ -739,48 +809,48 @@
           "pnl": -11.996209680085371,
           "cost": 0.3833558170734078
         }
-      ],
+      ]
+    },
+    "QQQ": {
       "development": {
         "strategy": {
-          "totalReturn": 0.3664708060336901,
-          "realizedInPeriod": 31.932334331635133,
-          "unrealizedEnd": 21.286487960380583,
-          "completedTrades": 32,
+          "totalReturn": 0.7175276034625904,
+          "realizedInPeriod": 103.98422535216879,
+          "unrealizedEnd": 22.345685243689047,
+          "completedTrades": 31,
           "spanningTrades": 1,
-          "costs": 5.41902252010927
+          "costs": 5.7502030862452616
         },
-        "twoX": 0.3149475380652762,
-        "severe50bps": 0.03028989079544364,
+        "twoX": 0.6547539144402299,
+        "severe50bps": 0.3064576469588516,
         "spy": 1.769942403106993
       },
       "validation": {
         "strategy": {
-          "totalReturn": 0.11386070252371683,
-          "realizedInPeriod": 43.561648737107475,
+          "totalReturn": 0.5086569693592369,
+          "realizedInPeriod": 149.56587551204657,
           "unrealizedEnd": 0.0,
-          "completedTrades": 19,
+          "completedTrades": 16,
           "spanningTrades": 1,
-          "costs": 4.154966304998942
+          "costs": 6.328276289163048
         },
-        "twoX": 0.08938366613309934,
-        "severe50bps": -0.05391730066676392,
+        "twoX": 0.4808304942399395,
+        "severe50bps": 0.31578917209259627,
         "spy": 0.5497635459696235
       },
       "previouslyInspected": {
         "strategy": {
-          "totalReturn": 0.5278287742407373,
-          "realizedInPeriod": 108.26228566204998,
+          "totalReturn": 0.8558670271694733,
+          "realizedInPeriod": 312.366390846642,
           "unrealizedEnd": 0.0,
-          "completedTrades": 14,
+          "completedTrades": 15,
           "spanningTrades": 0,
-          "costs": 4.555660206933169
+          "costs": 9.322730410653403
         },
-        "twoX": 0.5023529187140552,
-        "severe50bps": 0.35026584688233786,
+        "twoX": 0.8227307192609348,
+        "severe50bps": 0.625769324821267,
         "spy": 1.0918036097972292
-      }
-    },
-    "QQQ": {
+      },
       "ledger": [
         {
           "symbol": "QQQ",
@@ -1486,48 +1556,48 @@
           "pnl": -9.628434975147115,
           "cost": 0.8188255617206694
         }
-      ],
+      ]
+    },
+    "IWM": {
       "development": {
         "strategy": {
-          "totalReturn": 0.7175276034625904,
-          "realizedInPeriod": 103.98422535216879,
-          "unrealizedEnd": 22.345685243689047,
-          "completedTrades": 31,
+          "totalReturn": 0.0005090172641284418,
+          "realizedInPeriod": 3.854371863876267,
+          "unrealizedEnd": 1.3279733980462538,
+          "completedTrades": 36,
           "spanningTrades": 1,
-          "costs": 5.7502030862452616
+          "costs": 4.875496000832021
         },
-        "twoX": 0.6547539144402299,
-        "severe50bps": 0.3064576469588516,
+        "twoX": -0.04182996630803393,
+        "severe50bps": -0.27180117612161425,
         "spy": 1.769942403106993
       },
       "validation": {
         "strategy": {
-          "totalReturn": 0.5086569693592369,
-          "realizedInPeriod": 149.56587551204657,
+          "totalReturn": 0.02541944341368696,
+          "realizedInPeriod": 5.633800972001154,
           "unrealizedEnd": 0.0,
-          "completedTrades": 16,
+          "completedTrades": 21,
           "spanningTrades": 1,
-          "costs": 6.328276289163048
+          "costs": 3.3256517659047447
         },
-        "twoX": 0.4808304942399395,
-        "severe50bps": 0.31578917209259627,
+        "twoX": 0.00047969630560529275,
+        "severe50bps": -0.1442740361978465,
         "spy": 0.5497635459696235
       },
       "previouslyInspected": {
         "strategy": {
-          "totalReturn": 0.8558670271694733,
-          "realizedInPeriod": 312.366390846642,
-          "unrealizedEnd": 0.0,
-          "completedTrades": 15,
+          "totalReturn": 0.43015849430602304,
+          "realizedInPeriod": 56.116170749172994,
+          "unrealizedEnd": -1.501725572036321,
+          "completedTrades": 14,
           "spanningTrades": 0,
-          "costs": 9.322730410653403
+          "costs": 2.499982908728358
         },
-        "twoX": 0.8227307192609348,
-        "severe50bps": 0.625769324821267,
+        "twoX": 0.40546695330908533,
+        "severe50bps": 0.2583820172820588,
         "spy": 1.0918036097972292
-      }
-    },
-    "IWM": {
+      },
       "ledger": [
         {
           "symbol": "IWM",
@@ -2343,49 +2413,10 @@
           "pnl": -3.351063897660765,
           "cost": 0.22177223944375984
         }
-      ],
-      "development": {
-        "strategy": {
-          "totalReturn": 0.0005090172641284418,
-          "realizedInPeriod": 3.854371863876267,
-          "unrealizedEnd": 1.3279733980462538,
-          "completedTrades": 36,
-          "spanningTrades": 1,
-          "costs": 4.875496000832021
-        },
-        "twoX": -0.04182996630803393,
-        "severe50bps": -0.27180117612161425,
-        "spy": 1.769942403106993
-      },
-      "validation": {
-        "strategy": {
-          "totalReturn": 0.02541944341368696,
-          "realizedInPeriod": 5.633800972001154,
-          "unrealizedEnd": 0.0,
-          "completedTrades": 21,
-          "spanningTrades": 1,
-          "costs": 3.3256517659047447
-        },
-        "twoX": 0.00047969630560529275,
-        "severe50bps": -0.1442740361978465,
-        "spy": 0.5497635459696235
-      },
-      "previouslyInspected": {
-        "strategy": {
-          "totalReturn": 0.43015849430602304,
-          "realizedInPeriod": 56.116170749172994,
-          "unrealizedEnd": -1.501725572036321,
-          "completedTrades": 14,
-          "spanningTrades": 0,
-          "costs": 2.499982908728358
-        },
-        "twoX": 0.40546695330908533,
-        "severe50bps": 0.2583820172820588,
-        "spy": 1.0918036097972292
-      }
+      ]
     }
   },
   "strategyApproved": false,
-  "promotion": false,
-  "verdict": "NO_WINNER"
+  "verdict": "NO_WINNER",
+  "promotion": false
 }
