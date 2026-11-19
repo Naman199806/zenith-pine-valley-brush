@@ -1,0 +1,11 @@
+{
+  "study": "multi-strategy-decision-v1",
+  "strategyApproved": false,
+  "comparison": {
+    "strategyOnly": "Rejected registry entries stay NO_TRADE.",
+    "equalRisk": "Correlated equity exposure is reduced to one name or blocked.",
+    "agentAssisted": "Bull/Bear conflict and missing feeds are recorded. They do not override Sigma, Sentinel, or an unapproved registry verdict."
+  },
+  "measurableAgentValue": "Agents add fail-closed evidence and conflict flags. They do not add a validated return edge in this run.",
+  "executorTouched": false
+}
