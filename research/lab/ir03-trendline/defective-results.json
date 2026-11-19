@@ -1,0 +1,52 @@
+{
+  "id": "ir03-confirmed-pivot-v1",
+  "exploratory": true,
+  "previouslyInspected": true,
+  "strategyApproved": false,
+  "verdict": "NO_WINNER",
+  "symbols": {
+    "SPY": {
+      "baselineEnd": 1200.1241461333343,
+      "twoXEnd": 1199.4036393415793,
+      "severe50bpsEnd": 1194.840429660464,
+      "trades": 0,
+      "ledger": []
+    },
+    "QQQ": {
+      "baselineEnd": 2299.1798056936473,
+      "twoXEnd": 2295.04128303754,
+      "severe50bpsEnd": 2268.9459123669626,
+      "trades": 1,
+      "ledger": [
+        {
+          "symbol": "QQQ",
+          "entry": "2009-02-09",
+          "entryPx": 27.03753788040818,
+          "entryCash": 100.0,
+          "line": 24.7549738892435,
+          "exit": "2009-02-24",
+          "exitPx": 24.126204114844956,
+          "pnl": -10.874793918266235
+        }
+      ]
+    },
+    "IWM": {
+      "baselineEnd": 773.3480484953708,
+      "twoXEnd": 771.9560223424663,
+      "severe50bpsEnd": 763.1786296684011,
+      "trades": 1,
+      "ledger": [
+        {
+          "symbol": "IWM",
+          "entry": "2009-02-09",
+          "entryPx": 36.89029082730549,
+          "entryCash": 100.0,
+          "line": 34.40676689379939,
+          "exit": "2009-02-18",
+          "exitPx": 34.09928083171043,
+          "pnl": -7.676591301784711
+        }
+      ]
+    }
+  }
+}

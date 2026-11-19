@@ -1,0 +1,12 @@
+{
+  "id": "cot-commercial-extreme-v1",
+  "status": "REGISTERED_NOT_EVALUATED",
+  "source": "CFTC historical compressed COT files, public",
+  "publication": "Typically released Friday for positions as of the prior Tuesday. A feature is usable only after the release timestamp.",
+  "mapping": {"ES": "SPY", "NQ": "QQQ", "RTY": "IWM"},
+  "feature": "commercial net position versus its trailing distribution",
+  "hypothesis": "An extreme commercial net long may mark speculative crowding. This is not a filter for IR-01.",
+  "localSeries": false,
+  "pointInTimeVerified": false,
+  "strategyApproved": false
+}

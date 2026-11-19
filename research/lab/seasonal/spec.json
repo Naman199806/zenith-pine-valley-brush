@@ -1,0 +1,14 @@
+{
+  "id": "seasonal-calendar-v1",
+  "frozenBeforeEvaluation": true,
+  "experimentCount": 2,
+  "universe": ["SPY"],
+  "costsBpsPerSide": 6,
+  "benchmark": "SPY buy-and-hold",
+  "previouslyInspected": true,
+  "hypotheses": [
+    {"id": "halloween", "entry": "first session on or after November 1", "exit": "first session on or after May 1", "justification": "documented equity risk-premium seasonality, not selected after scanning calendars"},
+    {"id": "turn-of-month", "entry": "last session of month", "exit": "third session of next month", "justification": "documented cash-flow window, pre-registered"}
+  ],
+  "strategyApproved": false
+}

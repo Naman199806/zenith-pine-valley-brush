@@ -1,0 +1,16 @@
+{
+  "spec": "seasonal/spec.json",
+  "exploratory": true,
+  "previouslyInspected": true,
+  "strategyApproved": false,
+  "spyBuyHoldEnd": 1154.6383222154327,
+  "halloween": {
+    "ending": 362.10927259576107,
+    "trades": 18
+  },
+  "turnOfMonth": {
+    "ending": 124.39215395657699,
+    "trades": 215
+  },
+  "verdict": "NO_WINNER"
+}

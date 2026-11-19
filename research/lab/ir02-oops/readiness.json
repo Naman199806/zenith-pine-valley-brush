@@ -1,15 +1,11 @@
 {
   "id": "ir02-oops-gap-reversal",
   "status": "DATA_BLOCKED",
-  "localIntradayFiles": 0,
-  "alpaca": {
-    "dataHost": "data.alpaca.markets",
-    "configuredFeed": "IEX",
-    "historicalMinuteCoverageLocally": "none",
-    "limitation": "IEX is not the consolidated tape. No free complete historical minute archive is stored in this repository.",
-    "paidSubscription": "not approved"
-  },
+  "localMinuteFiles": 0,
+  "alpaca": {"feed": "IEX", "consolidated": false, "historicalMinuteArchiveLocal": false},
+  "freeSourcesAudited": ["repository data tree", "Alpaca IEX configuration"],
   "executionSuitable": false,
+  "reason": "No complete chronological consolidated minute archive is available. IEX is not the consolidated tape. No paid subscription was approved.",
   "fillsFabricated": false,
   "strategyApproved": false
 }
