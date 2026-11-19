@@ -1,11 +1,13 @@
 {
   "id": "ir02-oops-gap-reversal",
-  "status": "DATA_BLOCKED",
+  "status": "ENTITLEMENT_UNKNOWN",
   "localMinuteFiles": 0,
-  "alpaca": {"feed": "IEX", "consolidated": false, "historicalMinuteArchiveLocal": false},
-  "freeSourcesAudited": ["repository data tree", "Alpaca IEX configuration"],
-  "executionSuitable": false,
-  "reason": "No complete chronological consolidated minute archive is available. IEX is not the consolidated tape. No paid subscription was approved.",
+  "alpaca": {
+    "configuredRealtimeFeed": "IEX",
+    "historicalEntitlementVerified": false,
+    "reason": "This runtime has no Alpaca credentials. IEX realtime configuration does not by itself prove historical consolidated bars are unavailable."
+  },
+  "paidSubscription": "not approved",
   "fillsFabricated": false,
   "strategyApproved": false
 }

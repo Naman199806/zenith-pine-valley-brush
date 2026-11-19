@@ -1,0 +1,15 @@
+{
+  "id": "cot-es-commercial-median-v1",
+  "reports": 152,
+  "signals": 101,
+  "ending": 111.11443358095524,
+  "spy": 1154.6383222154327,
+  "switches": 6,
+  "verdict": "NO_WINNER",
+  "exploratory": true,
+  "strategyApproved": false,
+  "overlappingSpy": 149.38423800205146,
+  "signalStart": "2023-02-06",
+  "signalEnd": "2025-01-06",
+  "benchmarkNote": "Earlier full-history SPY figure is not the overlapping benchmark."
+}

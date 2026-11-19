@@ -1,0 +1,18 @@
+{
+  "pr6": {
+    "status": "accepted for exploratory archival, not qualification",
+    "limitations": [
+      "IR-01, IR-03 and seasonal results are exploratory on previously inspected data.",
+      "Seasonal performance is implementation-unverified until its source and ledger are committed.",
+      "No strategy is approved."
+    ]
+  },
+  "experiments": [
+    {"id": "etf-xs-rs-60-v1", "verdict": "NO_WINNER"},
+    {"id": "ir01-sma18-v1", "verdict": "NO_WINNER"},
+    {"id": "ir03-confirmed-pivot-v1", "verdict": "NO_WINNER"},
+    {"id": "seasonal-calendar-v1", "verdict": "NO_WINNER", "implementation": "UNVERIFIED"}
+  ],
+  "prospectiveProtocol": "New observations after 2026-11-11 only. Previously inspected periods cannot be called an untouched holdout.",
+  "strategyApproved": false
+}
