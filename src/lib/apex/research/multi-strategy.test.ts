@@ -30,7 +30,7 @@ test("unknown strategy, missing required evidence and invalid inputs are rejecte
 test("ranking is deterministic and missing inputs are NOT_RANKABLE", () => {
   const ranked = evaluate(snap(), { "synthetic-eligible-fixture": "BUY" });
   assert.equal(ranked.ranking.scoreIsProbability, false);
-  assert.notEqual(ranked.ranking.rows[0]?.score, ranked.researchEligible.length);
+  assert.equal(ranked.ranking.rows[0]?.reason.includes("strategy-specific"), true);
   const missingOptional = evaluate(snap({ present: { bars: true, spy: true, macro: false, positioning: true } }), { "synthetic-eligible-fixture": "BUY" });
   assert.equal(missingOptional.ranking.status, "NOT_RANKABLE");
   assert.equal(missingOptional.ranking.selected, null);
@@ -53,6 +53,11 @@ test("protective exit must match the owned position and does not wait for LLM", 
   assert.equal(bound.hermes.realPerformance, false);
 });
 
+test("stale data, correlation and unavailable providers fail closed", () => {
+  assert.equal(evaluate(snap({ dataAgeMs: 60 * 60 * 1000 }), { "synthetic-eligible-fixture": "BUY" }).recommendation, "NO_TRADE");
+  assert.equal(evaluate(snap({ correlatedExposure: 1 }), { "synthetic-eligible-fixture": "BUY" }).reason, "correlated exposure");
+  assert.ok(evaluate(snap(), { "synthetic-eligible-fixture": "BUY" }, { timeoutRoles: ["Oracle"] }).warden.includes("unavailable agent"));
+});
 test("strong score on an unapproved strategy cannot trade", () => {
   const d = evaluate(snap(), { "etf-xs-breakout-20-v1": "BUY", "etf-weekly-momentum-v1": "BUY" });
   assert.equal(d.recommendation, "NO_TRADE");
