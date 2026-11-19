@@ -38,6 +38,9 @@ export interface LifecycleRecord {
   brokerOrderId?: string | null;
   confirmedAbsent?: boolean;
   notional?: number | null;
+  signedOrderType?: "market_notional" | "market_qty" | "limit";
+  signedNotional?: string | null;
+  signedQty?: string | null;
 }
 
 export interface LookupFacts {

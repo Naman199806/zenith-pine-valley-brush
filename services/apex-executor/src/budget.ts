@@ -68,15 +68,21 @@ export class RequestBudget {
     return this.stamps.length;
   }
 
-  canTake(now: number, cost: number): boolean {
+  /**
+   * Entries and polls stop at limit - reserve.
+   * Cancel, recovery, and risk-reducing exits may spend the reserve, up to the limit.
+   */
+  canTake(now: number, cost: number, purpose: "entry" | "poll" | "exit" | "cancel" | "recovery" = "poll"): boolean {
     if (!Number.isInteger(cost) || cost <= 0 || cost > this.limit) return false;
     if (now < this.lastNow) return false;
     this.evict(now);
-    return this.stamps.length + cost <= this.limit;
+    const ceiling = purpose === "entry" || purpose === "poll" ? this.limit - BUDGET_RESERVE : this.limit;
+    if (ceiling <= 0) return false;
+    return this.stamps.length + cost <= ceiling;
   }
 
-  tryTake(now: number, cost: number): boolean {
-    if (!this.canTake(now, cost)) return false;
+  tryTake(now: number, cost: number, purpose: "entry" | "poll" | "exit" | "cancel" | "recovery" = "poll"): boolean {
+    if (!this.canTake(now, cost, purpose)) return false;
     for (let i = 0; i < cost; i += 1) this.stamps.push(now);
     this.lastNow = now;
     return true;

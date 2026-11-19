@@ -34,6 +34,10 @@ export interface PaperWriter {
   getOrder(clientOrderId: string): Promise<{ status: number; body: unknown }>;
   getPositions(): Promise<{ status: number; body: unknown }>;
   getOpenOrders(): Promise<{ status: number; body: unknown }>;
+  /** GET /v2/orders?status=open|all&limit=500 */
+  listOrders(status: "open" | "all"): Promise<{ status: number; body: unknown }>;
+  /** GET /v2/account/activities/FILL */
+  listFills(): Promise<{ status: number; body: unknown }>;
 }
 
 /**
@@ -62,6 +66,12 @@ export function createDisabledPaperWriter(fetchImpl: typeof fetch = fetch): Pape
       throw new Error("REAL_BROKER_WRITE_DISABLED");
     },
     async getOpenOrders() {
+      throw new Error("REAL_BROKER_WRITE_DISABLED");
+    },
+    async listOrders() {
+      throw new Error("REAL_BROKER_WRITE_DISABLED");
+    },
+    async listFills() {
       throw new Error("REAL_BROKER_WRITE_DISABLED");
     },
   };

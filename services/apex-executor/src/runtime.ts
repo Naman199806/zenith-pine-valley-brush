@@ -39,10 +39,13 @@ import { markUnknown, reconcileRecord, type LifecycleRecord, type LookupFacts } 
 import { acquireWriterLock, releaseWriterLock } from "./lock.ts";
 import { MODE_GATE } from "./mode.ts";
 import { atomicWrite, directoryFsyncSupported, durabilityLevel, FILE_ONLY_DURABILITY_WARNING, readRequiredJson, type DurabilityLevel } from "./persist.ts";
-import { fillsFromExecutions, toResearchOutcome, trustedEvidence, type FillEvent, type FillProvenance, type IncompleteFill } from "./fill-event.ts";
-import { paperPostEnvOn, submitRefusal, type SubmitFacts } from "./gates.ts";
+import { fillsFromExecutions, hermesPerformanceRefusal, toResearchOutcome, trustedEvidence, type FillEvent, type FillProvenance, type IncompleteFill } from "./fill-event.ts";
+import { tradingOriginGuard } from "../../../src/lib/apex/broker/allowlist.ts";
+import { devSubmitFlag, paperPostEnvOn, submitRefusal, type SubmitFacts } from "./gates.ts";
+import { absenceVerdict, fillsHitOrder, listHasClientOrder, ORDER_LIST_LIMIT, readAbsenceAttempts, readAbsenceBackoffMs, type AbsenceProbe } from "./absence.ts";
+import { fillsFromActivities, readAlpacaOrder } from "./alpaca-fill.ts";
 import { applyCumulativeFill, inFlightOrder, isOrderState, orderStateFromBroker, transitionRefusal, type OrderState } from "./order-machine.ts";
-import { spyFractionalSell, spyNotionalBuy } from "./order-shape.ts";
+import { brokerBodyMismatch, exactBrokerBody, limitConversionRefusal, verifySupervisedOrder, type SupervisedOrder } from "./supervised-order.ts";
 import { assessRisk, flatSnapshot, readMaxOrderQty, type MarketSnapshot } from "./risk.ts";
 
 export const POST_ENABLED = false;
@@ -83,6 +86,7 @@ interface Snapshot {
   incompleteFills?: IncompleteFill[];
   brokerPoll?: BrokerPollState;
   instructions?: TradeInstruction[];
+  supervisedOrders?: SupervisedOrder[];
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): ExecutorConfig {
@@ -144,6 +148,7 @@ export class Executor {
   private fills: FillEvent[] = [];
   private incompleteFills: IncompleteFill[] = [];
   private instructions = new Map<string, TradeInstruction>();
+  private supervisedOrders = new Map<string, SupervisedOrder>();
   private poll: BrokerPollState = blankBrokerPoll();
   private budget = new RequestBudget();
   private recoveryPending = false;
@@ -208,6 +213,13 @@ export class Executor {
       if (!instruction || typeof instruction.clientOrderId !== "string" || typeof instruction.nonce !== "string") throw new Error("executor state corrupt; fail closed");
       this.instructions.set(instruction.clientOrderId, instruction);
     }
+    if (snap.supervisedOrders != null && !Array.isArray(snap.supervisedOrders)) throw new Error("executor state corrupt; fail closed");
+    for (const order of snap.supervisedOrders ?? []) {
+      if (!order || typeof order.clientOrderId !== "string" || typeof order.nonce !== "string" || (order.orderType !== "market_notional" && order.orderType !== "market_qty")) {
+        throw new Error("executor state corrupt; fail closed");
+      }
+      this.supervisedOrders.set(order.clientOrderId, order);
+    }
     this.recoveryPending = [...this.records.values()].some((rec) => inFlightOrder(rec));
     const persisted = readPersistedPoll(snap.brokerPoll);
     this.poll = blankBrokerPoll();
@@ -232,6 +244,7 @@ export class Executor {
       incompleteFills: this.incompleteFills,
       brokerPoll: this.poll,
       instructions: [...this.instructions.values()],
+      supervisedOrders: [...this.supervisedOrders.values()],
     };
     atomicWrite(this.config.statePath, JSON.stringify(snap));
   }
@@ -307,7 +320,7 @@ export class Executor {
                 : rec.orderState === "submitted" || rec.orderState === "accepted"
                   ? "SUBMITTED"
                   : "PERSISTED";
-    const category = this.instructions.get(rec.clientOrderId)?.category ?? "CONNECTIVITY_TEST";
+    const category = rec.signedOrderType ? "SUPERVISED_PAPER_TEST" : this.instructions.get(rec.clientOrderId)?.category ?? "CONNECTIVITY_TEST";
     this.hermes.updateStatus(rec.clientOrderId, status, rec.filledQty, rec.avgPrice ?? null, `${note}; audience=hermes,pilot; postEnabled=false; category=${category}; strategyApproved=false`);
   }
 
@@ -320,6 +333,7 @@ export class Executor {
     strategyApproved: false;
     postEnabled: false;
     unknown: number;
+    unknownClientOrderIds: string[];
     ready: boolean;
     alerts: number;
     host: "127.0.0.1";
@@ -339,7 +353,8 @@ export class Executor {
       autonomousStrategyTrading: MODE_GATE.autonomousStrategyTrading,
       strategyApproved: false,
       postEnabled: false,
-      unknown: [...this.records.values()].filter((rec) => rec.unknown).length,
+      unknown: this.unknownRecords().length,
+      unknownClientOrderIds: this.unknownRecords().map((rec) => rec.clientOrderId),
       ready: this.ready,
       alerts: this.alerts.length,
       host: "127.0.0.1",
@@ -557,6 +572,7 @@ export class Executor {
     if (now - this.marketAt > MARKET_EVIDENCE_MAX_AGE_MS || now < this.marketAt) return { ok: false, reason: "stale broker evidence" };
     const blocked = this.executionBlock(now);
     if (blocked) return { ok: false, reason: blocked };
+    if (!this.budget.tryTake(now, 1, "exit")) return { ok: false, reason: "request budget exceeded" };
     let positions: { status: number; body: unknown };
     try {
       positions = await get(assertPaperUrl(`${PAPER_TRADING_ORIGIN}/v2/positions`).toString());
@@ -860,81 +876,188 @@ export class Executor {
     };
   }
 
-  /**
-   * Supervised PAPER submit. The real writer is refused before any journal
-   * transition and before fetch. An injected writer is the only write path.
-   */
   /** Same window the poll and the supervised submit spend. A full window refuses the next call. */
-  spendBudget(now: number, cost: number): boolean {
-    return this.budget.tryTake(now, cost);
+  spendBudget(now: number, cost: number, purpose: "entry" | "poll" | "exit" | "cancel" | "recovery" = "poll"): boolean {
+    return this.budget.tryTake(now, cost, purpose);
   }
 
-  async submitPaper(instruction: TradeInstruction, writer: PaperWriter, env: NodeJS.ProcessEnv = process.env, now = Date.now()): Promise<{ submitted: boolean; reason: string; orderState: OrderState | null }> {
-    let owned: number | null = null;
-    let facts = this.submitFacts(instruction, writer, env, now, owned);
-    let refusal = submitRefusal(facts);
-    if (instruction.side === "sell" && refusal === "owned quantity unresolved" && writer.networkWrite === "injected") {
-      if (!this.budget.canTake(now, 2)) {
-        this.audit("reject", "request budget exceeded", this.records.get(instruction.clientOrderId) ?? null, instruction.nonce);
-        return { submitted: false, reason: "request budget exceeded", orderState: null };
-      }
-      try {
-        if (!this.budget.tryTake(now, 1)) return { submitted: false, reason: "request budget exceeded", orderState: null };
-        const positions = await writer.getPositions();
-        if (positions.status !== 200 || !Array.isArray(positions.body)) return { submitted: false, reason: "owned quantity unresolved", orderState: null };
-        const row = (positions as { body: { symbol?: string; qty?: string }[] }).body.find((item) => item.symbol === instruction.symbol);
-        owned = row ? Number(row.qty) : 0;
-        if (!Number.isFinite(owned)) return { submitted: false, reason: "owned quantity unresolved", orderState: null };
-      } catch (error) {
-        if (error instanceof ProcessCrash) throw error;
-        return { submitted: false, reason: "owned quantity unresolved", orderState: null };
-      }
-      facts = this.submitFacts(instruction, writer, env, now, owned);
-      refusal = submitRefusal(facts);
+  acceptSupervised(order: SupervisedOrder, now: number | (() => number) = Date.now()): { accepted: boolean; reason: string; state: "PROPOSED" | null } {
+    const signedFirst = verifySupervisedOrder(order, { operator: process.env.APEX_OPERATOR_SECRET ?? null, gate: process.env.APEX_GATE_SECRET ?? null }, this.clock(now));
+    if (signedFirst) return { accepted: false, reason: signedFirst, state: null };
+    if (this.nonces.has(order.nonce) || this.ids.has(order.clientOrderId)) return { accepted: false, reason: "duplicate or replay", state: null };
+    if (order.orderType === "market_qty") {
+      const linked = this.exitLinkage(order);
+      if (linked) return { accepted: false, reason: linked, state: null };
     }
-    if (refusal) {
-      this.audit("reject", refusal, this.records.get(instruction.clientOrderId) ?? null, instruction.nonce);
-      return { submitted: false, reason: refusal, orderState: this.records.get(instruction.clientOrderId)?.orderState ?? null };
+    const t = this.clock(now);
+    const refusal = this.supervisedGate(order, process.env, t, order.side === "buy" ? "entry" : "exit", false);
+    if (refusal) return { accepted: false, reason: refusal, state: null };
+    if (order.orderType === "market_qty") {
+      const linked = this.exitLinkage(order);
+      if (linked) return { accepted: false, reason: linked, state: null };
     }
-    const rec = this.records.get(instruction.clientOrderId);
+    const qty = order.orderType === "market_qty" ? Number(order.qty) : 0;
+    const rec: LifecycleRecord = {
+      clientOrderId: order.clientOrderId,
+      symbol: "SPY",
+      side: order.side,
+      qty,
+      state: "PROPOSED",
+      filledQty: 0,
+      linkedExitId: null,
+      linkedEntryId: order.orderType === "market_qty" ? order.linkedEntryId : null,
+      unknown: false,
+      alerted: false,
+      submitted: false,
+      expiresAt: order.expiresAt,
+      orderState: "intent",
+      nonce: order.nonce,
+      avgPrice: null,
+      brokerOrderId: null,
+      confirmedAbsent: false,
+      notional: order.orderType === "market_notional" ? Number(order.notional) : null,
+      signedOrderType: order.orderType,
+      signedNotional: order.orderType === "market_notional" ? order.notional : null,
+      signedQty: order.orderType === "market_qty" ? order.qty : null,
+    };
+    this.supervisedOrders.set(order.clientOrderId, order);
+    this.nonces.add(order.nonce);
+    this.ids.add(order.clientOrderId);
+    this.records.set(order.clientOrderId, rec);
+    if (order.orderType === "market_qty") {
+      const entry = this.records.get(order.linkedEntryId);
+      if (entry) this.records.set(entry.clientOrderId, { ...entry, state: "EXIT_PENDING", linkedExitId: order.clientOrderId });
+    }
+    this.audit("accept", "supervised intent; no order transmitted", rec, order.nonce);
+    this.audit("intent", "durable intent before any broker write", rec, order.nonce);
+    this.save();
+    return { accepted: true, reason: "intent journaled", state: "PROPOSED" };
+  }
+
+  performanceRefusal(event: FillEvent): string | null {
+    return hermesPerformanceRefusal(event);
+  }
+
+  private unknownRecords(): LifecycleRecord[] {
+    return [...this.records.values()].filter((rec) => (rec.unknown || rec.orderState === "UNKNOWN") && !rec.confirmedAbsent);
+  }
+
+  private freshAt(t: number): boolean {
+    return this.market != null && this.pollFresh(t) && t >= this.marketAt && t - this.marketAt <= 5_000;
+  }
+
+  private clock(now: number | (() => number)): number {
+    return typeof now === "function" ? now() : now;
+  }
+
+  private refuseSupervised(order: SupervisedOrder, reason: string): { submitted: false; reason: string; orderState: OrderState | null } {
+    this.audit("reject", reason, this.records.get(order.clientOrderId) ?? null, order.nonce);
+    return { submitted: false, reason, orderState: this.records.get(order.clientOrderId)?.orderState ?? null };
+  }
+
+  private supervisedGate(order: SupervisedOrder, env: NodeJS.ProcessEnv, t: number, purpose: "entry" | "exit", requirePost: boolean): string | null {
+    if (requirePost) {
+      if (devSubmitFlag(env) && !paperPostEnvOn(env)) return "dev flag cannot authorize submission";
+      if (!paperPostEnvOn(env)) return "PAPER POST DISABLED";
+      if (env.LIVE_POST_ENABLED === "true" || env.APEX_EXECUTOR_ENABLE_LIVE === "I_ENABLE_LIVE") return "LIVE POST DISABLED";
+      if (tradingOriginGuard(env.APCA_API_BASE_URL).blockOrders) return "LIVE URL refused";
+    }
+    const signed = verifySupervisedOrder(order, { operator: env.APEX_OPERATOR_SECRET ?? process.env.APEX_OPERATOR_SECRET ?? null, gate: env.APEX_GATE_SECRET ?? process.env.APEX_GATE_SECRET ?? null }, t);
+    if (signed) return signed;
+    if (this.lockFd == null) return "writer lock not held";
+    if (this.recoveryPending) return "in-flight orders unresolved";
+    if (this.unknownRecords().length > 0) return "UNKNOWN orders block new submits";
+    if (!this.market) return "broker evidence missing";
+    if (!this.freshAt(t)) return "stale broker evidence";
+    if (this.poll.reconciliation.outcome !== "OK") return "broker reconciliation failed";
+    if (this.market.evidence.clockOpen !== true || this.market.evidence.http.clock !== 200) return "market closed";
+    if (purpose === "entry" && this.entriesBlocked) return "kill switch blocks new entries";
+    if (purpose === "entry" && this.heldSpy()) return "per-symbol position limit";
+    const maxQty = readMaxOrderQty(env);
+    if (maxQty == null) return "max qty unavailable";
+    if (order.orderType === "market_qty" && Number(order.qty) > maxQty) return "quantity exceeds max";
+    if (purpose === "entry" && this.inFlightCount() >= this.orderCap()) return "outstanding order cap";
+    if (!this.budget.canTake(t, 1, purpose)) return "request budget exceeded";
+    return null;
+  }
+
+  private exitLinkage(order: Extract<SupervisedOrder, { orderType: "market_qty" }>): string | null {
+    const entry = this.records.get(order.linkedEntryId);
+    if (!entry || entry.side !== "buy") return "exit not linked to a journaled entry";
+    if (entry.symbol !== order.symbol) return "exit symbol does not match the entry";
+    if (!(entry.filledQty > 0) && entry.state !== "OPEN" && entry.state !== "PARTIAL" && entry.orderState !== "filled") return "exit not linked to a filled entry";
+    const journaled = this.journal.replay().some((row) => row.clientOrderId === entry.clientOrderId && (row.orderState === "filled" || row.state === "OPEN" || row.state === "PARTIAL" || row.state === "EXIT_PENDING"));
+    if (!journaled) return "exit not linked to a journaled entry";
+    return null;
+  }
+
+  private sellRoom(order: Extract<SupervisedOrder, { orderType: "market_qty" }>, owned: number): string | null {
+    const linked = this.exitLinkage(order);
+    if (linked) return linked;
+    if (!(owned > 0)) return "sell exceeds broker-owned quantity";
+    if (Number(order.qty) > owned - this.pendingSellQty(order.symbol, order.clientOrderId) + 1e-12) return "sell exceeds broker-owned quantity";
+    return null;
+  }
+
+  private async readOwned(writer: PaperWriter, symbol: string, t: number): Promise<number | string> {
+    if (!this.budget.tryTake(t, 1, "exit")) return "request budget exceeded";
+    try {
+      const positions = await writer.getPositions();
+      if (positions.status !== 200 || !Array.isArray(positions.body)) return "owned quantity unresolved";
+      const row = (positions.body as { symbol?: string; qty?: string }[]).find((item) => item.symbol === symbol);
+      const qty = row ? Number(row.qty) : 0;
+      if (!Number.isFinite(qty)) return "owned quantity unresolved";
+      return qty;
+    } catch (error) {
+      if (error instanceof ProcessCrash) throw error;
+      return "owned quantity unresolved";
+    }
+  }
+
+  async submitPaper(instruction: SupervisedOrder | TradeInstruction, writer: PaperWriter, env: NodeJS.ProcessEnv = process.env, now: number | (() => number) = Date.now()): Promise<{ submitted: boolean; reason: string; orderState: OrderState | null }> {
+    const converted = limitConversionRefusal(instruction);
+    if (converted) return { submitted: false, reason: converted, orderState: null };
+    if (writer.networkWrite !== "injected") return { submitted: false, reason: "REAL_BROKER_WRITE_DISABLED", orderState: null };
+    const order = instruction as SupervisedOrder;
+    const purpose = order.side === "buy" ? "entry" as const : "exit" as const;
+    const early = this.supervisedGate(order, env, this.clock(now), purpose, true);
+    if (early) return this.refuseSupervised(order, early);
+    if (order.side === "sell") {
+      const owned = await this.readOwned(writer, order.symbol, this.clock(now));
+      if (typeof owned === "string") return this.refuseSupervised(order, owned);
+      const afterRead = this.supervisedGate(order, env, this.clock(now), "exit", true);
+      if (afterRead) return this.refuseSupervised(order, afterRead);
+      const room = this.sellRoom(order, owned);
+      if (room) return this.refuseSupervised(order, room);
+    }
+    const rec = this.records.get(order.clientOrderId);
     if (!rec || rec.orderState !== "intent") return { submitted: false, reason: "duplicate submit", orderState: rec?.orderState ?? null };
-    const stored = this.instructions.get(instruction.clientOrderId);
-    if (!stored || stored.nonce !== instruction.nonce || stored.side !== instruction.side || stored.category !== instruction.category || stored.limitPrice !== instruction.limitPrice || stored.sizedNotional !== instruction.sizedNotional || Math.abs(stored.qty - instruction.qty) > 1e-12) {
-      this.audit("reject", "instruction does not match the durable intent", rec, instruction.nonce);
-      return { submitted: false, reason: "instruction does not match the durable intent", orderState: rec.orderState };
+    const body = exactBrokerBody(order);
+    const mismatch = brokerBodyMismatch(order, body);
+    if (mismatch) return this.refuseSupervised(order, mismatch);
+    const stored = this.supervisedOrders.get(order.clientOrderId);
+    if (!stored || brokerBodyMismatch(stored, body) || stored.nonce !== order.nonce) return this.refuseSupervised(order, "instruction does not match the durable intent");
+    const t = this.clock(now);
+    if (!this.freshAt(t)) return this.refuseSupervised(order, "stale broker evidence");
+    if (Date.parse(order.expiresAt) <= t) return this.refuseSupervised(order, "instruction expired");
+    if (!this.budget.tryTake(t, 1, purpose)) return this.refuseSupervised(order, "request budget exceeded");
+    const immediate = this.clock(now);
+    if (!this.freshAt(immediate) || Date.parse(order.expiresAt) <= immediate) {
+      return this.refuseSupervised(order, !this.freshAt(immediate) ? "stale broker evidence" : "instruction expired");
     }
-    if (instruction.side === "buy" && this.market) {
-      const risk = assessRisk(instruction, this.market, { conflict: false, ownedQty: 0 }, this.entriesBlocked, now, readMaxOrderQty(env));
-      if (risk) {
-        this.audit("reject", risk, rec, instruction.nonce);
-        return { submitted: false, reason: risk, orderState: rec.orderState };
-      }
-    }
-    const order = instruction.side === "buy" ? spyNotionalBuy(instruction.clientOrderId, instruction.sizedNotional) : spyFractionalSell(instruction.clientOrderId, instruction.qty);
-    if (!order.ok) {
-      this.audit("reject", order.reason, rec, instruction.nonce);
-      return { submitted: false, reason: order.reason, orderState: rec.orderState };
-    }
-    const problem = transitionRefusal(rec.orderState, "submitted");
-    if (problem) {
-      this.audit("illegal", problem, rec, instruction.nonce);
-      return { submitted: false, reason: problem, orderState: rec.orderState };
-    }
-    if (!this.budget.tryTake(now, 1)) {
-      this.audit("reject", "request budget exceeded", rec, instruction.nonce);
-      return { submitted: false, reason: "request budget exceeded", orderState: rec.orderState };
-    }
+    const problem = transitionRefusal("intent", "submitted");
+    if (problem) return this.refuseSupervised(order, problem);
     const submitted: LifecycleRecord = { ...rec, state: "SUBMISSION_ATTEMPTED", submitted: true, orderState: "submitted" };
     this.store(submitted, "submitted; durable intent fsynced before broker write");
     let result: WriteResult;
     try {
-      result = await writer.submit(order.order);
+      result = await writer.submit(body);
     } catch (error) {
       if (error instanceof ProcessCrash) throw error;
       const unknown = this.becomeUnknown(submitted, "submit interrupted; not retried");
       return { submitted: false, reason: "submit interrupted; not retried", orderState: unknown.orderState ?? "UNKNOWN" };
     }
-    return this.applyWriteResult(submitted, result, writer, now);
+    return this.applyWriteResult(submitted, result, writer, this.clock(now));
   }
 
   async cancelPaper(clientOrderId: string, writer: PaperWriter, env: NodeJS.ProcessEnv = process.env, now = Date.now()): Promise<{ canceled: boolean; reason: string; orderState: OrderState | null }> {
@@ -947,7 +1070,7 @@ export class Executor {
     if (this.poll.reconciliation.outcome !== "OK") return { canceled: false, reason: "broker reconciliation failed", orderState: rec.orderState ?? null };
     const from = rec.orderState;
     if (from !== "accepted" && from !== "partially_filled") return { canceled: false, reason: "cancel refused", orderState: from ?? null };
-    if (!this.budget.tryTake(now, 1)) return { canceled: false, reason: "request budget exceeded", orderState: from };
+    if (!this.budget.tryTake(now, 1, "cancel")) return { canceled: false, reason: "request budget exceeded", orderState: from };
     let result: WriteResult;
     try {
       result = await writer.cancel(clientOrderId);
@@ -968,27 +1091,105 @@ export class Executor {
    * GET by client_order_id before any retry. A 404 on an order that was sent
    * is confirmed absence: this id is not posted again. A found order is adopted.
    */
-  async recoverInFlight(writer: PaperWriter, now = Date.now()): Promise<{ resolved: boolean; reason: string }> {
+  async recoverInFlight(writer: PaperWriter, now: number | (() => number) = Date.now(), sleep: (ms: number) => Promise<void> = async () => {}): Promise<{ resolved: boolean; reason: string }> {
     if (writer.networkWrite !== "injected") return { resolved: false, reason: "REAL_BROKER_WRITE_DISABLED" };
-    const ids = [...this.records.values()].filter((rec) => inFlightOrder(rec)).map((rec) => rec.clientOrderId);
+    const ids = [...this.records.values()].filter((rec) => inFlightOrder(rec) || ((rec.unknown || rec.orderState === "UNKNOWN") && !rec.confirmedAbsent)).map((rec) => rec.clientOrderId);
     if (ids.length === 0) {
       this.recoveryPending = false;
       this.save();
       return { resolved: true, reason: "no in-flight orders" };
     }
+    let reason = "recovered without resubmit";
     for (const id of ids) {
-      const looked = await this.readBroker(writer, id, now);
-      if (!looked.ok) {
-        const rec = this.records.get(id);
-        if (rec) this.becomeUnknown(rec, looked.reason);
-        this.recoveryPending = true;
-        return { resolved: false, reason: looked.reason };
-      }
-      await this.applyLookup(id, looked, now);
+      const verdict = await this.absenceWindow(writer, id, now, sleep);
+      if (verdict === "unknown") reason = "absence window ended without sufficient evidence";
+      if (verdict === "absent") reason = "confirmed absent; not resubmitted";
     }
-    this.recoveryPending = this.inFlightCount() > 0;
+    this.recoveryPending = this.inFlightCount() > 0 || this.unknownRecords().length > 0;
     this.save();
-    return { resolved: !this.recoveryPending, reason: this.recoveryPending ? "in-flight orders remain" : "recovered without resubmit" };
+    return { resolved: this.unknownRecords().length === 0 && !this.recoveryPending, reason };
+  }
+
+  private async absenceWindow(writer: PaperWriter, id: string, now: number | (() => number), sleep: (ms: number) => Promise<void>): Promise<"present" | "absent" | "unknown"> {
+    const attempts = readAbsenceAttempts(process.env);
+    const backoff = readAbsenceBackoffMs(process.env);
+    const probes: AbsenceProbe[] = [];
+    const rounds = Number.isFinite(attempts) ? attempts : 0;
+    for (let i = 0; i < rounds; i += 1) {
+      const t = this.clock(now);
+      if (!this.budget.tryTake(t, 4, "recovery")) {
+        const rec = this.records.get(id);
+        if (rec) this.becomeUnknown(rec, "recovery budget exhausted; absence not confirmed");
+        return "unknown";
+      }
+      const probe = await this.absenceProbe(writer, id);
+      probes.push(probe);
+      if (probe.byClientStatus === 200 && probe.foundBody) {
+        const rec = this.records.get(id);
+        if (rec) this.adoptFound(rec, probe.foundBody);
+        return "present";
+      }
+      const verdict = absenceVerdict(probes, attempts);
+      if (verdict === "present") return "present";
+      if (verdict === "absent") {
+        const rec = this.records.get(id);
+        if (rec) this.confirmAbsent(rec);
+        return "absent";
+      }
+      if (i + 1 < rounds && Number.isFinite(backoff)) await sleep(backoff);
+    }
+    const rec = this.records.get(id);
+    if (rec) this.becomeUnknown(rec, "absence window ended without sufficient evidence");
+    return "unknown";
+  }
+
+  private async absenceProbe(writer: PaperWriter, id: string): Promise<AbsenceProbe & { foundBody?: unknown }> {
+    const blank = (status: AbsenceProbe["byClientStatus"]): AbsenceProbe => ({
+      byClientStatus: status, openStatus: "error", allStatus: "error", fillsStatus: "error",
+      openHit: false, allHit: false, openTruncated: false, allTruncated: false, fillHit: false,
+    });
+    try {
+      const by = await writer.getOrder(id);
+      const open = await writer.listOrders("open");
+      const all = await writer.listOrders("all");
+      const fills = await writer.listFills();
+      const brokerId = this.records.get(id)?.brokerOrderId ?? null;
+      return {
+        byClientStatus: by.status,
+        openStatus: open.status === 200 ? 200 : "error",
+        allStatus: all.status === 200 ? 200 : "error",
+        fillsStatus: fills.status === 200 ? 200 : "error",
+        openHit: listHasClientOrder(open.body, id),
+        allHit: listHasClientOrder(all.body, id),
+        openTruncated: Array.isArray(open.body) && open.body.length >= ORDER_LIST_LIMIT,
+        allTruncated: Array.isArray(all.body) && all.body.length >= ORDER_LIST_LIMIT,
+        fillHit: fillsHitOrder(fills.body, brokerId),
+        foundBody: by.status === 200 ? by.body : undefined,
+      };
+    } catch {
+      return blank("error");
+    }
+  }
+
+  private adoptFound(rec: LifecycleRecord, body: unknown): LifecycleRecord {
+    const view = readAlpacaOrder(body);
+    if (!view || view.clientOrderId !== rec.clientOrderId) return this.becomeUnknown(rec, "broker order id mismatch; not resubmitted");
+    const mapped = orderStateFromBroker(view.status, view.filledQty);
+    const from = rec.orderState ?? "UNKNOWN";
+    if (!mapped || transitionRefusal(from, mapped)) return this.becomeUnknown(rec, "broker order found but the transition is illegal; not resubmitted");
+    const next: LifecycleRecord = {
+      ...rec,
+      orderState: mapped,
+      brokerOrderId: view.id,
+      filledQty: Math.max(rec.filledQty, view.filledQty),
+      avgPrice: view.filledAvgPrice ?? rec.avgPrice ?? null,
+      unknown: false,
+      alerted: false,
+      submitted: true,
+      state: mapped === "filled" && rec.side === "buy" ? "OPEN" : mapped === "accepted" ? "SUBMISSION_ATTEMPTED" : rec.state,
+    };
+    this.store(next, "broker order found by client_order_id; not resubmitted");
+    return next;
   }
 
   /** Broker GET only. Used to fold a later partial or full fill into the journal. */
@@ -997,11 +1198,12 @@ export class Executor {
     const looked = await this.readBroker(writer, clientOrderId, now);
     if (!looked.ok) return { ok: false, reason: looked.reason, orderState: this.records.get(clientOrderId)?.orderState ?? null };
     const next = await this.applyLookup(clientOrderId, looked, now);
+    if (next) await this.noteActivities(next, writer, now);
     return { ok: true, reason: "synced", orderState: next?.orderState ?? null };
   }
 
   private async readBroker(writer: PaperWriter, clientOrderId: string, now: number): Promise<{ ok: true; order: { status: number; body: unknown }; positions: { status: number; body: unknown }; open: { status: number; body: unknown } } | { ok: false; reason: string }> {
-    if (!this.budget.tryTake(now, PER_ORDER_TRADING_GETS)) return { ok: false, reason: "request budget exceeded" };
+    if (!this.budget.tryTake(now, PER_ORDER_TRADING_GETS, "recovery")) return { ok: false, reason: "request budget exceeded" };
     try {
       const positions = await writer.getPositions();
       const open = await writer.getOpenOrders();
@@ -1025,11 +1227,11 @@ export class Executor {
     void now;
     if (looked.order.status === 404) {
       if (rec.submitted || rec.orderState === "submitted" || rec.orderState === "UNKNOWN" || rec.state === "SUBMISSION_ATTEMPTED") {
-        return this.confirmAbsent(rec);
+        return this.becomeUnknown(rec, "single 404 is not confirmed absence");
       }
       return rec;
     }
-    this.fillFeePolicy = "explicit_zero";
+    this.fillFeePolicy = "require";
     try {
       return await this.reconcile(async (url) => {
         if (url.includes("by_client_order_id")) return looked.order;
@@ -1064,8 +1266,8 @@ export class Executor {
   }
 
   private async applyAck(rec: LifecycleRecord, result: { kind: "ack"; status: number; body: Record<string, unknown> }, writer: PaperWriter, now: number): Promise<LifecycleRecord> {
-    if (!this.budget.canTake(now, 2)) return this.becomeUnknown(rec, "request budget exceeded");
-    this.budget.tryTake(now, 2);
+    if (!this.budget.canTake(now, 2, "recovery")) return this.becomeUnknown(rec, "request budget exceeded");
+    this.budget.tryTake(now, 2, "recovery");
     let positions: { status: number; body: unknown };
     let open: { status: number; body: unknown };
     try {
@@ -1075,7 +1277,7 @@ export class Executor {
       if (error instanceof ProcessCrash) throw error;
       return this.becomeUnknown(rec, "ack lookup failed; not retried");
     }
-    this.fillFeePolicy = "explicit_zero";
+    this.fillFeePolicy = "require";
     let stored: LifecycleRecord;
     try {
       stored = await this.reconcile(async (url) => {
@@ -1087,7 +1289,44 @@ export class Executor {
     } finally {
       this.fillFeePolicy = "require";
     }
-    return this.preferExplicitTerminal(stored, result.body, positions.body, open.body);
+    const finished = this.preferExplicitTerminal(stored, result.body, positions.body, open.body);
+    await this.noteActivities(finished, writer, now);
+    return this.records.get(finished.clientOrderId) ?? finished;
+  }
+
+  private async noteActivities(rec: LifecycleRecord, writer: PaperWriter, now: number): Promise<void> {
+    if (!this.budget.tryTake(now, 1, "recovery")) return;
+    let activities: unknown = [];
+    try {
+      const listed = await writer.listFills();
+      if (listed.status !== 200 || !Array.isArray(listed.body)) return;
+      activities = listed.body.filter((row) => !rec.brokerOrderId || !row || typeof row !== "object" || (row as { order_id?: unknown }).order_id === rec.brokerOrderId);
+    } catch (error) {
+      if (error instanceof ProcessCrash) throw error;
+      return;
+    }
+    const order = this.supervisedOrders.get(rec.clientOrderId);
+    const extracted = fillsFromActivities({
+      decisionId: order?.decisionId ?? rec.clientOrderId,
+      strategyVersion: order?.strategyVersion ?? "v1",
+      clientOrderId: rec.clientOrderId,
+      symbol: rec.symbol,
+      side: rec.side,
+      intendedPrice: rec.avgPrice != null && rec.avgPrice > 0 ? rec.avgPrice : 1,
+      activities,
+      evidenceChannel: "injected",
+      seenFillIds: this.fills.map((event) => event.fillId).filter((id): id is string => Boolean(id)),
+    });
+    if (!extracted.events.length) return;
+    this.fills.push(...extracted.events);
+    const fd = openSync(this.config.fillsPath, "a");
+    try {
+      for (const row of extracted.events) writeSync(fd, JSON.stringify(row) + "\n");
+      fsyncSync(fd);
+    } finally {
+      closeSync(fd);
+    }
+    this.save();
   }
 
   /**
@@ -1166,7 +1405,7 @@ export class Executor {
         this.audit("illegal", problem, next, prev.nonce ?? null);
         return { ...markUnknown(next), orderState: "UNKNOWN" };
       }
-      next = { ...next, orderState: mapped };
+      next = { ...next, orderState: mapped, state: mapped === "partially_filled" ? "PARTIAL" : next.state, unknown: false, alerted: false };
     }
     const brokerId = typeof row.id === "string" ? row.id : next.brokerOrderId ?? null;
     const avgRaw = Number(row.filled_avg_price);

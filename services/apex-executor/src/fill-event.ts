@@ -9,7 +9,8 @@ import type { ExecutionOutcome, TrustedEvidence } from "../../../src/lib/apex/re
 
 export const FILL_EVENT_VERSION = 1;
 
-export type FillProvenance = "broker" | "mock";
+export type FillProvenance = "broker" | "mock" | "injected";
+export type EvidenceChannel = "alpaca-http" | "injected";
 export type FillVenue = "alpaca-paper" | "alpaca-live" | "mock";
 export type FillSource = "MOCK" | "PAPER" | "LIVE";
 
@@ -26,9 +27,13 @@ export interface FillEvent {
   qty: number;
   fillPrice: number;
   intendedPrice: number;
-  fee: number;
-  /** broker: the execution named a fee, including a numeric zero. explicit_zero: the broker omitted a fee and the event records 0. */
-  feeSource?: "broker" | "explicit_zero";
+  /** Null when the broker payload did not confirm a fee. Never synthesized as 0. */
+  fee: number | null;
+  feeKnown?: boolean;
+  /** broker: the payload named a fee. unknown: the payload did not. explicit_zero is legacy and is not a broker confirmation. */
+  feeSource?: "broker" | "explicit_zero" | "unknown";
+  /** alpaca-http is the only channel the performance sink accepts. Injected fixtures use injected. */
+  evidenceChannel?: EvidenceChannel;
   venue: FillVenue;
   source: FillSource;
   eventTimestamp: string;
@@ -67,8 +72,16 @@ export function validateFillEvent(event: FillEvent): string | null {
   if (!Number.isFinite(event.qty) || !(event.qty > 0)) return "missing qty";
   if (!Number.isFinite(event.fillPrice) || !(event.fillPrice > 0)) return "missing fillPrice";
   if (!Number.isFinite(event.intendedPrice) || !(event.intendedPrice > 0)) return "missing intendedPrice";
-  if (!Number.isFinite(event.fee) || event.fee < 0) return "missing fee";
+  if (event.feeKnown === false) {
+    if (event.fee !== null) return "unknown fee must be null";
+  } else if (event.fee == null || !Number.isFinite(event.fee) || event.fee < 0) return "missing fee";
   if (!Number.isFinite(Date.parse(event.at))) return "missing at";
+  if (event.provenance === "injected" || event.evidenceChannel === "injected") {
+    if (event.provenance !== "injected" || event.evidenceChannel !== "injected" || event.source !== "MOCK" || event.venue !== "mock") {
+      return "injected evidence cannot be broker evidence";
+    }
+    return null;
+  }
   if (event.provenance === "mock") {
     if (event.source !== "MOCK" || event.venue !== "mock") return "mock provenance cannot be broker evidence";
     return null;
@@ -77,9 +90,23 @@ export function validateFillEvent(event: FillEvent): string | null {
   if (event.source !== "PAPER" && event.source !== "LIVE") return "broker provenance requires PAPER or LIVE source";
   if (event.venue !== (event.source === "LIVE" ? "alpaca-live" : "alpaca-paper")) return "venue does not match source";
   if (!event.brokerOrderId || !event.fillId) return "missing brokerOrderId or fillId";
-  if (event.feeSource != null && event.feeSource !== "broker" && event.feeSource !== "explicit_zero") return "missing fee";
+  if (event.feeSource != null && event.feeSource !== "broker" && event.feeSource !== "explicit_zero" && event.feeSource !== "unknown") return "missing fee";
   if (event.feeSource === "explicit_zero" && event.fee !== 0) return "missing fee";
+  if (event.feeSource === "unknown" && event.fee !== null) return "unknown fee must be null";
   return null;
+}
+
+/**
+ * Operational Hermes performance sink.
+ * Injected and mock evidence is rejected by construction of this check.
+ * A fee that the broker did not confirm is rejected. 0 is not assumed.
+ */
+export function hermesPerformanceRefusal(event: FillEvent): string | null {
+  if (event.evidenceChannel !== "alpaca-http" || event.provenance !== "broker" || event.source !== "PAPER" || event.venue !== "alpaca-paper") {
+    return "test evidence cannot enter Hermes performance";
+  }
+  if (event.feeKnown === false || event.fee == null || event.feeSource === "unknown" || event.feeSource === "explicit_zero") return "fee unknown";
+  return validateFillEvent(event);
 }
 
 /**
@@ -227,7 +254,7 @@ export function toResearchOutcome(event: FillEvent): ExecutionOutcome {
     qty: event.qty,
     fillPrice: event.fillPrice,
     intendedPrice: event.intendedPrice,
-    fee: event.fee,
+    fee: event.fee ?? Number.NaN,
     source: event.source,
     brokerOrderId: broker ? event.brokerOrderId : null,
     fillId: broker ? event.fillId : null,
