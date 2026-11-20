@@ -16,7 +16,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 import re
-from datetime import timezone
+from datetime import datetime, timezone
 from pathlib import Path
 
 from alpaca_sip_entitlement import sanitize
@@ -47,8 +47,19 @@ def request(path: str, params: dict) -> dict:
 STAMP = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?Z$")
 
 
+def epoch_ns(value: str) -> int | None:
+    if not isinstance(value, str) or not STAMP.match(value):
+        return None
+    whole, _, fraction = value[:-1].partition(".")
+    try:
+        seconds = int(datetime.fromisoformat(whole).replace(tzinfo=timezone.utc).timestamp())
+    except ValueError:
+        return None
+    return seconds * 1_000_000_000 + int(fraction.ljust(9, "0")[:9] or "0")
+
+
 def timestamp(value: str) -> str | None:
-    return value if isinstance(value, str) and STAMP.match(value) else None
+    return value if epoch_ns(value) is not None else None
 
 
 def valid_quote(row: dict) -> bool:
@@ -64,9 +75,10 @@ def valid_quote(row: dict) -> bool:
     )
 
 
-def valid_trade(row: dict) -> bool:
-    price, size = row.get("p"), row.get("s")
-    return timestamp(str(row.get("t", ""))) is not None and isinstance(price, (int, float)) and math.isfinite(price) and price > 0 and isinstance(size, int) and size >= 0
+def eligible(row: dict, kind: str) -> bool:
+    conditions = row.get("c") or []
+    size = row.get("s") if kind == "trades" else min(row.get("bs", 0), row.get("as", 0))
+    return isinstance(conditions, list) and isinstance(size, int) and size > 0 and not any(code in ("Z", "U") for code in conditions)
 
 
 def fetch(kind: str, symbol: str, start: str, end: str) -> list[dict]:
@@ -91,17 +103,23 @@ def fetch(kind: str, symbol: str, start: str, end: str) -> list[dict]:
     raise RuntimeError("pagination limit reached")
 
 
+def valid_trade(row: dict) -> bool:
+    price, size = row.get("p"), row.get("s")
+    return timestamp(str(row.get("t", ""))) is not None and isinstance(price, (int, float)) and math.isfinite(price) and price > 0 and isinstance(size, int) and size > 0
+
+
 def accept(kind: str, rows: list[dict]) -> None:
     validator = valid_quote if kind == "quotes" else valid_trade
     if not all(validator(row) for row in rows):
         raise RuntimeError(f"invalid {kind} row")
-    stamps = [timestamp(row["t"]) for row in rows]
-    if stamps != sorted(stamps):
+    stamps = [epoch_ns(row["t"]) for row in rows]
+    if any(stamp is None for stamp in stamps) or stamps != sorted(stamps):
         raise RuntimeError(f"unordered {kind}")
 
 
-def write(kind: str, symbol: str, start: str, rows: list[dict]) -> None:
-    path = OUT / kind / symbol / f"{start[:10]}.json"
+def write(kind: str, symbol: str, start: str, end: str, rows: list[dict]) -> None:
+    name = f"{start}_{end}".replace(":", "").replace("-", "")
+    path = OUT / kind / symbol / f"{name}.json"
     path.parent.mkdir(parents=True, exist_ok=True)
     payload = {
         "kind": kind,
@@ -117,9 +135,19 @@ def write(kind: str, symbol: str, start: str, rows: list[dict]) -> None:
     temp.replace(path)
 
 
-def causal_quote(quotes: list[dict], when: str) -> dict | None:
-    eligible = [row for row in quotes if timestamp(row["t"]) and timestamp(row["t"]) <= when]
-    return eligible[-1] if eligible else None
+def causal_quote(quotes: list[dict], when: str, window_start: str, window_end: str, max_age_ns: int = 5_000_000_000) -> dict | None:
+    event = epoch_ns(when)
+    start = epoch_ns(window_start)
+    end = epoch_ns(window_end)
+    if event is None or start is None or end is None or not quotes:
+        return None
+    eligible_rows = []
+    for row in quotes:
+        stamp = epoch_ns(str(row.get("t", "")))
+        if stamp is None or stamp < start or stamp > end or stamp > event or event - stamp > max_age_ns or not valid_quote(row) or not eligible(row, "quotes"):
+            continue
+        eligible_rows.append((stamp, row))
+    return max(eligible_rows)[1] if eligible_rows else None
 
 
 def main() -> None:
@@ -131,7 +159,7 @@ def main() -> None:
     for kind in ("trades", "quotes"):
         rows = fetch(kind, args.symbol, args.start, args.end)
         accept(kind, rows)
-        write(kind, args.symbol, args.start, rows)
+        write(kind, args.symbol, args.start, args.end, rows)
         print(json.dumps({"kind": kind, "symbol": args.symbol, "rows": len(rows), "fullArchive": False}))
 
 

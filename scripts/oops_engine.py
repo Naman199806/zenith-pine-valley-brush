@@ -18,7 +18,7 @@ def normalize_rows(rows: list[dict]) -> list[dict]:
 
 
 def resolve_same_minute(side: str, open_px: float, stop: float, evidence: dict | None) -> tuple[float, str]:
-    if not evidence or not evidence.get("sufficient"):
+    if not evidence or evidence.get("source") != "validated-trade-quote":
         fill = min(open_px, stop) if side == "long" else max(open_px, stop)
         return fill, "conservative"
     return evidence["price"], "trade-quote"

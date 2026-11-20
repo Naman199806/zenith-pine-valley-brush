@@ -107,7 +107,13 @@ def sessions(start: str, end: str) -> list[str]:
     status, body = request(PAPER, "/calendar", {"start": start, "end": end})
     if status != 200 or not isinstance(body, list):
         raise RuntimeError(f"calendar range status {status}")
-    return [row["date"] for row in body]
+    now = datetime.now(ET)
+    completed = []
+    for row in body:
+        close = datetime.fromisoformat(f"{row['date']}T{row['close']}:00").replace(tzinfo=ET)
+        if close < now:
+            completed.append(row["date"])
+    return completed
 
 
 def main() -> None:
@@ -130,9 +136,12 @@ def main() -> None:
                 existing = json.loads(path.read_text())
                 if existing.get("sha256") != fingerprint(existing.get("rows") or []):
                     raise RuntimeError(f"fingerprint mismatch {path}")
+                if existing.get("resume") and existing["resume"].get("day") != day:
+                    raise RuntimeError(f"resume metadata mismatch {path}")
                 accept(path, existing, expected)
                 print(json.dumps({"symbol": symbol, "day": day, "status": "revalidated"}))
                 continue
+            time.sleep(0.2)
             rows = bars(symbol, start.strftime("%Y-%m-%dT%H:%M:%SZ"), close.strftime("%Y-%m-%dT%H:%M:%SZ"))
             payload = {
                 "symbol": symbol,
@@ -140,6 +149,7 @@ def main() -> None:
                 "feed": "sip",
                 "calendar": session,
                 "sha256": fingerprint(rows),
+                "resume": {"day": day, "validated": True},
                 "provenance": {"endpoint": DATA, "retrievedBy": PYTHON, "downloadedOnAsus": True, "fullArchive": False},
                 "rows": rows,
             }

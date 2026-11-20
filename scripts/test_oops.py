@@ -26,7 +26,7 @@ class Oops(unittest.TestCase):
         self.assertEqual(trade["side"], "short")
 
     def test_insufficient_evidence_stays_conservative(self):
-        bars = [minute("09:30", 89, 89.2, 88, 89), minute("09:31", 87, 90.2, 86.5, 89.1, evidence={"sufficient": False})]
+        bars = [minute("09:30", 89, 89.2, 88, 89), minute("09:31", 87, 90.2, 86.5, 89.1, evidence={"sufficient": True})]
         trade = run_session(PRIOR, bars, 0)
         self.assertEqual(trade["resolution"], "conservative")
 
