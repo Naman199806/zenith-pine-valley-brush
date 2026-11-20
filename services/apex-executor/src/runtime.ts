@@ -1304,12 +1304,13 @@ export class Executor {
   }
 
   private async noteActivities(rec: LifecycleRecord, writer: PaperWriter, now: number): Promise<void> {
+    if (typeof rec.brokerOrderId !== "string" || rec.brokerOrderId.length === 0) return;
     if (!this.budget.tryTake(now, 1, "recovery")) return;
     let activities: unknown = [];
     try {
       const listed = await writer.listFills();
       if (listed.status !== 200 || !Array.isArray(listed.body)) return;
-      activities = listed.body.filter((row) => !rec.brokerOrderId || !row || typeof row !== "object" || (row as { order_id?: unknown }).order_id === rec.brokerOrderId);
+      activities = listed.body;
     } catch (error) {
       if (error instanceof ProcessCrash) throw error;
       return;
@@ -1319,6 +1320,7 @@ export class Executor {
       decisionId: order?.decisionId ?? rec.clientOrderId,
       strategyVersion: order?.strategyVersion ?? "v1",
       clientOrderId: rec.clientOrderId,
+      brokerOrderId: rec.brokerOrderId,
       symbol: rec.symbol,
       side: rec.side,
       intendedPrice: rec.avgPrice != null && rec.avgPrice > 0 ? rec.avgPrice : 1,

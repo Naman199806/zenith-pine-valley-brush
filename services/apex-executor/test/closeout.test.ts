@@ -62,7 +62,7 @@ function activity(over: Record<string, unknown> = {}): Record<string, unknown> {
 test("a broker fee of 0 is known and a missing fee is stored without net-profit attribution", () => {
   const known = fillsFromActivities({
     decisionId: "d", strategyVersion: "v1", clientOrderId: "close-buy", symbol: "SPY", side: "buy", intendedPrice: 100,
-    activities: [activity({ fee: "0" })], evidenceChannel: "alpaca-http",
+    brokerOrderId: "brk-close", activities: [activity({ fee: "0" })], evidenceChannel: "alpaca-http",
   }).events[0];
   assert.ok(known);
   assert.equal(known.fee, 0);
@@ -75,7 +75,7 @@ test("a broker fee of 0 is known and a missing fee is stored without net-profit 
 
   const omitted = fillsFromActivities({
     decisionId: "d", strategyVersion: "v1", clientOrderId: "close-buy", symbol: "SPY", side: "buy", intendedPrice: 100,
-    activities: [activity()], evidenceChannel: "alpaca-http",
+    brokerOrderId: "brk-close", activities: [activity()], evidenceChannel: "alpaca-http",
   }).events[0];
   assert.ok(omitted);
   assert.equal(omitted.fee, null);
@@ -92,7 +92,7 @@ test("a broker fee of 0 is known and a missing fee is stored without net-profit 
 
   const injected = fillsFromActivities({
     decisionId: "d", strategyVersion: "v1", clientOrderId: "close-buy", symbol: "SPY", side: "buy", intendedPrice: 100,
-    activities: [activity({ fee: 0 })], evidenceChannel: "injected",
+    brokerOrderId: "brk-close", activities: [activity({ fee: 0 })], evidenceChannel: "injected",
   }).events[0];
   assert.equal(injected?.netPnlAttributable, false);
   assert.match(hermesPerformanceRefusal(injected!) ?? "", /test evidence/);
@@ -101,7 +101,7 @@ test("a broker fee of 0 is known and a missing fee is stored without net-profit 
 test("supervised paper fills do not qualify a strategy and the live ticket type still rejects them", () => {
   const known = fillsFromActivities({
     decisionId: "d", strategyVersion: "etf-xs-breakout-20-v1", clientOrderId: "close-buy", symbol: "SPY", side: "buy", intendedPrice: 100,
-    activities: [activity({ fee: 0 })], evidenceChannel: "alpaca-http",
+    brokerOrderId: "brk-close", activities: [activity({ fee: 0 })], evidenceChannel: "alpaca-http",
   }).events[0]!;
   const outcome = toResearchOutcome(known);
   assert.equal(outcome.category, SUPERVISED_PAPER_TEST);
@@ -176,4 +176,55 @@ test("malformed order lists and a truncated fill page stay UNKNOWN", async () =>
   await hangThen({ orders: [] }, []);
   const page = Array.from({ length: FILL_PAGE_LIMIT }, (_, i) => activity({ id: `fill-${i}`, order_id: "someone-else" }));
   await hangThen([], page);
+});
+
+test("missing broker order id, a mismatched order id, and a mismatched side are not attributed", async () => {
+  const base = {
+    decisionId: "d", strategyVersion: "v1", clientOrderId: "close-buy", symbol: "SPY", side: "buy" as const, intendedPrice: 100,
+    evidenceChannel: "alpaca-http" as const,
+  };
+  const historical = [
+    activity({ id: "old-spy", order_id: "brk-old", side: "buy" }),
+    activity({ id: "other-order", order_id: "brk-other", side: "buy" }),
+    activity({ id: "wrong-side", order_id: "brk-close", side: "sell" }),
+    activity({ id: "match", order_id: "brk-close", side: "buy" }),
+  ];
+  assert.equal(fillsFromActivities({ ...base, brokerOrderId: null, activities: historical }).events.length, 0);
+  assert.equal(fillsFromActivities({ ...base, brokerOrderId: "", activities: historical }).events.length, 0);
+  const mismatchedId = fillsFromActivities({ ...base, brokerOrderId: "brk-missing", activities: historical });
+  assert.equal(mismatchedId.events.length, 0);
+  const matched = fillsFromActivities({ ...base, brokerOrderId: "brk-close", activities: historical });
+  assert.equal(matched.events.length, 1);
+  assert.equal(matched.events[0]?.fillId, "match");
+  assert.equal(matched.events[0]?.side, "buy");
+  assert.equal(matched.events[0]?.brokerOrderId, "brk-close");
+
+  const dir = mkdtempSync(join(tmpdir(), "close-attr-"));
+  const ex = start(dir);
+  const ticket = buy("2099-01-01T00:00:00Z");
+  const broker: PaperWriter = {
+    networkWrite: "injected",
+    async submit(order) {
+      const row = order as { client_order_id: string; side: string };
+      return { kind: "ack", status: 200, body: { id: "brk-close", client_order_id: row.client_order_id, status: "filled", filled_qty: "0.02", filled_avg_price: "100", symbol: "SPY", side: row.side, type: "market", time_in_force: "day", extended_hours: false } };
+    },
+    async cancel() { return { kind: "ack", status: 200, body: {} }; },
+    async getOrder() { return { status: 200, body: { id: "brk-close", client_order_id: ticket.clientOrderId, status: "filled", filled_qty: "0.02", filled_avg_price: "100", symbol: "SPY", side: "buy" } }; },
+    async getPositions() { return { status: 200, body: [{ symbol: "SPY", qty: "0.02" }] }; },
+    async getOpenOrders() { return { status: 200, body: [] }; },
+    async listOrders() { return { status: 200, body: [] }; },
+    async listFills() { return { status: 200, body: historical }; },
+  };
+  try {
+    assert.equal(ex.acceptSupervised(ticket, now).accepted, true);
+    assert.equal((await ex.submitPaper(ticket, broker, env(), now)).orderState, "filled");
+    const fills = ex.fillEvents();
+    assert.equal(fills.length, 1);
+    assert.equal(fills[0]?.fillId, "match");
+    assert.equal(fills[0]?.brokerOrderId, "brk-close");
+    assert.equal(fills.every((row) => row.fillId !== "old-spy" && row.fillId !== "wrong-side"), true);
+  } finally {
+    ex.release();
+    rmSync(dir, { recursive: true, force: true });
+  }
 });

@@ -60,11 +60,15 @@ function knownFee(row: Record<string, unknown>): number | null {
 /**
  * One documented FILL activity is one fill.
  * fee stays null unless that activity itself carries a numeric fee or commission.
+ * An activity is kept only when its order_id equals the instruction's non-empty
+ * broker order id and its side and symbol are exact. Historical SPY fills are not attributed.
  */
 export function fillsFromActivities(input: {
   decisionId: string;
   strategyVersion: string;
   clientOrderId: string;
+  /** Broker order id already known for this instruction. Empty means attribute nothing. */
+  brokerOrderId: string | null;
   symbol: string;
   side: "buy" | "sell";
   intendedPrice: number;
@@ -72,6 +76,9 @@ export function fillsFromActivities(input: {
   evidenceChannel: EvidenceChannel;
   seenFillIds?: string[];
 }): { events: FillEvent[]; incompleteReason: string | null } {
+  if (typeof input.brokerOrderId !== "string" || input.brokerOrderId.length === 0) {
+    return { events: [], incompleteReason: "broker order id required before attributing fills" };
+  }
   if (!Array.isArray(input.activities)) return { events: [], incompleteReason: "FILL activities unavailable" };
   const seen = new Set(input.seenFillIds ?? []);
   const events: FillEvent[] = [];
@@ -79,13 +86,14 @@ export function fillsFromActivities(input: {
     if (!raw || typeof raw !== "object") continue;
     const row = raw as Record<string, unknown>;
     if (row.activity_type !== "FILL") continue;
-    if (row.symbol !== input.symbol || (row.side !== "buy" && row.side !== "sell")) continue;
+    if (row.symbol !== input.symbol || row.side !== input.side) continue;
     const fillId = typeof row.id === "string" ? row.id : "";
     const brokerOrderId = typeof row.order_id === "string" ? row.order_id : "";
+    if (brokerOrderId.length === 0 || brokerOrderId !== input.brokerOrderId) continue;
     const qty = Number(row.qty);
     const fillPrice = Number(row.price);
     const when = typeof row.transaction_time === "string" ? row.transaction_time : "";
-    if (!fillId || !brokerOrderId || !(qty > 0) || !(fillPrice > 0) || !Number.isFinite(Date.parse(when))) continue;
+    if (!fillId || !(qty > 0) || !(fillPrice > 0) || !Number.isFinite(Date.parse(when))) continue;
     if (seen.has(fillId)) continue;
     const fee = knownFee(row);
     const injected = input.evidenceChannel === "injected";
@@ -99,7 +107,7 @@ export function fillsFromActivities(input: {
       brokerOrderId,
       fillId,
       symbol: input.symbol,
-      side: row.side,
+      side: input.side,
       qty,
       fillPrice,
       intendedPrice: input.intendedPrice,
