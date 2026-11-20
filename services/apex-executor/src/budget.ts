@@ -9,6 +9,7 @@ export const BUDGET_RESERVE = 10;
 export const SNAPSHOT_TRADING_GETS = 4;
 export const PER_ORDER_TRADING_GETS = 3;
 export const BUDGET_WINDOW_MS = 60_000;
+export type BudgetPurpose = "entry" | "poll" | "exit" | "cancel" | "recovery";
 
 export interface BudgetMath {
   budgetPerMin?: number;

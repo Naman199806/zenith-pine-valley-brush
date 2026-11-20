@@ -1,14 +1,19 @@
 # Production integration
 
-PR #8 does not enable a broker write. `REAL_BROKER_WRITE_ENABLED` stays false. The adapter throws `PAPER POST DISABLED` before `fetch` on POST, PATCH, and DELETE. `PAPER_POST_ENABLED`, `LIVE_POST_ENABLED`, and `strategyApproved` stay false.
+## Merge sequence
 
-The proposed wiring lives on branch `cursor/paper-enablement-proposal-837c` at `1b1c614aff1bb9866fef87badc5c4beda615b7c2`. That branch is not a pull request and must not be deployed. This file is the contract that branch implements.
+1. The operator merges PR #8 into `main`. That branch does not enable a broker write.
+2. Retarget this draft, PR #9, onto `main` and wait for a fresh CI run on Ubuntu and Windows, Node 22 and 24.
+3. The operator reviews that run and merges PR #9. This repository does not merge either pull request.
+
+Preflight and the versioned rsync deploy are in the executor README sections `Authenticated preflight` and `Versioned deploy and rollback`. The VM has no git checkout. Secrets stay in `/etc/apex-executor`. Journal and state stay in `/var/lib/apex-executor`.
+
+
+This branch is the PAPER enablement draft. It must not be deployed and it must not be merged until reviewed. `LIVE_POST_ENABLED` and `strategyApproved` stay false. `supervisedActivation` starts closed. The disabled adapter still throws `PAPER POST DISABLED` before `fetch`. A simulated `fetch` is tagged `injected` and cannot enter the Hermes performance sink.
 
 ## What production calls
 
-`services/apex-executor/src/main.ts` boots one `Executor`, takes the writer lock, and runs `PollScheduler`. It does not submit from `POST /instructions`. That route only ingests.
-
-After the enablement branch, the poll loop calls one driver, `runSupervisedPaperCycle`, and only when `PAPER_POST_ENABLED=true`. The driver uses the real PAPER adapter. LIVE is not wired.
+`services/apex-executor/src/main.ts` `boot` is the process entry. It recovers in-flight orders before it listens. `POST /instructions` with a signed `SUPERVISED_PAPER_TEST` order is `acceptSupervised` then `submitPaper` on the PAPER HTTP adapter, one write at a time, under the writer lock. `POST /activation` opens a signed window of at most 15 minutes. Both `PAPER_POST_ENABLED=true` and that window are required. A dev flag does not open it. A restart drops the window. LIVE is not wired.
 
 Sequence, under the same writer lock:
 
@@ -16,7 +21,7 @@ Sequence, under the same writer lock:
 2. `recoverInFlight` runs for every `UNKNOWN` or in-flight id. Each attempt is 4 recovery GETs: order by client id, open orders, all orders, and FILL activities. Default 3 attempts, backoff 250ms. One 404 does not clear `UNKNOWN`. The id stays in `health().unknownClientOrderIds` and blocks new ids.
 3. A signed `market_notional` buy is `acceptSupervised` then `submitPaper`. The body is `exactBrokerBody`. A limit ticket is refused. The entry cannot spend the reserve. Freshness, expiry, kill switch, reconciliation, and budget are read again immediately before `fetch`.
 4. A signed `market_qty` sell is accepted only when it names a journaled filled entry of the same symbol. `submitPaper` GETs positions, then rechecks freshness, expiry, remaining quantity minus pending sells, and budget, then writes. The kill switch does not replace that signature.
-5. Cancel is `DELETE /v2/orders/{order_id}` after the id is known from a GET. It may use the reserve. Alpaca's trading API does not cancel by client order id directly ([Delete Order by ID](https://docs.alpaca.markets/us/reference/deleteorderbyorderid-1)).
+5. Cancel is a budgeted GET by client order id, then `DELETE /v2/orders/{order_id}`, then GET until the broker reports `canceled`, `filled`, or `partially_filled`. The body is the broker GET. Nothing writes `filled_qty: 0` locally. Each of those requests spends the shared budget. Alpaca's trading API does not cancel by client order id directly ([Delete Order by ID](https://docs.alpaca.markets/us/reference/deleteorderbyorderid-1)). FILL reads follow `page_token` and `direction` until a short page ([Activities by type](https://docs.alpaca.markets/us/reference/getaccountactivitiesbyactivitytype-1)). A full page left unread is not absence. Every request uses an `AbortController` deadline. A POST timeout is `UNKNOWN` and is not posted again.
 6. Fills are `filled_qty`, `filled_avg_price`, and `status` on the order, plus FILL activities ([Account Activities](https://docs.alpaca.markets/us/docs/account-activities)). The operational record keeps order id, activity id, qty, price, time, and provenance even when the fee is omitted. `feeKnown: false` means net profit is not attributable. A fee field that is numerically 0 is a known zero. `hermesPerformanceRefusal` drops injected rows and unknown fees. `SUPERVISED_PAPER_TEST` rows never enter strategy qualification. The channel on a real response is `alpaca-http`.
 
 Errors: timeout, 429, and 5xx become `UNKNOWN` and are not retried. The journal is fsynced before the POST. A crash after that line recovers by GET, not by a second POST.

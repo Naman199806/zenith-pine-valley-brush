@@ -242,6 +242,133 @@ Every step below is NO-GO unless it is true. Do not continue past a NO-GO.
 9. **Close the window.** Set `PAPER_POST_ENABLED=false`, restart, and confirm health still shows paper post disabled. LIVE remains disabled.
 10. **Archive.** Keep the journal excerpt, the health JSON, and the Alpaca order ids. Do not copy secrets into that archive.
 
+## Enablement build: first supervised SPY buy-and-exit
+
+This branch is the proposed PAPER enablement. It is a draft and is not a merge. `LIVE_POST_ENABLED` and `strategyApproved` stay false. `supervisedActivation` on `/health` starts `closed`. A dev flag does not open it. The disabled adapter still throws `PAPER POST DISABLED` before `fetch`. The production process (`src/main.ts`) is the only path that can reach the PAPER host, and only while both of these are true: `PAPER_POST_ENABLED=true`, and an operator-signed activation window of at most 15 minutes. A restart drops the window. After `expiresAt`, new entries stop without another step.
+
+If a position or a partially filled order is still open when the window ends, that is an emergency. No new entry is accepted: the nonce is not consumed and no intent is journaled. Recovery lookups continue. Cancel of a working order continues, and it still needs fresh evidence and reconciliation `OK`. Cancel does not treat `partially_filled` as a finished cancel. It keeps reading until the broker reports `canceled`, `filled`, `expired`, or `rejected`, or it leaves the order `UNKNOWN`. A risk-reducing exit does not need a new activation window. It does need a new operator-signed `market_qty` ticket, a current gate proof, fresh evidence, reconciliation `OK`, and a quantity no larger than the broker position minus pending sells. The signature, the gate, and the reconciliation are not skipped.
+
+Startup runs recovery before the process accepts an instruction. Acceptance, the durable journal write, submission, cancellation, and the broker poll share one execution lock. A function that already holds that lock does not take it again. A POST that times out becomes `UNKNOWN` and is not marked untransmitted. A definitive refusal before `fetch` expires the unsent intent. Cancel is `DELETE /v2/orders/{id}` followed by GET until the broker reports `canceled`, `filled`, `expired`, or `rejected`. `partially_filled` is not a finished cancel. The executor does not invent `filled_qty: 0`. FILL pages use `page_size`, `page_token`, and `direction`. A later poll asks for FILL activities only while recorded quantity is still short of `filled_qty`. A fully attributed order is not queried again, and that poll cannot spend the 10-request reserve.
+
+## Operator commands
+
+Health, activation, a supervised order, and cancel all require `x-executor-token`. The body is JSON. `PAPER_POST_ENABLED` stays false until the operator opens a window. `LIVE_POST_ENABLED` and `strategyApproved` stay false.
+
+```bash
+TOKEN=<health-token>
+# Fresh poll, reconciliation OK, flat book, budget inside the cap, activation closed.
+curl -sS -H "x-executor-token: $TOKEN" http://127.0.0.1:8787/health
+
+# Open a window of at most 15 minutes. The operator HMAC is over
+# v=1|PAPER_ACTIVATION|paper-only|<startsAt>|<expiresAt>|live=false|strategyApproved=false
+curl -sS -H "x-executor-token: $TOKEN" -H 'content-type: application/json' \
+  -d '{"v":1,"kind":"PAPER_ACTIVATION","startsAt":"<iso>","expiresAt":"<iso>","operatorProof":"<hex>"}' \
+  http://127.0.0.1:8787/activation
+
+# Entry. Notional is the exact cents string, at most 25.00.
+curl -sS -H "x-executor-token: $TOKEN" -H 'content-type: application/json' \
+  -d @spy-buy.json http://127.0.0.1:8787/instructions
+
+# Emergency exit after the window has closed. This is a new signed market_qty sell.
+# It does not need a new activation window. It still needs the operator HMAC, the gate HMAC,
+# fresh evidence, and reconciliation OK.
+curl -sS -H "x-executor-token: $TOKEN" -H 'content-type: application/json' \
+  -d @spy-exit.json http://127.0.0.1:8787/instructions
+
+# Emergency cancel of a working order. Same token. No new window.
+# The broker must then report canceled, filled, expired, or rejected.
+curl -sS -H "x-executor-token: $TOKEN" -H 'content-type: application/json' \
+  -d '{"clientOrderId":"<id>"}' http://127.0.0.1:8787/cancel
+```
+
+`spy-buy.json` is a signed `market_notional` buy: `symbol` `SPY`, `side` `buy`, `orderType` `market_notional`, `notional` `"2.00"`, `timeInForce` `day`, `extendedHours` false, `clientOrderId`, `expiresAt`, `nonce`, `operatorProof`, `gateProof`. `spy-exit.json` is a signed `market_qty` sell with `qty` set to the broker quantity, `linkedEntryId` set to the buy, and `exitAuthorizationId` set. A dev flag is not a substitute for either signature.
+
+## Merge sequence
+
+1. The operator merges PR #8 (`cursor/paper-readiness-lifecycle-837c`) into `main`. That branch stays write-disabled.
+2. Retarget PR #9 (`cursor/paper-enablement-proposal-837c`) onto `main` and wait for a fresh CI run. Ubuntu and Windows, Node 22 and 24, must be green on that new head.
+3. The operator reviews that run and merges PR #9. Nothing in this repository merges either pull request by itself.
+
+## Authenticated preflight
+
+On the VM, after the process is active and one poll has completed. `PAPER_POST_ENABLED` is unset or not `true`. The token is the one in `/etc/apex-executor/secrets.env`. Do not print the token.
+
+```bash
+APEX_EXECUTOR_HEALTH_TOKEN=<token> node /opt/apex-quant-x/services/apex-executor/deploy/healthcheck.mjs
+curl -sS -H "x-executor-token: $APEX_EXECUTOR_HEALTH_TOKEN" http://127.0.0.1:8787/health
+```
+
+The script exits 0 only when `mode` is `PAPER_READ_ONLY`, `paperPost` and `livePost` are `DISABLED`, `strategyApproved` is false, `brokerPoll.stale` is false, and `reconciliation.outcome` is `OK`. The curl body must also show `supervisedActivation` `closed`, `requestBudget.used` at or below `requestBudget.limitPerMin - requestBudget.reserve`, `unknown` 0, and `brokerPoll.reconciliation.outstandingOrders` 0. A position quantity above 0 is NO-GO for the first activation. NO-GO if `LIVE_POST_ENABLED` is set.
+
+## Versioned deploy and rollback
+
+The VM has no git checkout. Build on a workstation from the merged SHA. Do not rsync `/etc/apex-executor` or `/var/lib/apex-executor`. Secrets stay in `/etc`. The journal and state stay in `/var/lib/apex-executor`.
+
+```bash
+SHA=<merged-sha>
+rm -rf "/tmp/apex-release-$SHA"
+mkdir -p "/tmp/apex-release-$SHA"
+git archive "$SHA" | tar -x -C "/tmp/apex-release-$SHA"
+printf '%s\n' "$SHA" > "/tmp/apex-release-$SHA/VERSION"
+cd "/tmp/apex-release-$SHA"
+npm ci
+node services/apex-executor/scripts/run-tests.mjs
+node services/apex-executor/scripts/typecheck.mjs
+ssh user@vm "sudo mkdir -p /opt/apex-quant-x/releases/$SHA && sudo chown -R \$USER /opt/apex-quant-x/releases"
+rsync -a --delete \
+  --exclude .git --exclude .env --exclude '.env.*' --exclude node_modules \
+  --exclude services/apex-executor/data --exclude '**/writer.lock' \
+  "/tmp/apex-release-$SHA/" "user@vm:/opt/apex-quant-x/releases/$SHA/"
+```
+
+On the VM:
+
+```bash
+SHA=<merged-sha>
+sudo chown -R apex-executor:apex-executor "/opt/apex-quant-x/releases/$SHA"
+sudo -u apex-executor bash -lc "cd /opt/apex-quant-x/releases/$SHA && npm ci --omit=dev"
+ts=$(date -u +%Y%m%dT%H%M%SZ)
+sudo systemctl stop apex-executor
+sudo mkdir -p /opt/apex-releases
+if [ -d /opt/apex-quant-x/releases ]; then sudo mv /opt/apex-quant-x/releases /opt/apex-releases/releases; fi
+sudo mv /opt/apex-quant-x "/opt/apex-releases/previous-$ts"
+sudo mv "/opt/apex-releases/releases/$SHA" /opt/apex-quant-x
+sudo mkdir -p /opt/apex-quant-x/releases
+sudo mv /opt/apex-releases/releases/* /opt/apex-quant-x/releases/ || true
+sudo mv "/opt/apex-releases/previous-$ts" "/opt/apex-quant-x/releases/previous-$ts"
+sudo chown -R apex-executor:apex-executor /opt/apex-quant-x
+sudo systemctl start apex-executor
+```
+
+Rollback, without touching `/var/lib/apex-executor` or `/etc/apex-executor`:
+
+```bash
+ts=<the previous timestamp>
+sudo systemctl stop apex-executor
+sudo mv /opt/apex-quant-x/releases /opt/apex-releases/releases
+sudo mv /opt/apex-quant-x "/opt/apex-releases/failed-$ts"
+sudo mv "/opt/apex-releases/releases/previous-$ts" /opt/apex-quant-x
+sudo mkdir -p /opt/apex-quant-x/releases
+sudo mv /opt/apex-releases/releases/* /opt/apex-quant-x/releases/ || true
+sudo systemctl start apex-executor
+```
+
+Then run the authenticated preflight again. `VERSION` in `/opt/apex-quant-x` must be the SHA you intended.
+
+GO only when every line below is true. Stop at the first NO-GO.
+
+1. **Review this draft.** The diff is the production wiring, not a strategy change. NO-GO if LIVE is reachable or `strategyApproved` can become true.
+2. **Rotate the PAPER key.** Do not reuse the leaked key. Install the new key only on the VM, mode `0600`. NO-GO if a LIVE key is present.
+3. **Deploy this SHA** with the versioned rsync and the rollback tree above. Leave `PAPER_POST_ENABLED` unset. NO-GO if the deploy writes `/var/lib/apex-executor` or `/etc/apex-executor`.
+4. **Health before the window.** Authenticated `/health`: `stale` false, `reconciliation.outcome` `OK`, `unknown` 0, `supervisedActivation` `closed`, `strategyApproved` false, `livePost` `DISABLED`. NO-GO on `MISMATCH`, `UNKNOWN_ORDERS`, or a stale poll.
+5. **Open a short window during regular hours.** The broker clock `is_open` is true. Set `PAPER_POST_ENABLED=true` and restart. Post `/activation` with an operator HMAC over `PAPER_ACTIVATION`, the start, and the end. The end is at most 15 minutes after the start. `/health` then shows `supervisedActivation` `open` and `activationExpiresAt`. NO-GO if a dev flag was the only change, or if the clock is closed.
+6. **Sign the buy.** One `market_notional` SPY buy, notional string at most `25.00`, `time_in_force` `day`, `extended_hours` false. Operator HMAC and Sigma/Sentinel HMAC cover those fields plus `client_order_id` and expiry. Post it to `/instructions`. Check the journal intent, then the broker GET by that client order id, then `/health`. Hermes has an operational fill: order id, activity id, qty, price, time, provenance. `feeKnown: false` means net profit is not attributable. The row does not qualify a strategy. NO-GO above $25, on a second working order, or if the POST body is not the signed fields.
+7. **Sign the exit.** A separate `market_qty` sell for the broker-confirmed remaining quantity, linked to the filled buy. Same checks. NO-GO if the qty exceeds the position minus pending sells.
+8. **Flat.** Positions GET qty 0 for SPY, open orders empty, reconciliation `OK`, both records `FLAT`. NO-GO if flat is only the local journal.
+9. **Deactivate.** Let the window expire or restart the process. Set `PAPER_POST_ENABLED=false` and restart again. `/health` shows `supervisedActivation` `closed`. LIVE stays disabled.
+10. **Rollback.** If health is stale, the process crashes, or a write happens outside the window, stop the service and restore the previous tree with the commands above. Do not roll back to hide `UNKNOWN` or `MISMATCH`.
+11. **Archive.** Journal excerpt, `/health` JSON from before, during, and after, and the Alpaca order ids. No secrets in the archive.
+
 ## Invariants
 
 - One writer lock. A live pid is never replaced. `EPERM` from `process.kill(pid, 0)` counts as alive. A dead pid can be recovered only after that pid is provably gone.

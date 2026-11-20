@@ -112,7 +112,7 @@ export class BrokerPollError extends Error {
   }
 }
 
-export function createPaperPollClient(creds: PaperCreds): BrokerPollClient {
+export function createPaperPollClient(creds: PaperCreds, timeoutMs = 4_000, fetchImpl: typeof fetch = fetch): BrokerPollClient {
   return {
     async request(input) {
       if (input.method !== "GET") {
@@ -120,12 +120,13 @@ export function createPaperPollClient(creds: PaperCreds): BrokerPollClient {
         throw new Error("PAPER POST DISABLED");
       }
       assertPaperUrl(input.url);
-      const res = await fetch(input.url, {
+      const res = await fetchImpl(input.url, {
         method: "GET",
         headers: {
           "APCA-API-KEY-ID": creds.keyId,
           "APCA-API-SECRET-KEY": creds.secret,
         },
+        signal: AbortSignal.timeout(timeoutMs),
       });
       const body = await res.json().catch(() => null);
       return { status: res.status, body };
