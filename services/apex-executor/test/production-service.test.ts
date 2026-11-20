@@ -8,6 +8,7 @@ import { join } from "node:path";
 import test from "node:test";
 import { signActivation } from "../src/activation.ts";
 import { FILL_PAGE_LIMIT, readFillPage } from "../src/absence.ts";
+import type { PaperWriter } from "../src/broker-write.ts";
 import { boot } from "../src/main.ts";
 import { createHttpPaperWriter, evidenceChannelFor, handleSupervisedInstruction } from "../src/production-cycle.ts";
 import { Executor, openMarket, type ExecutorConfig } from "../src/runtime.ts";
@@ -53,6 +54,7 @@ class Sim {
   inFlight = 0;
   maxInFlight = 0;
   position = "0";
+  onPositions: (() => void) | null = null;
   hangPost = false;
   miss = false;
   cancelSeesFill = false;
@@ -88,7 +90,10 @@ class Sim {
     }
     if (url.includes("/v2/account") && !url.includes("activities")) return json({ status: "ACTIVE", trading_blocked: false });
     if (url.includes("/v2/clock")) return json({ is_open: true });
-    if (url.includes("/v2/positions")) return json(this.position === "0" ? [] : [{ symbol: "SPY", qty: this.position }]);
+    if (url.includes("/v2/positions")) {
+      this.onPositions?.();
+      return json(this.position === "0" ? [] : [{ symbol: "SPY", qty: this.position }]);
+    }
     if (url.includes("quotes/latest")) return json({ quote: { bp: 100, ap: 100.01, t: new Date(this.clock).toISOString() } });
     if (url.includes("by_client_order_id")) {
       if (this.miss) return new Response(JSON.stringify({ message: "order not found" }), { status: 404 });
@@ -204,9 +209,10 @@ test("the activation window expiring mid-session stops the next write", async ()
     clock.t = started + 1_500;
     sim.clock = clock.t;
     const postsBefore = sim.posts.length;
-    const sell = await post(port, "/instructions", order({ side: "sell", clientOrderId: "exp-sell", nonce: "exp-sell", linkedEntryId: "exp-buy" }));
-    assert.equal(sell.status, 422);
-    assert.match(String(sell.body.reason), /activation window closed/);
+    const next = await post(port, "/instructions", order({ clientOrderId: "exp-buy-2", nonce: "exp-buy-2" }));
+    assert.equal(next.status, 422);
+    assert.match(String(next.body.reason), /activation window closed/);
+    assert.equal(booted.exec.get("exp-buy-2"), undefined);
     assert.equal(sim.posts.length, postsBefore);
   } finally {
     booted.stop();
@@ -371,6 +377,216 @@ test("startup recovery blocks instructions and the reserve cannot buy", async ()
     rmSync(sleepDir, { recursive: true, force: true });
   } finally {
     exec.release();
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("a write-disabled boot and a closed window refuse before a nonce is consumed", async () => {
+  process.env.APEX_OPERATOR_SECRET = SECRET;
+  process.env.APEX_GATE_SECRET = GATE;
+  const dir = mkdtempSync(join(tmpdir(), "svc-off-"));
+  const sim = new Sim();
+  const booted = await boot(serviceEnv(dir, { PAPER_POST_ENABLED: undefined }), { fetchImpl: sim.fetch, now: () => started, sleep: async () => {} });
+  const address = booted.server.address();
+  const port = typeof address === "object" && address ? address.port : 0;
+  try {
+    const ticket = order({ clientOrderId: "off-buy", nonce: "off-nonce" });
+    const first = await post(port, "/instructions", ticket);
+    const second = await post(port, "/instructions", ticket);
+    assert.equal(first.status, 422);
+    assert.match(String(first.body.reason), /PAPER POST DISABLED/);
+    assert.match(String(second.body.reason), /PAPER POST DISABLED/);
+    assert.equal(booted.exec.get("off-buy"), undefined);
+    assert.equal(sim.posts.length, 0);
+  } finally {
+    booted.stop();
+    rmSync(dir, { recursive: true, force: true });
+  }
+
+  const dir2 = mkdtempSync(join(tmpdir(), "svc-closed-"));
+  const sim2 = new Sim();
+  const closed = await boot(serviceEnv(dir2), { fetchImpl: sim2.fetch, now: () => started, sleep: async () => {} });
+  const address2 = closed.server.address();
+  const port2 = typeof address2 === "object" && address2 ? address2.port : 0;
+  try {
+    const ticket = order({ clientOrderId: "closed-buy", nonce: "closed-nonce" });
+    const first = await post(port2, "/instructions", ticket);
+    const second = await post(port2, "/instructions", ticket);
+    assert.match(String(first.body.reason), /activation window closed/);
+    assert.match(String(second.body.reason), /activation window closed/);
+    assert.equal(closed.exec.get("closed-buy"), undefined);
+    assert.equal(sim2.posts.length, 0);
+  } finally {
+    closed.stop();
+    rmSync(dir2, { recursive: true, force: true });
+  }
+});
+
+test("an expired recheck before POST becomes a terminal untransmitted order and an emergency exit still needs a signed ticket", async () => {
+  process.env.APEX_OPERATOR_SECRET = SECRET;
+  process.env.APEX_GATE_SECRET = GATE;
+  const dir = mkdtempSync(join(tmpdir(), "svc-emerg-"));
+  const sim = new Sim();
+  const clock = { t: started };
+  const booted = await boot(serviceEnv(dir), { fetchImpl: sim.fetch, now: () => clock.t, sleep: async () => {} });
+  const address = booted.server.address();
+  const port = typeof address === "object" && address ? address.port : 0;
+  try {
+    assert.equal((await post(port, "/activation", activation(started, 1_000))).status, 200);
+    assert.equal((await post(port, "/instructions", order({ clientOrderId: "em-buy", nonce: "em-buy" }))).status, 202);
+    sim.onPositions = () => { clock.t = started + 8_000; sim.clock = clock.t; };
+    const sell = await post(port, "/instructions", order({ side: "sell", clientOrderId: "em-sell", nonce: "em-sell", linkedEntryId: "em-buy" }));
+    assert.equal(sell.status, 422);
+    assert.equal(booted.exec.get("em-sell")?.orderState, "expired");
+    assert.equal(sim.posts.length, 1);
+    clock.t = started + 1_500;
+    sim.clock = clock.t;
+    sim.onPositions = null;
+    const again = order({ clientOrderId: "em-buy-2", nonce: "em-buy-2" });
+    const blocked = await post(port, "/instructions", again);
+    const blockedAgain = await post(port, "/instructions", again);
+    assert.match(String(blocked.body.reason), /activation window closed/);
+    assert.match(String(blockedAgain.body.reason), /activation window closed/);
+    assert.equal(booted.exec.get("em-buy-2"), undefined);
+    const emergency = await post(port, "/instructions", order({ side: "sell", clientOrderId: "em-exit", nonce: "em-exit", linkedEntryId: "em-buy" }));
+    assert.equal(emergency.status, 202, JSON.stringify(emergency.body));
+    assert.equal(booted.exec.get("em-exit")?.state, "FLAT");
+    assert.equal(booted.exec.get("em-buy")?.state, "FLAT");
+  } finally {
+    booted.stop();
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("an overlapping poll cannot regress an acknowledged order and a delayed fill survives restart", async () => {
+  process.env.APEX_OPERATOR_SECRET = SECRET;
+  process.env.APEX_GATE_SECRET = GATE;
+  const dir = mkdtempSync(join(tmpdir(), "svc-race-"));
+  const env = { ...process.env, PAPER_POST_ENABLED: "true", APEX_OPERATOR_SECRET: SECRET, APEX_GATE_SECRET: GATE };
+  const config = {
+    mode: "PAPER" as const, postEnabled: false as const, liveCredentialsLoaded: false,
+    statePath: join(dir, "state.json"), lockPath: join(dir, "writer.lock"), inboxPath: join(dir, "inbox.jsonl"),
+    journalPath: join(dir, "journal.jsonl"), hermesPath: join(dir, "hermes.json"), fillsPath: join(dir, "fills.jsonl"),
+  };
+  const ex = new Executor(config, { keyId: "PKTESTKEY1", secret: "paper-secret" });
+  ex.observeMarket(openMarket(started), started);
+  ex.useEnv(env);
+  ex.requireActivation();
+  ex.armPaperActivation(activation(started, 60_000), env, started);
+  const fills: unknown[] = [];
+  let releasePositions: () => void = () => {};
+  const positionsHeld = new Promise<void>((resolve) => { releasePositions = resolve; });
+  let waitForSell = false;
+  let sold = false;
+  const writer: PaperWriter = {
+    networkWrite: "injected",
+    async submit(order) {
+      const row = order as { client_order_id: string; side: string; qty?: string };
+      if (row.side === "sell") sold = true;
+      return { kind: "ack", status: 200, body: { id: `brk-${row.client_order_id}`, client_order_id: row.client_order_id, status: "filled", filled_qty: row.side === "sell" ? row.qty : "0.02", filled_avg_price: "100", symbol: "SPY", side: row.side } };
+    },
+    async cancel() { return { kind: "ambiguous", reason: "unused" }; },
+    async getOrder(id) { return { status: 200, body: { id: `brk-${id}`, client_order_id: id, status: "filled", filled_qty: "0.02", filled_avg_price: "100", symbol: "SPY", side: "buy" } }; },
+    async getPositions() {
+      if (waitForSell && !sold) await positionsHeld;
+      return { status: 200, body: sold ? [] : [{ symbol: "SPY", qty: "0.02" }] };
+    },
+    async getOpenOrders() { return { status: 200, body: [] }; },
+    async listOrders() { return { status: 200, body: [] }; },
+    async listFills() { return { status: 200, body: fills }; },
+  };
+  ex.attachActivityWriter(writer);
+  try {
+    const buy = order({ clientOrderId: "race-buy", nonce: "race-buy" });
+    assert.equal(ex.acceptSupervised(buy, started).accepted, true);
+    assert.equal((await ex.submitPaper(buy, writer, env, started)).orderState, "filled");
+    assert.equal(ex.fillEvents().length, 0);
+    waitForSell = true;
+    const sell = order({ side: "sell", clientOrderId: "race-sell", nonce: "race-sell", linkedEntryId: "race-buy" });
+    ex.acceptSupervised(sell, started);
+    const sent = ex.submitPaper(sell, writer, env, started);
+    const stale = {
+      async request(input: { method: string; url: string }) {
+        const url = input.url;
+        if (url.includes("/v2/account")) return { status: 200, body: { status: "ACTIVE", trading_blocked: false } };
+        if (url.includes("/v2/clock")) return { status: 200, body: { is_open: true } };
+        if (url.includes("/v2/positions")) return { status: 200, body: [{ symbol: "SPY", qty: "0.02" }] };
+        if (url.includes("quotes")) return { status: 200, body: { quote: { bp: 100, ap: 100.01, t: new Date(started).toISOString() } } };
+        if (url.includes("by_client_order_id")) return { status: 200, body: { id: "brk-race-buy", client_order_id: "race-buy", status: "new", filled_qty: "0", symbol: "SPY", side: "buy" } };
+        return { status: 200, body: [] };
+      },
+    };
+    const polled = ex.runBrokerPoll(stale, started);
+    releasePositions();
+    await sent;
+    await polled;
+    assert.notEqual(ex.get("race-buy")?.orderState, "UNKNOWN");
+    assert.equal(ex.get("race-sell")?.state, "FLAT");
+    ex.release();
+    fills.push({ activity_type: "FILL", id: "late-fill", order_id: "brk-race-buy", qty: "0.02", price: "100", side: "buy", symbol: "SPY", transaction_time: "2026-11-16T15:01:00Z", type: "fill" });
+    const restarted = new Executor(config, { keyId: "PKTESTKEY1", secret: "paper-secret" });
+    restarted.attachActivityWriter(writer);
+    const poll = {
+      async request(input: { method: string; url: string }) {
+        const url = input.url;
+        if (url.includes("/v2/account")) return { status: 200, body: { status: "ACTIVE", trading_blocked: false } };
+        if (url.includes("/v2/clock")) return { status: 200, body: { is_open: true } };
+        if (url.includes("/v2/positions")) return { status: 200, body: [] };
+        if (url.includes("quotes")) return { status: 200, body: { quote: { bp: 100, ap: 100.01, t: new Date(started).toISOString() } } };
+        if (url.includes("by_client_order_id")) return { status: 200, body: { id: "brk-race-buy", client_order_id: "race-buy", status: "filled", filled_qty: "0.02", filled_avg_price: "100", symbol: "SPY", side: "buy" } };
+        return { status: 200, body: [] };
+      },
+    };
+    await restarted.runBrokerPoll(poll, started);
+    assert.equal(restarted.fillEvents().length, 1);
+    assert.equal(restarted.fillEvents()[0]?.fillId, "late-fill");
+    assert.equal(restarted.fillEvents()[0]?.feeKnown, false);
+    await restarted.runBrokerPoll(poll, started);
+    assert.equal(restarted.fillEvents().length, 1);
+    restarted.release();
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("cancel does not treat partially_filled as a terminal canceled state", async () => {
+  process.env.APEX_OPERATOR_SECRET = SECRET;
+  process.env.APEX_GATE_SECRET = GATE;
+  const dir = mkdtempSync(join(tmpdir(), "svc-cancel-"));
+  const env = { ...process.env, PAPER_POST_ENABLED: "true", APEX_OPERATOR_SECRET: SECRET, APEX_GATE_SECRET: GATE };
+  const ex = new Executor({
+    mode: "PAPER", postEnabled: false, liveCredentialsLoaded: false,
+    statePath: join(dir, "state.json"), lockPath: join(dir, "writer.lock"), inboxPath: join(dir, "inbox.jsonl"),
+    journalPath: join(dir, "journal.jsonl"), hermesPath: join(dir, "hermes.json"), fillsPath: join(dir, "fills.jsonl"),
+  }, { keyId: "PKTESTKEY1", secret: "paper-secret" });
+  ex.observeMarket(openMarket(started), started);
+  ex.useEnv(env);
+  ex.armPaperActivation(activation(started, 60_000), env, started);
+  let deleted = false;
+  const fetchImpl = (async (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = String(input);
+    const method = init?.method ?? "GET";
+    if (method === "POST") {
+      return json({ id: "brk-part", client_order_id: "part-buy", status: "accepted", filled_qty: "0.01", filled_avg_price: "100", symbol: "SPY", side: "buy" });
+    }
+    if (method === "DELETE") { deleted = true; return new Response(null, { status: 204 }); }
+    if (url.includes("by_client_order_id")) {
+      return json({ id: "brk-part", client_order_id: "part-buy", status: deleted ? "partially_filled" : "accepted", filled_qty: "0.01", filled_avg_price: "100", symbol: "SPY", side: "buy" });
+    }
+    if (url.includes("/v2/positions")) return json([{ symbol: "SPY", qty: "0.01" }]);
+    return json([]);
+  }) as typeof fetch;
+  const writer = createHttpPaperWriter(fetchImpl, { keyId: "PKTESTKEY1", secret: "paper-secret" }, { charge: () => true, evidenceChannel: "injected", sleep: async () => {} });
+  try {
+    const buy = order({ clientOrderId: "part-buy", nonce: "part-buy" });
+    ex.acceptSupervised(buy, started);
+    assert.equal((await ex.submitPaper(buy, writer, env, started)).orderState, "partially_filled");
+    const canceled = await ex.cancelPaper("part-buy", writer, env, started);
+    assert.equal(canceled.canceled, false);
+    assert.notEqual(canceled.orderState, "canceled");
+    assert.equal(ex.get("part-buy")?.orderState, "UNKNOWN");
+  } finally {
+    ex.release();
     rmSync(dir, { recursive: true, force: true });
   }
 });

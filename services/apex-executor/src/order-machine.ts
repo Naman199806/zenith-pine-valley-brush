@@ -34,6 +34,17 @@ export function isOrderState(value: unknown): value is OrderState {
   return typeof value === "string" && (ORDER_STATES as readonly string[]).includes(value);
 }
 
+/** A later broker view must not walk an acknowledged order backwards. */
+export function regressesOrder(from: OrderState, to: OrderState): boolean {
+  if (from === to || from === "UNKNOWN") return false;
+  if (from === "filled" || from === "canceled" || from === "expired" || from === "rejected") return true;
+  const rank: Record<OrderState, number> = {
+    intent: 0, submitted: 1, accepted: 2, partially_filled: 3, filled: 4,
+    rejected: 5, canceled: 5, expired: 5, UNKNOWN: 0,
+  };
+  return rank[to] < rank[from];
+}
+
 /** Same-state refresh is idempotent. Anything else must be listed. */
 export function transitionRefusal(from: OrderState, to: OrderState): string | null {
   if (from === to) return null;

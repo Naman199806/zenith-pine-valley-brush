@@ -150,7 +150,7 @@ export function createHttpPaperWriter(fetchImpl: FetchImpl, creds: PaperCreds, o
         if (again.timeout || again.budget) return { kind: "ambiguous", reason: "cancel confirmation unresolved" };
         const body = again.body && typeof again.body === "object" ? again.body as Record<string, unknown> : null;
         const status = typeof body?.status === "string" ? body.status : "";
-        if (again.status === 200 && body && (status === "canceled" || status === "filled" || status === "partially_filled" || status === "expired" || status === "rejected")) {
+        if (again.status === 200 && body && (status === "canceled" || status === "filled" || status === "expired" || status === "rejected")) {
           return { kind: "ack", status: 200, body };
         }
         if (attempt + 1 < CANCEL_CONFIRM_ATTEMPTS) await sleep(50);

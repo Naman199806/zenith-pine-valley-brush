@@ -46,7 +46,7 @@ import { tradingOriginGuard } from "../../../src/lib/apex/broker/allowlist.ts";
 import { devSubmitFlag, paperPostEnvOn, submitRefusal, type SubmitFacts } from "./gates.ts";
 import { absenceVerdict, fillsHitOrder, readAbsenceAttempts, readAbsenceBackoffMs, readFillPage, readOrderList, type AbsenceProbe } from "./absence.ts";
 import { fillsFromActivities, readAlpacaOrder } from "./alpaca-fill.ts";
-import { applyCumulativeFill, inFlightOrder, isOrderState, orderStateFromBroker, transitionRefusal, type OrderState } from "./order-machine.ts";
+import { applyCumulativeFill, inFlightOrder, isOrderState, orderStateFromBroker, regressesOrder, transitionRefusal, type OrderState } from "./order-machine.ts";
 import { brokerBodyMismatch, exactBrokerBody, limitConversionRefusal, verifySupervisedOrder, type SupervisedOrder } from "./supervised-order.ts";
 import { assessRisk, flatSnapshot, readMaxOrderQty, type MarketSnapshot } from "./risk.ts";
 
@@ -161,8 +161,12 @@ export class Executor {
   private budget = new RequestBudget();
   private recoveryPending = false;
   private startupComplete = true;
+  private writesRequireActivation = false;
+  private operatorEnv: NodeJS.ProcessEnv = process.env;
   private activation: { startsAt: number; expiresAt: number } | null = null;
   private chain: Promise<unknown> = Promise.resolve();
+  private exclusiveDepth = 0;
+  private activityWriter: PaperWriter | null = null;
   private fillFeePolicy: "require" | "explicit_zero" = "require";
   /** Full-success clock for THIS process. Never restored from disk. */
   private processSuccessAt: number | null = null;
@@ -412,9 +416,7 @@ export class Executor {
   }
 
   serialize<T>(fn: () => Promise<T>): Promise<T> {
-    const run = this.chain.then(fn, fn);
-    this.chain = run.then(() => undefined, () => undefined);
-    return run;
+    return this.exclusive(fn);
   }
 
   /**
@@ -453,7 +455,8 @@ export class Executor {
    * out. Reconciliation that is not OK refuses execution immediately.
    * Disk timestamps from a previous process are not freshness.
    */
-  async runBrokerPoll(client: BrokerPollClient, now = Date.now()): Promise<{ ok: boolean; failureKind: BrokerPollFailureKind | null }> {
+  async runBrokerPoll(client: BrokerPollClient, now = Date.now(), queued = false): Promise<{ ok: boolean; failureKind: BrokerPollFailureKind | null }> {
+    if (!queued) return this.exclusive(() => this.runBrokerPoll(client, now, true));
     const iso = new Date(now).toISOString();
     this.poll.lastAttemptAt = iso;
     if (!this.creds) {
@@ -487,7 +490,41 @@ export class Executor {
       return { ok: false, failureKind: reconciled.failureKind };
     }
     this.markFullSuccess(now, reconciled.reconciliation);
+    await this.reconcileDelayedFills(now);
     return { ok: true, failureKind: null };
+  }
+
+  requireActivation(): void {
+    this.writesRequireActivation = true;
+  }
+
+  useEnv(env: NodeJS.ProcessEnv): void {
+    this.operatorEnv = env;
+  }
+
+  attachActivityWriter(writer: PaperWriter): void {
+    this.activityWriter = writer;
+  }
+
+  /** Pull FILL activities for orders whose broker id is already known. Repeated calls are idempotent. */
+  async reconcileDelayedFills(now = Date.now()): Promise<void> {
+    if (!this.activityWriter) return;
+    for (const rec of [...this.records.values()]) {
+      if (typeof rec.brokerOrderId === "string" && rec.brokerOrderId.length > 0) await this.noteActivities(rec, this.activityWriter, now);
+    }
+  }
+
+  private exclusive<T>(fn: () => Promise<T>): Promise<T> {
+    const run = this.chain.then(async () => {
+      this.exclusiveDepth += 1;
+      try {
+        return await fn();
+      } finally {
+        this.exclusiveDepth -= 1;
+      }
+    });
+    this.chain = run.then(() => undefined, () => undefined);
+    return run;
   }
 
   outstanding(): LifecycleRecord[] {
@@ -570,6 +607,7 @@ export class Executor {
       this.store(unknown, redactSecrets(error instanceof Error ? error.message : "broker lookup failed", this.redact));
       return unknown;
     }
+    if (this.viewRegresses(rec, order.body)) return rec;
     let next = reconcileRecord(rec, {
       orderStatus: order.status,
       orderBody: order.body,
@@ -927,9 +965,15 @@ export class Executor {
   }
 
   acceptSupervised(order: SupervisedOrder, now: number | (() => number) = Date.now()): { accepted: boolean; reason: string; state: "PROPOSED" | null } {
-    const signedFirst = verifySupervisedOrder(order, { operator: process.env.APEX_OPERATOR_SECRET ?? null, gate: process.env.APEX_GATE_SECRET ?? null }, this.clock(now));
+    const signedFirst = verifySupervisedOrder(order, { operator: this.operatorEnv.APEX_OPERATOR_SECRET ?? process.env.APEX_OPERATOR_SECRET ?? null, gate: this.operatorEnv.APEX_GATE_SECRET ?? process.env.APEX_GATE_SECRET ?? null }, this.clock(now));
     if (signedFirst) return { accepted: false, reason: signedFirst, state: null };
     if (this.nonces.has(order.nonce) || this.ids.has(order.clientOrderId)) return { accepted: false, reason: "duplicate or replay", state: null };
+    if (this.writesRequireActivation) {
+      const disabled = !paperPostEnvOn(this.operatorEnv) || this.operatorEnv.LIVE_POST_ENABLED === "true";
+      if (disabled) return { accepted: false, reason: "PAPER POST DISABLED", state: null };
+      const emergency = order.orderType === "market_qty" && this.emergencyExitOpen(order);
+      if (!this.activationOpen(this.clock(now)) && !emergency) return { accepted: false, reason: "activation window closed", state: null };
+    }
     if (order.orderType === "market_qty") {
       const linked = this.exitLinkage(order);
       if (linked) return { accepted: false, reason: linked, state: null };
@@ -991,8 +1035,59 @@ export class Executor {
     return this.market != null && this.pollFresh(t) && t >= this.marketAt && t - this.marketAt <= 5_000;
   }
 
+  /** Open position or partial fill. An emergency exit still needs a fresh signed ticket. */
+  private emergencyExitOpen(order: SupervisedOrder): boolean {
+    if (order.orderType !== "market_qty") return false;
+    const entry = this.records.get(order.linkedEntryId);
+    if (!entry || entry.symbol !== order.symbol) return false;
+    return entry.filledQty > 0 || entry.orderState === "filled" || entry.orderState === "partially_filled" || entry.state === "OPEN" || entry.state === "PARTIAL";
+  }
+
+  private viewRegresses(rec: LifecycleRecord, body: unknown): boolean {
+    if (!body || typeof body !== "object" || !rec.orderState) return false;
+    const row = body as { status?: unknown; filled_qty?: unknown };
+    const observed = Number(row.filled_qty);
+    const status = typeof row.status === "string" ? row.status : "";
+    const mapped = status ? orderStateFromBroker(status, Number.isFinite(observed) ? observed : 0) : null;
+    return mapped != null && regressesOrder(rec.orderState, mapped);
+  }
+
+  /** Signature, gate, freshness, activation, and risk. Used again immediately before POST. */
+  private transmissionBlock(order: SupervisedOrder, env: NodeJS.ProcessEnv, purpose: "entry" | "exit", t: number): string | null {
+    if (env.LIVE_POST_ENABLED === "true" || env.APEX_EXECUTOR_ENABLE_LIVE === "I_ENABLE_LIVE") return "LIVE POST DISABLED";
+    if (!paperPostEnvOn(env)) return "PAPER POST DISABLED";
+    if (this.writesRequireActivation && purpose === "entry" && !this.activationOpen(t)) return "activation window closed";
+    if (this.writesRequireActivation && purpose === "exit" && !this.activationOpen(t) && !this.emergencyExitOpen(order)) return "activation window closed";
+    const signed = verifySupervisedOrder(order, { operator: env.APEX_OPERATOR_SECRET ?? process.env.APEX_OPERATOR_SECRET ?? null, gate: env.APEX_GATE_SECRET ?? process.env.APEX_GATE_SECRET ?? null }, t);
+    if (signed) return signed;
+    if (!this.freshAt(t)) return "stale broker evidence";
+    if (this.poll.reconciliation.outcome !== "OK") return "broker reconciliation failed";
+    if (purpose === "entry" && this.entriesBlocked) return "kill switch blocks new entries";
+    if (!this.budget.canTake(t, 1, purpose)) return "request budget exceeded";
+    return null;
+  }
+
+  /** Intent was durable but nothing was sent. Leave a terminal expired order instead of UNKNOWN. */
+  private untransmitted(rec: LifecycleRecord, reason: string): LifecycleRecord {
+    const from = rec.orderState ?? "intent";
+    if (from !== "intent" && from !== "submitted") return rec;
+    if (transitionRefusal(from, "expired")) return rec;
+    const next: LifecycleRecord = { ...rec, state: "CLOSED", orderState: "expired", submitted: false, unknown: false, alerted: false };
+    this.store(next, `untransmitted; ${reason}`);
+    return next;
+  }
+
   private clock(now: number | (() => number)): number {
     return typeof now === "function" ? now() : now;
+  }
+
+  private finishUnsent(order: SupervisedOrder, reason: string): { submitted: false; reason: string; orderState: OrderState | null } {
+    const rec = this.records.get(order.clientOrderId);
+    if (this.writesRequireActivation && rec && (rec.orderState === "intent" || rec.orderState === "submitted")) {
+      const next = this.untransmitted(rec, reason);
+      return { submitted: false, reason, orderState: next.orderState ?? null };
+    }
+    return this.refuseSupervised(order, reason);
   }
 
   private refuseSupervised(order: SupervisedOrder, reason: string): { submitted: false; reason: string; orderState: OrderState | null } {
@@ -1061,21 +1156,23 @@ export class Executor {
     }
   }
 
-  async submitPaper(instruction: SupervisedOrder | TradeInstruction, writer: PaperWriter, env: NodeJS.ProcessEnv = process.env, now: number | (() => number) = Date.now()): Promise<{ submitted: boolean; reason: string; orderState: OrderState | null }> {
+  async submitPaper(instruction: SupervisedOrder | TradeInstruction, writer: PaperWriter, env: NodeJS.ProcessEnv = process.env, now: number | (() => number) = Date.now(), queued = false): Promise<{ submitted: boolean; reason: string; orderState: OrderState | null }> {
+    if (!queued) return this.exclusive(() => this.submitPaper(instruction, writer, env, now, true));
     const converted = limitConversionRefusal(instruction);
     if (converted) return { submitted: false, reason: converted, orderState: null };
     if (writer.networkWrite !== "injected" && writer.networkWrite !== "alpaca-http") return { submitted: false, reason: "REAL_BROKER_WRITE_DISABLED", orderState: null };
     const order = instruction as SupervisedOrder;
     if (writer.networkWrite === "alpaca-http" && !this.startupComplete) return this.refuseSupervised(order, "startup recovery incomplete");
-    if (writer.networkWrite === "alpaca-http" && !this.activationOpen(this.clock(now))) return this.refuseSupervised(order, "activation window closed");
     const purpose = order.side === "buy" ? "entry" as const : "exit" as const;
     const early = this.supervisedGate(order, env, this.clock(now), purpose, true);
-    if (early) return this.refuseSupervised(order, early);
+    if (early) return this.finishUnsent(order, early);
     if (order.side === "sell") {
       const owned = await this.readOwned(writer, order.symbol, this.clock(now));
-      if (typeof owned === "string") return this.refuseSupervised(order, owned);
+      if (typeof owned === "string") return this.finishUnsent(order, owned);
       const afterRead = this.supervisedGate(order, env, this.clock(now), "exit", true);
-      if (afterRead) return this.refuseSupervised(order, afterRead);
+      if (afterRead) return this.finishUnsent(order, afterRead);
+      const afterAwait = writer.networkWrite === "alpaca-http" ? this.transmissionBlock(order, env, "exit", this.clock(now)) : null;
+      if (afterAwait) return this.finishUnsent(order, afterAwait);
       const room = this.sellRoom(order, owned);
       if (room) return this.refuseSupervised(order, room);
     }
@@ -1093,14 +1190,15 @@ export class Executor {
       if (!this.budget.canTake(t, 1, purpose)) return this.refuseSupervised(order, "request budget exceeded");
     } else if (!this.budget.tryTake(t, 1, purpose)) return this.refuseSupervised(order, "request budget exceeded");
     const immediate = this.clock(now);
-    if (!this.freshAt(immediate) || Date.parse(order.expiresAt) <= immediate) {
-      return this.refuseSupervised(order, !this.freshAt(immediate) ? "stale broker evidence" : "instruction expired");
-    }
+    const beforeJournal = writer.networkWrite === "alpaca-http" ? this.transmissionBlock(order, env, purpose, immediate) : (!this.freshAt(immediate) ? "stale broker evidence" : Date.parse(order.expiresAt) <= immediate ? "instruction expired" : null);
+    if (beforeJournal) return this.finishUnsent(order, beforeJournal);
     const problem = transitionRefusal("intent", "submitted");
     if (problem) return this.refuseSupervised(order, problem);
     const submitted: LifecycleRecord = { ...rec, state: "SUBMISSION_ATTEMPTED", submitted: true, orderState: "submitted" };
     this.store(submitted, "submitted; durable intent fsynced before broker write");
     const finalBody = exactBrokerBody(stored);
+    const beforePost = writer.networkWrite === "alpaca-http" ? this.transmissionBlock(order, env, purpose, this.clock(now)) : null;
+    if (beforePost) return this.finishUnsent(order, beforePost);
     if (brokerBodyMismatch(stored, finalBody)) {
       const unknown = this.becomeUnknown(submitted, "broker body does not match the signed order");
       return { submitted: false, reason: "broker body does not match the signed order", orderState: unknown.orderState ?? "UNKNOWN" };
@@ -1127,7 +1225,6 @@ export class Executor {
     const from = rec.orderState;
     if (from !== "accepted" && from !== "partially_filled") return { canceled: false, reason: "cancel refused", orderState: from ?? null };
     if (writer.networkWrite === "alpaca-http") {
-      if (!this.activationOpen(now)) return { canceled: false, reason: "activation window closed", orderState: from };
       if (!this.budget.canTake(now, 2, "cancel")) return { canceled: false, reason: "request budget exceeded", orderState: from };
     } else if (!this.budget.tryTake(now, 1, "cancel")) return { canceled: false, reason: "request budget exceeded", orderState: from };
     let result: WriteResult;

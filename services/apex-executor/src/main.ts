@@ -78,7 +78,7 @@ export function createExecutorServer(exec: Executor, token: string, hooks: Serve
             return;
           }
           const writer = hooks.writer;
-          const result = await exec.serialize(() => handleSupervisedInstruction(exec, parsed, writer, env, now));
+          const result = await handleSupervisedInstruction(exec, parsed, writer, env, now);
           send(res, result.submitted ? 202 : 422, result);
           return;
         }
@@ -116,6 +116,9 @@ export async function boot(env: NodeJS.ProcessEnv = process.env, opts: BootOptio
       sleep,
       evidenceChannel: evidenceChannelFor(fetchImpl),
     });
+    exec.useEnv(env);
+    exec.requireActivation();
+    exec.attachActivityWriter(writer);
     exec.markStartupPending();
     await exec.recoverInFlight(writer, now, sleep);
     exec.markStartupReady();
