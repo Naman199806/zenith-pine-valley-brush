@@ -7,11 +7,20 @@ import json
 import math
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from zoneinfo import ZoneInfo
 
 from oops_engine import normalize_rows, run_session
 
-ET = ZoneInfo("America/New_York")
+
+def eastern_offset(day: str) -> timedelta:
+    year = int(day[:4])
+    march = datetime(year, 3, 8)
+    while march.weekday() != 6:
+        march += timedelta(days=1)
+    november = datetime(year, 11, 1)
+    while november.weekday() != 6:
+        november += timedelta(days=1)
+    current = datetime.fromisoformat(day)
+    return timedelta(hours=-4) if march.date() <= current.date() < november.date() else timedelta(hours=-5)
 
 ROOT = Path(__file__).resolve().parents[1]
 RAW = ROOT / "research/data/raw/alpaca-sip"
@@ -25,8 +34,9 @@ def checksum(rows: list[dict]) -> str:
 
 
 def expected_stamps(day: str, calendar: dict) -> set[str]:
-    open_ = datetime.fromisoformat(f"{day}T{calendar['open']}:00").replace(tzinfo=ET).astimezone(timezone.utc)
-    close = datetime.fromisoformat(f"{day}T{calendar['close']}:00").replace(tzinfo=ET).astimezone(timezone.utc)
+    offset = eastern_offset(day)
+    open_ = datetime.fromisoformat(f"{day}T{calendar['open']}:00").replace(tzinfo=timezone(offset)).astimezone(timezone.utc)
+    close = datetime.fromisoformat(f"{day}T{calendar['close']}:00").replace(tzinfo=timezone(offset)).astimezone(timezone.utc)
     stamps = set()
     cursor = open_.replace(second=0, microsecond=0)
     while cursor < close:
