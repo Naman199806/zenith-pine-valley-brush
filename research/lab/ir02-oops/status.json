@@ -1,9 +1,9 @@
 {
   "id": "ir02-oops-gap-reversal",
   "status": "IMPLEMENTATION_FROZEN",
-  "frozenAt": "c3cfd21c-followup",
+  "frozenCommit": "131ad1e2",
   "tickOverrides": "DISABLED",
   "strategyApproved": false,
   "fullArchive": false,
-  "next": "actual historical evaluation after operator acquisition"
+  "next": "operator-side historical evaluation; no results claimed until ASUS evidence exists"
 }

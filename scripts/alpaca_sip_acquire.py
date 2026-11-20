@@ -122,8 +122,16 @@ def main() -> None:
     parser.add_argument("--start", default="2024-01-02")
     parser.add_argument("--end", default="")
     parser.add_argument("--stage1", action="store_true")
+    parser.add_argument("--audit", action="store_true")
     args = parser.parse_args()
     symbols = tuple(item.strip() for item in args.symbols.split(",") if item.strip())
+    if args.audit:
+        for path in sorted(OUT.glob("*/*.json")):
+            payload = json.loads(path.read_text())
+            rows = payload.get("rows") or []
+            status = "ok" if payload.get("sha256") == fingerprint(rows) else "checksum-mismatch"
+            print(json.dumps({"path": str(path), "symbol": payload.get("symbol"), "day": payload.get("day"), "bars": len(rows), "status": status}))
+        return
     end = args.end or datetime.now(ET).date().isoformat()
     days = list(STAGE1) if args.stage1 else sessions(args.start, end)
     for symbol in symbols:

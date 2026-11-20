@@ -152,16 +152,29 @@ def metrics(trades: list[dict], sessions: list[dict], available: set[str], bench
     losses = [trade["net"] for trade in accepted if trade["net"] < 0]
     mean = sum(returns) / len(returns) if returns else None
     variance = sum((value - mean) ** 2 for value in returns) / len(returns) if returns and mean is not None else None
+    gross = sum(trade["gross"] for trade in accepted)
+    net = sum(trade["net"] for trade in accepted)
+    by_month, by_year = {}, {}
+    for trade in accepted:
+        by_month.setdefault(trade["day"][:7], 0.0)
+        by_year.setdefault(trade["day"][:4], 0.0)
+        by_month[trade["day"][:7]] += trade["net"]
+        by_year[trade["day"][:4]] += trade["net"]
     return {
         "trades": len(accepted),
+        "winRate": len(wins) / len(accepted) if accepted else None,
+        "grossReturn": gross / CAPITAL,
+        "netReturn": net / CAPITAL,
         "equityCurve": equity,
         "endingEquity": equity[-1],
         "maxDrawdown": drawdown,
-        "sharpe": mean / math.sqrt(variance) if mean is not None and variance else None,
+        "sharpe": mean / math.sqrt(variance) * math.sqrt(252) if mean is not None and variance else None,
         "profitFactor": sum(wins) / abs(sum(losses)) if losses else None,
-        "expectancy": sum(trade["net"] for trade in accepted) / len(accepted) if accepted else None,
+        "expectancy": net / len(accepted) if accepted else None,
         "exposure": exposed_minutes / total_minutes if total_minutes else 0,
         "missingArchiveSessions": missing,
+        "monthlyNet": by_month,
+        "yearlyNet": by_year,
         "benchmarkReturn": benchmark[-1] / benchmark[0] - 1 if len(benchmark) > 1 else None,
         "ledger": accepted,
     }
@@ -192,7 +205,11 @@ def evaluate() -> dict:
                 trades.append({"symbol": item["symbol"], "day": item["day"], "priorSession": prior["day"], **trade})
         long_only = [trade for trade in trades if trade["side"] == "long"]
         scenarios[str(cost)] = {"longOnly": metrics(long_only, calendar_rows, {item["day"] for item in files}, benchmark), "longShort": metrics(trades, calendar_rows, {item["day"] for item in files}, benchmark), "shortExecutionAssumed": False}
-    return {"status": "EVALUATED", "costsBps": list(COSTS), "scenarios": scenarios, "qualified": False, "fullArchive": False, "strategyApproved": False}
+    coverage = {}
+    for symbol in ("SPY", "QQQ", "IWM"):
+        present = sorted({item["day"] for item in files if item["symbol"] == symbol})
+        coverage[symbol] = {"presentSessions": present, "missingSessions": [day for day in calendar if day not in present]}
+    return {"status": "EVALUATED", "costsBps": list(COSTS), "coverage": coverage, "scenarios": scenarios, "qualified": False, "fullArchive": False, "strategyApproved": False}
 
 
 def main() -> None:
