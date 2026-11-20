@@ -17,7 +17,13 @@
     "fingerprintsRecorded": true,
     "dstAndShortenedSessionVerified": true
   },
+  "endpointAccess": {
+    "historicalSipBars": "OPERATOR_VERIFIED",
+    "historicalSipTrades": {"http": 200, "sampleRows": 10, "endpointAccess": true, "fullCoverage": false},
+    "historicalSipQuotes": {"http": 200, "sampleRows": 10, "endpointAccess": true, "spreadSimulationSupported": true, "executionModelQualified": false}
+  },
   "fullHistoricalArchiveDownloaded": false,
+  "tickArchiveDownloaded": false,
   "fillsFabricated": false,
   "strategyApproved": false
 }

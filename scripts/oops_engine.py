@@ -17,6 +17,13 @@ def normalize_rows(rows: list[dict]) -> list[dict]:
     return bars
 
 
+def resolve_same_minute(side: str, open_px: float, stop: float, evidence: dict | None) -> tuple[float, str]:
+    if not evidence or not evidence.get("sufficient"):
+        fill = min(open_px, stop) if side == "long" else max(open_px, stop)
+        return fill, "conservative"
+    return evidence["price"], "trade-quote"
+
+
 def prior_session(files: list[dict], day: str) -> dict | None:
     earlier = [item for item in files if item["day"] < day and item.get("complete")]
     if not earlier:
@@ -44,7 +51,7 @@ def run_session(prior: dict, minutes: list[dict], cost_bps: float = 6.0, notiona
         stop = min(item["low"] for item in minutes[:index]) if side == "long" else max(item["high"] for item in minutes[:index])
         same = bar["low"] <= stop if side == "long" else bar["high"] >= stop
         if same:
-            exit_px = min(bar["open"], stop) if side == "long" else max(bar["open"], stop)
+            exit_px, method = resolve_same_minute(side, bar["open"], stop, bar.get("evidence"))
             exit_time = bar["t"]
         else:
             exit_px = exit_time = None
@@ -60,5 +67,5 @@ def run_session(prior: dict, minutes: list[dict], cost_bps: float = 6.0, notiona
         entry_cost = qty * fill * cost_bps / 10000
         exit_cost = qty * exit_px * cost_bps / 10000
         gross = qty * (exit_px - fill) if side == "long" else qty * (fill - exit_px)
-        return {"side": side, "entry": bar["t"], "entryPx": fill, "stop": stop, "exit": exit_time, "exitPx": exit_px, "sameMinuteStop": same, "gross": gross, "costs": entry_cost + exit_cost, "net": gross - entry_cost - exit_cost}
+        return {"side": side, "entry": bar["t"], "entryPx": fill, "stop": stop, "exit": exit_time, "exitPx": exit_px, "sameMinuteStop": same, "resolution": method if same else "later-bar", "gross": gross, "costs": entry_cost + exit_cost, "net": gross - entry_cost - exit_cost}
     return None

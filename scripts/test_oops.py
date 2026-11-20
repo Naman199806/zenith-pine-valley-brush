@@ -6,8 +6,11 @@ from oops_engine import normalize_rows, run_session
 PRIOR = {"high": 100, "low": 90}
 
 
-def minute(stamp: str, open_: float, high: float, low: float, close: float) -> dict:
-    return {"t": stamp, "open": open_, "high": high, "low": low, "close": close}
+def minute(stamp: str, open_: float, high: float, low: float, close: float, evidence: dict | None = None) -> dict:
+    bar = {"t": stamp, "open": open_, "high": high, "low": low, "close": close}
+    if evidence is not None:
+        bar["evidence"] = evidence
+    return bar
 
 
 class Oops(unittest.TestCase):
@@ -21,6 +24,11 @@ class Oops(unittest.TestCase):
         bars = [minute("09:30", 101, 101.5, 100.8, 101.2), minute("09:31", 100.8, 100.9, 99.5, 99.8), minute("09:32", 99.8, 100, 99.4, 99.6)]
         trade = run_session(PRIOR, bars, 0)
         self.assertEqual(trade["side"], "short")
+
+    def test_insufficient_evidence_stays_conservative(self):
+        bars = [minute("09:30", 89, 89.2, 88, 89), minute("09:31", 87, 90.2, 86.5, 89.1, evidence={"sufficient": False})]
+        trade = run_session(PRIOR, bars, 0)
+        self.assertEqual(trade["resolution"], "conservative")
 
     def test_gap_through_stop_uses_open(self):
         bars = [minute("09:30", 89, 89.2, 88, 89), minute("09:31", 87, 90.2, 86.5, 89.1)]

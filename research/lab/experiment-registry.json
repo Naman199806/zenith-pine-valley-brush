@@ -9,6 +9,12 @@
     "fullArchive": false,
     "gitExcluded": true
   },
+  "sipEndpointAccess": {
+    "bars": "OPERATOR_VERIFIED",
+    "trades": "OPERATOR_VERIFIED_SAMPLE",
+    "quotes": "OPERATOR_VERIFIED_SAMPLE",
+    "executionModelQualified": false
+  },
   "experiments": [
     {"id": "etf-xs-rs-60-v1", "verdict": "NO_WINNER"},
     {"id": "ir01-sma18-v1", "verdict": "NO_WINNER"},
