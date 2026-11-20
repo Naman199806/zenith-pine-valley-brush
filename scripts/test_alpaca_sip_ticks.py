@@ -23,7 +23,12 @@ class TickIntegrity(unittest.TestCase):
         self.assertIsNone(causal_quote(rows, "2024-11-01T13:29:59Z", "2024-11-01T13:30:00Z", "2024-11-01T13:30:05Z"))
         self.assertEqual(causal_quote(rows, "2024-11-01T13:30:01Z", "2024-11-01T13:30:00Z", "2024-11-01T13:30:05Z")["bp"], 1)
 
-    def test_execution_eligibility_requires_positive_size_and_conditions(self):
+    def test_duplicate_timestamp_uses_index_not_dictionary(self):
+        rows = [
+            {"t": "2024-11-01T13:30:00Z", "bp": 1, "ap": 1.1, "bs": 1, "as": 1, "c": []},
+            {"t": "2024-11-01T13:30:00Z", "bp": 1.2, "ap": 1.3, "bs": 1, "as": 1, "c": []},
+        ]
+        self.assertEqual(causal_quote(rows, "2024-11-01T13:30:00Z", "2024-11-01T13:30:00Z", "2024-11-01T13:30:05Z")["bp"], 1.2)
         self.assertFalse(eligible({"s": 0, "c": []}, "trades"))
         self.assertFalse(eligible({"s": 1, "c": ["Z"]}, "trades"))
         self.assertTrue(valid_trade({"t": "2024-11-01T13:30:00Z", "p": 100, "s": 1}))

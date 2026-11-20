@@ -17,11 +17,9 @@ def normalize_rows(rows: list[dict]) -> list[dict]:
     return bars
 
 
-def resolve_same_minute(side: str, open_px: float, stop: float, evidence: dict | None) -> tuple[float, str]:
-    if not evidence or evidence.get("source") != "validated-trade-quote":
-        fill = min(open_px, stop) if side == "long" else max(open_px, stop)
-        return fill, "conservative"
-    return evidence["price"], "trade-quote"
+def resolve_same_minute(side: str, open_px: float, stop: float, evidence: dict | None = None) -> tuple[float, str]:
+    fill = min(open_px, stop) if side == "long" else max(open_px, stop)
+    return fill, "conservative"
 
 
 def prior_session(files: list[dict], day: str) -> dict | None:

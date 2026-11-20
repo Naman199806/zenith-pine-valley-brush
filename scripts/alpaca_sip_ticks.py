@@ -108,13 +108,31 @@ def valid_trade(row: dict) -> bool:
     return timestamp(str(row.get("t", ""))) is not None and isinstance(price, (int, float)) and math.isfinite(price) and price > 0 and isinstance(size, int) and size > 0
 
 
-def accept(kind: str, rows: list[dict]) -> None:
+def causal_quote(quotes: list[dict], when: str, window_start: str, window_end: str, max_age_ns: int = 5_000_000_000) -> dict | None:
+    event = epoch_ns(when)
+    start = epoch_ns(window_start)
+    end = epoch_ns(window_end)
+    if event is None or start is None or end is None or not quotes:
+        return None
+    eligible_rows = []
+    for index, row in enumerate(quotes):
+        stamp = epoch_ns(str(row.get("t", "")))
+        if stamp is None or stamp < start or stamp > end or stamp > event or event - stamp > max_age_ns or not valid_quote(row) or not eligible(row, "quotes"):
+            continue
+        eligible_rows.append((stamp, index, row))
+    return max(eligible_rows)[2] if eligible_rows else None
+
+
+def accept(kind: str, rows: list[dict], window_start: str, window_end: str) -> None:
+    if not rows:
+        raise RuntimeError(f"empty {kind} archive")
     validator = valid_quote if kind == "quotes" else valid_trade
     if not all(validator(row) for row in rows):
         raise RuntimeError(f"invalid {kind} row")
+    start, end = epoch_ns(window_start), epoch_ns(window_end)
     stamps = [epoch_ns(row["t"]) for row in rows]
-    if any(stamp is None for stamp in stamps) or stamps != sorted(stamps):
-        raise RuntimeError(f"unordered {kind}")
+    if any(stamp is None or start is None or end is None or stamp < start or stamp > end for stamp in stamps) or stamps != sorted(stamps):
+        raise RuntimeError(f"unordered or out-of-window {kind}")
 
 
 def write(kind: str, symbol: str, start: str, end: str, rows: list[dict]) -> None:
@@ -135,21 +153,6 @@ def write(kind: str, symbol: str, start: str, end: str, rows: list[dict]) -> Non
     temp.replace(path)
 
 
-def causal_quote(quotes: list[dict], when: str, window_start: str, window_end: str, max_age_ns: int = 5_000_000_000) -> dict | None:
-    event = epoch_ns(when)
-    start = epoch_ns(window_start)
-    end = epoch_ns(window_end)
-    if event is None or start is None or end is None or not quotes:
-        return None
-    eligible_rows = []
-    for row in quotes:
-        stamp = epoch_ns(str(row.get("t", "")))
-        if stamp is None or stamp < start or stamp > end or stamp > event or event - stamp > max_age_ns or not valid_quote(row) or not eligible(row, "quotes"):
-            continue
-        eligible_rows.append((stamp, row))
-    return max(eligible_rows)[1] if eligible_rows else None
-
-
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--symbol", default="SPY")
@@ -158,7 +161,7 @@ def main() -> None:
     args = parser.parse_args()
     for kind in ("trades", "quotes"):
         rows = fetch(kind, args.symbol, args.start, args.end)
-        accept(kind, rows)
+        accept(kind, rows, args.start, args.end)
         write(kind, args.symbol, args.start, args.end, rows)
         print(json.dumps({"kind": kind, "symbol": args.symbol, "rows": len(rows), "fullArchive": False}))
 
