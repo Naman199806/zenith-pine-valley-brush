@@ -4,6 +4,7 @@
  */
 
 import { createHmac, timingSafeEqual } from "node:crypto";
+import { expiryProblem, timestampProblem } from "./supervised-order.ts";
 
 export const APPROVAL_VERSION = 1;
 
@@ -20,7 +21,7 @@ export interface CanonicalApproval {
   session: "REGULAR";
   expiresAt: string;
   nonce: string;
-  category: "CONNECTIVITY_TEST" | "STRATEGY_TRADE";
+  category: "CONNECTIVITY_TEST" | "SUPERVISED_PAPER_TEST" | "STRATEGY_TRADE";
   exitAuthorizationId: string | null;
   linkedEntryId: string | null;
 }
@@ -54,9 +55,11 @@ export function signApproval(a: CanonicalApproval, secret: string): string {
 export function verifyApproval(a: CanonicalApproval, proof: string | null, secret: string | null, now = Date.now()): string | null {
   if (a.v !== APPROVAL_VERSION || a.source !== "OPERATOR_SIGNED") return "unsupported approval version";
   if (a.category === "STRATEGY_TRADE") return "STRATEGY_TRADE blocked";
+  if (a.category !== "CONNECTIVITY_TEST" && a.category !== "SUPERVISED_PAPER_TEST") return "unsupported category";
   if (!secret) return "operator secret missing; research cannot mint approval";
   if (!proof) return "operator proof required";
-  if (Date.parse(a.expiresAt) <= now) return "instruction expired";
+  const expiry = expiryProblem(a.expiresAt, now);
+  if (expiry) return expiry;
   const expected = signApproval(a, secret);
   const left = Buffer.from(proof);
   const right = Buffer.from(expected);
@@ -81,10 +84,12 @@ export function proposedTicket(input: unknown): { ok: true; approval: CanonicalA
   if (row.orderType !== "limit") return incomplete("orderType");
   if (row.timeInForce !== "day") return incomplete("timeInForce");
   if (row.session !== "REGULAR") return incomplete("session");
-  if (row.category !== "CONNECTIVITY_TEST") return incomplete("category");
+  if (row.category === "STRATEGY_TRADE") return { ok: false, reason: "STRATEGY_TRADE blocked" };
+  if (row.category !== "CONNECTIVITY_TEST" && row.category !== "SUPERVISED_PAPER_TEST") return incomplete("category");
+  const category = row.category;
   if (typeof row.qty !== "number" || !Number.isFinite(row.qty) || !(row.qty > 0)) return incomplete("qty");
   if (typeof row.limitPrice !== "number" || !Number.isFinite(row.limitPrice) || !(row.limitPrice > 0)) return incomplete("limitPrice");
-  if (typeof row.expiresAt !== "string" || !row.expiresAt || !Number.isFinite(Date.parse(row.expiresAt))) return incomplete("expiresAt");
+  if (typeof row.expiresAt !== "string" || timestampProblem(row.expiresAt)) return incomplete("expiresAt");
   if (!("exitAuthorizationId" in row)) return incomplete("exitAuthorizationId");
   if (!("linkedEntryId" in row)) return incomplete("linkedEntryId");
   if (row.exitAuthorizationId != null && typeof row.exitAuthorizationId !== "string") return incomplete("exitAuthorizationId");
@@ -107,7 +112,7 @@ export function proposedTicket(input: unknown): { ok: true; approval: CanonicalA
       session: "REGULAR",
       expiresAt: row.expiresAt,
       nonce: row.nonce,
-      category: "CONNECTIVITY_TEST",
+      category,
       exitAuthorizationId: row.exitAuthorizationId == null ? null : row.exitAuthorizationId,
       linkedEntryId: row.linkedEntryId == null ? null : row.linkedEntryId,
     },

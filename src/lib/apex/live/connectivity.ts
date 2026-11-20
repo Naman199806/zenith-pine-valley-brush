@@ -10,8 +10,10 @@
 
 export const CONNECTIVITY_TEST = "CONNECTIVITY_TEST" as const;
 export const STRATEGY_TRADE = "STRATEGY_TRADE" as const;
+/** Additive journal category. It is not a LIVE authorization and does not qualify a strategy. */
+export const SUPERVISED_PAPER_TEST = "SUPERVISED_PAPER_TEST" as const;
 
-export type AuthorizationCategory = typeof CONNECTIVITY_TEST | typeof STRATEGY_TRADE;
+export type AuthorizationCategory = typeof CONNECTIVITY_TEST | typeof STRATEGY_TRADE | typeof SUPERVISED_PAPER_TEST;
 
 export interface LivePreflightResult {
   authorized: boolean;
