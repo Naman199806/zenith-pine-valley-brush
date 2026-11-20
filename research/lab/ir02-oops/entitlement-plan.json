@@ -1,0 +1,13 @@
+{
+  "id": "alpaca-historical-sip-entitlement",
+  "status": "OPERATOR_TEST_PREPARED",
+  "runtimeVerified": false,
+  "command": "python scripts/alpaca_sip_entitlement.py",
+  "credentials": "APCA_API_KEY_ID and APCA_API_SECRET_KEY from the operator environment. Never printed.",
+  "session": "2024-11-01 regular session",
+  "feeds": ["sip", "iex"],
+  "orders": false,
+  "paidSubscription": false,
+  "oops": "not implemented until SIP historical coverage is verified",
+  "strategyApproved": false
+}

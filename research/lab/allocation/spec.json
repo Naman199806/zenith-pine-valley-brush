@@ -1,0 +1,15 @@
+{
+  "id": "allocation-v1",
+  "frozenBeforeEvaluation": true,
+  "differentFrom": ["ir01-sma18-v1", "etf-xs-rs-60-v1", "seasonal-calendar-v1"],
+  "difference": "No ranking, breakout, or calendar signal. Fixed weights only.",
+  "hypotheses": [
+    {"id": "spy-tlt-60-40", "weights": {"SPY": 0.6, "TLT": 0.4}, "justification": "equity growth with bond ballast"},
+    {"id": "equal-spy-tlt-gld-bil", "weights": {"SPY": 0.25, "TLT": 0.25, "GLD": 0.25, "BIL": 0.25}, "justification": "simple multi-asset diversification"}
+  ],
+  "rebalance": "first session of each year",
+  "costsBpsPerSide": 6,
+  "benchmark": "SPY buy-and-hold",
+  "previouslyInspected": true,
+  "strategyApproved": false
+}

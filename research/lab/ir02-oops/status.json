@@ -1,6 +1,9 @@
 {
   "id": "ir02-oops-gap-reversal",
-  "status": "DATA_BLOCKED",
-  "reason": "Execution-grade OOPS requires chronological intraday bars to know the open gap and the reversal before the close. Available datasets are daily OHLC only. No fills were fabricated.",
-  "strategyApproved": false
+  "status": "IMPLEMENTATION_FROZEN",
+  "frozenCommit": "131ad1e2",
+  "tickOverrides": "DISABLED",
+  "strategyApproved": false,
+  "fullArchive": false,
+  "next": "operator-side historical evaluation; no results claimed until ASUS evidence exists"
 }

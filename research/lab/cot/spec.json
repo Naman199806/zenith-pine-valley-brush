@@ -1,0 +1,13 @@
+{
+  "id": "cot-es-commercial-median-v1",
+  "frozenBeforeEvaluation": true,
+  "market": "E-MINI S&P 500",
+  "etf": "SPY",
+  "feature": "commercial long minus commercial short",
+  "rule": "Hold SPY for the next week only when the latest usable commercial net is above its trailing 52-report median. Otherwise hold cash.",
+  "availability": "As-of date is the COT Tuesday. The feature is usable only from the following Monday.",
+  "costsBpsPerSide": 6,
+  "notAFilterFor": ["ir01-sma18-v1", "ir03-confirmed-pivot-v1"],
+  "previouslyInspected": true,
+  "strategyApproved": false
+}

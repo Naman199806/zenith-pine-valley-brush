@@ -1,15 +1,13 @@
 {
   "id": "ir02-oops-gap-reversal",
-  "status": "DATA_BLOCKED",
-  "localIntradayBars": 0,
+  "status": "ENTITLEMENT_UNKNOWN",
+  "localMinuteFiles": 0,
   "alpaca": {
-    "dataHost": "data.alpaca.markets",
-    "stockBarsPath": "/v2/stocks/",
-    "configuredFeed": "IEX",
-    "limitation": "IEX is not consolidated US equity tape. Historical minute bars are not stored locally.",
-    "paidSubscription": "not approved"
+    "configuredRealtimeFeed": "IEX",
+    "historicalEntitlementVerified": false,
+    "reason": "This runtime has no Alpaca credentials. IEX realtime configuration does not by itself prove historical consolidated bars are unavailable."
   },
-  "missing": ["chronological minute or trade bars", "complete regular-session coverage", "consolidated open"],
+  "paidSubscription": "not approved",
   "fillsFabricated": false,
   "strategyApproved": false
 }

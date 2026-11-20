@@ -1,0 +1,28 @@
+{
+  "pr6": {"status": "exploratory archival, not qualification"},
+  "pr7": {"status": "integrity closeout", "cot": "IMPLEMENTATION_UNVERIFIED", "allocation": "IMPLEMENTATION_UNVERIFIED"},
+  "stage1Sip": {
+    "status": "OPERATOR_CONFIRMED",
+    "commit": "395f3cc5",
+    "files": 9,
+    "totalBars": 2970,
+    "fullArchive": false,
+    "gitExcluded": true
+  },
+  "sipEndpointAccess": {
+    "bars": "OPERATOR_VERIFIED",
+    "trades": "OPERATOR_VERIFIED_SAMPLE",
+    "quotes": "OPERATOR_VERIFIED_SAMPLE",
+    "executionModelQualified": false
+  },
+  "experiments": [
+    {"id": "etf-xs-rs-60-v1", "verdict": "NO_WINNER"},
+    {"id": "ir01-sma18-v1", "verdict": "NO_WINNER"},
+    {"id": "ir03-confirmed-pivot-v1", "verdict": "NO_WINNER"},
+    {"id": "seasonal-calendar-v1", "verdict": "NO_WINNER", "implementation": "UNVERIFIED"},
+    {"id": "cot-es-commercial-median-v1", "verdict": "NO_WINNER", "implementation": "UNVERIFIED"},
+    {"id": "allocation-v1", "verdict": "NO_WINNER", "implementation": "UNVERIFIED"}
+  ],
+  "prospectiveProtocol": "A new hypothesis is prospective only for observations after its specification file was committed. Previously inspected periods remain exploratory.",
+  "strategyApproved": false
+}
