@@ -65,5 +65,5 @@ def run_session(prior: dict, minutes: list[dict], cost_bps: float = 6.0, notiona
         entry_cost = qty * fill * cost_bps / 10000
         exit_cost = qty * exit_px * cost_bps / 10000
         gross = qty * (exit_px - fill) if side == "long" else qty * (fill - exit_px)
-        return {"side": side, "entry": bar["t"], "entryPx": fill, "stop": stop, "exit": exit_time, "exitPx": exit_px, "sameMinuteStop": same, "resolution": method if same else "later-bar", "gross": gross, "costs": entry_cost + exit_cost, "net": gross - entry_cost - exit_cost}
+        return {"side": side, "entry": bar["t"], "entryPx": fill, "qty": qty, "notional": notional, "costBps": cost_bps, "stop": stop, "exit": exit_time, "exitPx": exit_px, "sameMinuteStop": same, "resolution": method if same else "later-bar", "gross": gross, "costs": entry_cost + exit_cost, "net": gross - entry_cost - exit_cost}
     return None

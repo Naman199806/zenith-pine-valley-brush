@@ -68,7 +68,8 @@ def load_verified(calendar: list[dict]) -> list[dict]:
         if session is None:
             raise RuntimeError(f"session missing from exchange calendar {path}")
         bars = normalize_rows(rows)
-        if {bar["t"] for bar in bars} != expected_stamps(payload["day"], session):
+        stamps = [bar["t"] for bar in bars]
+        if len(stamps) != len(set(stamps)) or set(stamps) != expected_stamps(payload["day"], session):
             raise RuntimeError(f"timestamp coverage failure {path}")
         if any(bar["open"] <= 0 or bar["high"] <= 0 or bar["low"] <= 0 or bar["close"] <= 0 for bar in bars):
             raise RuntimeError(f"price failure {path}")
@@ -90,18 +91,29 @@ def preceding(files: list[dict], calendar: list[str], day: str) -> dict | None:
 
 
 def size_trade(trade: dict, cash: float) -> dict | None:
-    unit = trade["entryPx"] * (1 + 6 / 10000)
-    if unit <= 0 or cash < unit:
+    notional = trade.get("notional", trade["qty"] * trade["entryPx"])
+    entry_cost = notional * trade["costBps"] / 10000
+    required = notional + entry_cost
+    if required <= 0 or cash <= 0:
         return None
-    scale = min(1.0, cash / (trade["entryPx"] + trade["costs"]))
+    scale = min(1.0, cash / required)
     sized = dict(trade)
+    sized["qty"] = trade["qty"] * scale
+    sized["notional"] = notional * scale
+    sized["gross"] = trade["gross"] * scale
+    sized["costs"] = trade["costs"] * scale
     sized["net"] = trade["net"] * scale
-    sized["notional"] = trade["entryPx"] * scale
-    sized["requiredCapital"] = trade["entryPx"] + trade["costs"]
+    sized["requiredCapital"] = required * scale
     return sized
 
 
-def metrics(trades: list[dict], sessions: list[str], benchmark: list[float]) -> dict:
+def session_minutes(session: dict) -> int:
+    open_ = datetime.fromisoformat(f"2000-01-01T{session['open']}:00")
+    close = datetime.fromisoformat(f"2000-01-01T{session['close']}:00")
+    return int((close - open_).total_seconds() // 60)
+
+
+def metrics(trades: list[dict], sessions: list[dict], available: set[str], benchmark: list[float]) -> dict:
     by_day = {}
     cash = CAPITAL
     busy_until = ""
@@ -116,8 +128,12 @@ def metrics(trades: list[dict], sessions: list[str], benchmark: list[float]) -> 
         busy_until = trade.get("exit", trade["entry"])
     equity = [CAPITAL]
     exposed_minutes = 0
-    total_minutes = len(sessions) * 390
-    for day in sessions:
+    total_minutes = sum(session_minutes(session) for session in sessions if session["date"] in available)
+    missing = [session["date"] for session in sessions if session["date"] not in available]
+    for session in sessions:
+        day = session["date"]
+        if day not in available:
+            continue
         if day in by_day:
             for trade in by_day[day]:
                 start = datetime.fromisoformat(trade["entry"].replace("Z", "+00:00"))
@@ -145,6 +161,7 @@ def metrics(trades: list[dict], sessions: list[str], benchmark: list[float]) -> 
         "profitFactor": sum(wins) / abs(sum(losses)) if losses else None,
         "expectancy": sum(trade["net"] for trade in accepted) / len(accepted) if accepted else None,
         "exposure": exposed_minutes / total_minutes if total_minutes else 0,
+        "missingArchiveSessions": missing,
         "benchmarkReturn": benchmark[-1] / benchmark[0] - 1 if len(benchmark) > 1 else None,
         "ledger": accepted,
     }
@@ -174,7 +191,7 @@ def evaluate() -> dict:
             if trade:
                 trades.append({"symbol": item["symbol"], "day": item["day"], "priorSession": prior["day"], **trade})
         long_only = [trade for trade in trades if trade["side"] == "long"]
-        scenarios[str(cost)] = {"longOnly": metrics(long_only, calendar, benchmark), "longShort": metrics(trades, calendar, benchmark), "shortExecutionAssumed": False}
+        scenarios[str(cost)] = {"longOnly": metrics(long_only, calendar_rows, {item["day"] for item in files}, benchmark), "longShort": metrics(trades, calendar_rows, {item["day"] for item in files}, benchmark), "shortExecutionAssumed": False}
     return {"status": "EVALUATED", "costsBps": list(COSTS), "scenarios": scenarios, "qualified": False, "fullArchive": False, "strategyApproved": False}
 
 

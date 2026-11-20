@@ -45,5 +45,17 @@ class Evaluation(unittest.TestCase):
         self.assertLess(result["scenarios"]["6"]["longOnly"]["exposure"], 1)
 
 
+    def test_fractional_spy_above_account_capital(self):
+        trade = {"entryPx": 500.0, "qty": 0.2, "notional": 100.0, "costBps": 12, "gross": 1.0, "costs": 0.24, "net": 0.76, "entry": "2024-11-05T14:31:00Z", "exit": "2024-11-05T14:32:00Z", "day": "2024-11-05"}
+        sized = oops_eval.size_trade(trade, 100)
+        self.assertIsNotNone(sized)
+        self.assertLessEqual(sized["requiredCapital"], 100)
+        self.assertLess(sized["qty"], 1)
+
+    def test_duplicate_timestamps_rejected(self):
+        rows = [{"t": "2024-11-01T13:30:00Z"}, {"t": "2024-11-01T13:30:00Z"}]
+        self.assertNotEqual(len(rows), len({row["t"] for row in rows}))
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -1,29 +1,9 @@
 {
   "id": "ir02-oops-gap-reversal",
-  "status": "STAGE1_SIP_ACQUISITION_PASS",
-  "operatorEvidence": {
-    "commit": "395f3cc5",
-    "python": "3.12.3",
-    "archiveRoot": "C:\\Users\\sharm\\apex-quant-x-latest\\research\\data\\raw\\alpaca-sip",
-    "symbols": ["SPY", "QQQ", "IWM"],
-    "sessions": {
-      "2024-11-01": 390,
-      "2024-11-04": 390,
-      "2024-11-29": 210
-    },
-    "files": 9,
-    "totalBars": 2970,
-    "validatorsPassed": true,
-    "fingerprintsRecorded": true,
-    "dstAndShortenedSessionVerified": true
-  },
-  "endpointAccess": {
-    "historicalSipBars": "OPERATOR_VERIFIED",
-    "historicalSipTrades": {"http": 200, "sampleRows": 10, "endpointAccess": true, "fullCoverage": false},
-    "historicalSipQuotes": {"http": 200, "sampleRows": 10, "endpointAccess": true, "spreadSimulationSupported": true, "executionModelQualified": false}
-  },
-  "fullHistoricalArchiveDownloaded": false,
-  "tickArchiveDownloaded": false,
-  "fillsFabricated": false,
-  "strategyApproved": false
+  "status": "IMPLEMENTATION_FROZEN",
+  "frozenAt": "c3cfd21c-followup",
+  "tickOverrides": "DISABLED",
+  "strategyApproved": false,
+  "fullArchive": false,
+  "next": "actual historical evaluation after operator acquisition"
 }
