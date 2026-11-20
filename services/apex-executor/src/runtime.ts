@@ -415,8 +415,13 @@ export class Executor {
     return { ok: true, reason: "activation window open" };
   }
 
-  serialize<T>(fn: () => Promise<T>): Promise<T> {
+  /** One queue for accept, submit, cancel, and the broker poll. Callers already inside it must use the unlocked helpers. */
+  runLocked<T>(fn: () => Promise<T>): Promise<T> {
     return this.exclusive(fn);
+  }
+
+  serialize<T>(fn: () => Promise<T>): Promise<T> {
+    return this.runLocked(fn);
   }
 
   /**
@@ -506,12 +511,30 @@ export class Executor {
     this.activityWriter = writer;
   }
 
-  /** Pull FILL activities for orders whose broker id is already known. Repeated calls are idempotent. */
+  /**
+   * Pull FILL activities only while recorded qty is still short of the broker filled qty.
+   * A fully attributed order is not queried again. The lookup is a poll, so it cannot spend the reserve.
+   */
   async reconcileDelayedFills(now = Date.now()): Promise<void> {
     if (!this.activityWriter) return;
     for (const rec of [...this.records.values()]) {
-      if (typeof rec.brokerOrderId === "string" && rec.brokerOrderId.length > 0) await this.noteActivities(rec, this.activityWriter, now);
+      if (!this.needsFillActivities(rec)) continue;
+      await this.noteActivities(rec, this.activityWriter, now, "poll");
     }
+  }
+
+  private attributedQty(rec: LifecycleRecord): number {
+    let sum = 0;
+    for (const event of this.fills) {
+      if (event.clientOrderId === rec.clientOrderId && event.brokerOrderId === rec.brokerOrderId) sum += event.qty;
+    }
+    return sum;
+  }
+
+  private needsFillActivities(rec: LifecycleRecord): boolean {
+    if (typeof rec.brokerOrderId !== "string" || rec.brokerOrderId.length === 0) return false;
+    if (!(rec.filledQty > 0)) return false;
+    return this.attributedQty(rec) + 1e-9 < rec.filledQty;
   }
 
   private exclusive<T>(fn: () => Promise<T>): Promise<T> {
@@ -1083,7 +1106,9 @@ export class Executor {
 
   private finishUnsent(order: SupervisedOrder, reason: string): { submitted: false; reason: string; orderState: OrderState | null } {
     const rec = this.records.get(order.clientOrderId);
-    if (this.writesRequireActivation && rec && (rec.orderState === "intent" || rec.orderState === "submitted")) {
+    const unsent = rec && !rec.unknown && (rec.orderState === "intent" || rec.orderState === "submitted");
+    const terminalize = unsent && (this.writesRequireActivation || rec.orderState === "submitted");
+    if (terminalize && rec) {
       const next = this.untransmitted(rec, reason);
       return { submitted: false, reason, orderState: next.orderState ?? null };
     }
@@ -1174,21 +1199,21 @@ export class Executor {
       const afterAwait = writer.networkWrite === "alpaca-http" ? this.transmissionBlock(order, env, "exit", this.clock(now)) : null;
       if (afterAwait) return this.finishUnsent(order, afterAwait);
       const room = this.sellRoom(order, owned);
-      if (room) return this.refuseSupervised(order, room);
+      if (room) return this.finishUnsent(order, room);
     }
     const rec = this.records.get(order.clientOrderId);
     if (!rec || rec.orderState !== "intent") return { submitted: false, reason: "duplicate submit", orderState: rec?.orderState ?? null };
     const body = exactBrokerBody(order);
     const mismatch = brokerBodyMismatch(order, body);
-    if (mismatch) return this.refuseSupervised(order, mismatch);
+    if (mismatch) return this.finishUnsent(order, mismatch);
     const stored = this.supervisedOrders.get(order.clientOrderId);
-    if (!stored || brokerBodyMismatch(stored, body) || stored.nonce !== order.nonce) return this.refuseSupervised(order, "instruction does not match the durable intent");
+    if (!stored || brokerBodyMismatch(stored, body) || stored.nonce !== order.nonce) return this.finishUnsent(order, "instruction does not match the durable intent");
     const t = this.clock(now);
-    if (!this.freshAt(t)) return this.refuseSupervised(order, "stale broker evidence");
-    if (Date.parse(order.expiresAt) <= t) return this.refuseSupervised(order, "instruction expired");
+    if (!this.freshAt(t)) return this.finishUnsent(order, "stale broker evidence");
+    if (Date.parse(order.expiresAt) <= t) return this.finishUnsent(order, "instruction expired");
     if (writer.networkWrite === "alpaca-http") {
-      if (!this.budget.canTake(t, 1, purpose)) return this.refuseSupervised(order, "request budget exceeded");
-    } else if (!this.budget.tryTake(t, 1, purpose)) return this.refuseSupervised(order, "request budget exceeded");
+      if (!this.budget.canTake(t, 1, purpose)) return this.finishUnsent(order, "request budget exceeded");
+    } else if (!this.budget.tryTake(t, 1, purpose)) return this.finishUnsent(order, "request budget exceeded");
     const immediate = this.clock(now);
     const beforeJournal = writer.networkWrite === "alpaca-http" ? this.transmissionBlock(order, env, purpose, immediate) : (!this.freshAt(immediate) ? "stale broker evidence" : Date.parse(order.expiresAt) <= immediate ? "instruction expired" : null);
     if (beforeJournal) return this.finishUnsent(order, beforeJournal);
@@ -1199,10 +1224,7 @@ export class Executor {
     const finalBody = exactBrokerBody(stored);
     const beforePost = writer.networkWrite === "alpaca-http" ? this.transmissionBlock(order, env, purpose, this.clock(now)) : null;
     if (beforePost) return this.finishUnsent(order, beforePost);
-    if (brokerBodyMismatch(stored, finalBody)) {
-      const unknown = this.becomeUnknown(submitted, "broker body does not match the signed order");
-      return { submitted: false, reason: "broker body does not match the signed order", orderState: unknown.orderState ?? "UNKNOWN" };
-    }
+    if (brokerBodyMismatch(stored, finalBody)) return this.finishUnsent(order, "broker body does not match the signed order");
     let result: WriteResult;
     try {
       result = await writer.submit(finalBody);
@@ -1214,7 +1236,8 @@ export class Executor {
     return this.applyWriteResult(submitted, result, writer, this.clock(now));
   }
 
-  async cancelPaper(clientOrderId: string, writer: PaperWriter, env: NodeJS.ProcessEnv = process.env, now = Date.now()): Promise<{ canceled: boolean; reason: string; orderState: OrderState | null }> {
+  async cancelPaper(clientOrderId: string, writer: PaperWriter, env: NodeJS.ProcessEnv = process.env, now = Date.now(), queued = false): Promise<{ canceled: boolean; reason: string; orderState: OrderState | null }> {
+    if (!queued) return this.runLocked(() => this.cancelPaper(clientOrderId, writer, env, now, true));
     if (writer.networkWrite !== "injected" && writer.networkWrite !== "alpaca-http") return { canceled: false, reason: "REAL_BROKER_WRITE_DISABLED", orderState: null };
     if (!paperPostEnvOn(env)) return { canceled: false, reason: "PAPER POST DISABLED", orderState: null };
     const rec = this.records.get(clientOrderId);
@@ -1464,14 +1487,14 @@ export class Executor {
     return this.records.get(finished.clientOrderId) ?? finished;
   }
 
-  private async noteActivities(rec: LifecycleRecord, writer: PaperWriter, now: number): Promise<void> {
+  private async noteActivities(rec: LifecycleRecord, writer: PaperWriter, now: number, purpose: "poll" | "recovery" = "recovery"): Promise<void> {
     if (typeof rec.brokerOrderId !== "string" || rec.brokerOrderId.length === 0) return;
     if (writer.networkWrite === "alpaca-http") {
-      if (!this.budget.canTake(now, 1, "recovery")) return;
-    } else if (!this.budget.tryTake(now, 1, "recovery")) return;
+      if (!this.budget.canTake(now, 1, purpose)) return;
+    } else if (!this.budget.tryTake(now, 1, purpose)) return;
     let activities: unknown = [];
     try {
-      const listed = await writer.listFills();
+      const listed = await writer.listFills(purpose);
       if (listed.status !== 200 || !Array.isArray(listed.body)) return;
       activities = listed.body;
     } catch (error) {

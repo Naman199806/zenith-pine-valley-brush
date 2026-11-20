@@ -225,9 +225,11 @@ export async function handleSupervisedInstruction(
   env: NodeJS.ProcessEnv,
   now: number | (() => number),
 ): Promise<{ accepted: boolean; submitted: boolean; reason: string; orderState: string | null }> {
-  if (!exec.startupIsReady()) return { accepted: false, submitted: false, reason: "startup recovery incomplete", orderState: null };
-  const accepted = exec.acceptSupervised(order, now);
-  if (!accepted.accepted) return { accepted: false, submitted: false, reason: accepted.reason, orderState: null };
-  const sent = await exec.submitPaper(order, writer, env, now);
-  return { accepted: true, submitted: sent.submitted, reason: sent.reason, orderState: sent.orderState };
+  return exec.runLocked(async () => {
+    if (!exec.startupIsReady()) return { accepted: false, submitted: false, reason: "startup recovery incomplete", orderState: null };
+    const accepted = exec.acceptSupervised(order, now);
+    if (!accepted.accepted) return { accepted: false, submitted: false, reason: accepted.reason, orderState: null };
+    const sent = await exec.submitPaper(order, writer, env, now, true);
+    return { accepted: true, submitted: sent.submitted, reason: sent.reason, orderState: sent.orderState };
+  });
 }

@@ -1,5 +1,14 @@
 # Production integration
 
+## Merge sequence
+
+1. The operator merges PR #8 into `main`. That branch does not enable a broker write.
+2. Retarget this draft, PR #9, onto `main` and wait for a fresh CI run on Ubuntu and Windows, Node 22 and 24.
+3. The operator reviews that run and merges PR #9. This repository does not merge either pull request.
+
+Preflight and the versioned rsync deploy are in the executor README sections `Authenticated preflight` and `Versioned deploy and rollback`. The VM has no git checkout. Secrets stay in `/etc/apex-executor`. Journal and state stay in `/var/lib/apex-executor`.
+
+
 This branch is the PAPER enablement draft. It must not be deployed and it must not be merged until reviewed. `LIVE_POST_ENABLED` and `strategyApproved` stay false. `supervisedActivation` starts closed. The disabled adapter still throws `PAPER POST DISABLED` before `fetch`. A simulated `fetch` is tagged `injected` and cannot enter the Hermes performance sink.
 
 ## What production calls

@@ -64,6 +64,16 @@ export function createExecutorServer(exec: Executor, token: string, hooks: Serve
         send(res, result.ok ? 200 : 422, result);
         return;
       }
+      if (req.method === "POST" && req.url === "/cancel") {
+        const body = JSON.parse(await readBody(req)) as { clientOrderId?: unknown };
+        if (!hooks.writer || typeof body.clientOrderId !== "string" || body.clientOrderId.length === 0) {
+          send(res, 422, { canceled: false, reason: "PAPER adapter unavailable", orderState: null });
+          return;
+        }
+        const result = await exec.cancelPaper(body.clientOrderId, hooks.writer, env, now());
+        send(res, result.canceled ? 200 : 422, result);
+        return;
+      }
       if (req.method === "POST" && req.url === "/instructions") {
         const raw = await readBody(req);
         let parsed: unknown = null;
