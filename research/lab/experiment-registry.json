@@ -1,6 +1,14 @@
 {
   "pr6": {"status": "exploratory archival, not qualification"},
   "pr7": {"status": "integrity closeout", "cot": "IMPLEMENTATION_UNVERIFIED", "allocation": "IMPLEMENTATION_UNVERIFIED"},
+  "stage1Sip": {
+    "status": "OPERATOR_CONFIRMED",
+    "commit": "395f3cc5",
+    "files": 9,
+    "totalBars": 2970,
+    "fullArchive": false,
+    "gitExcluded": true
+  },
   "experiments": [
     {"id": "etf-xs-rs-60-v1", "verdict": "NO_WINNER"},
     {"id": "ir01-sma18-v1", "verdict": "NO_WINNER"},

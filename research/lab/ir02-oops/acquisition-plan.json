@@ -1,10 +1,23 @@
 {
-  "stage": "representative sessions only",
-  "symbols": ["SPY", "QQQ", "IWM"],
-  "sessions": ["2024-11-01", "2024-11-04", "2024-11-29"],
-  "purpose": ["verified session", "next regular session", "shortened session"],
-  "nextStage": "2024-2026 only after representative coverage passes",
+  "stage": "stage1 operator confirmed; full archive not downloaded",
+  "stage1": {
+    "commit": "395f3cc5",
+    "files": 9,
+    "totalBars": 2970,
+    "sessions": ["2024-11-01", "2024-11-04", "2024-11-29"],
+    "barsBySession": {"2024-11-01": 390, "2024-11-04": 390, "2024-11-29": 210}
+  },
+  "nextStage": {
+    "symbols": ["SPY", "QQQ", "IWM"],
+    "start": "2024-01-02",
+    "end": "latest completed session from Alpaca calendar",
+    "fullArchiveDownloaded": false
+  },
   "entireMarket": false,
+  "rawDataGitExcluded": true,
   "restrictions": "Alpaca historical data is for the account holder. Do not redistribute. No forward-fill.",
-  "command": "C:\\Users\\sharm\\openbb-research.venv\\Scripts\\python.exe scripts\\alpaca_sip_acquire.py"
+  "commands": {
+    "stage1": "C:\\Users\\sharm\\openbb-research.venv\\Scripts\\python.exe scripts\\alpaca_sip_acquire.py --stage1",
+    "historical": "C:\\Users\\sharm\\openbb-research.venv\\Scripts\\python.exe scripts\\alpaca_sip_acquire.py --start 2024-01-02"
+  }
 }

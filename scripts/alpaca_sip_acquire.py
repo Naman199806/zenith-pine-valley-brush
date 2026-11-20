@@ -6,6 +6,7 @@ Does not call order endpoints and does not forward-fill missing minutes.
 
 from __future__ import annotations
 
+import argparse
 import hashlib
 import json
 import os
@@ -17,14 +18,14 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from alpaca_sip_entitlement import normalize_timestamp, ohlcv_ok, sanitize, summarize
+from alpaca_sip_entitlement import sanitize, summarize
 
 DATA = "https://data.alpaca.markets/v2"
 PAPER = "https://paper-api.alpaca.markets/v2"
 ET = ZoneInfo("America/New_York")
 OUT = Path("research/data/raw/alpaca-sip")
-SYMBOLS = ("SPY", "QQQ", "IWM")
-SESSIONS = ("2024-11-01", "2024-11-04", "2024-11-29")
+DEFAULT_SYMBOLS = ("SPY", "QQQ", "IWM")
+STAGE1 = ("2024-11-01", "2024-11-04", "2024-11-29")
 PYTHON = r"C:\Users\sharm\openbb-research.venv\Scripts\python.exe"
 
 
@@ -102,13 +103,29 @@ def accept(path: Path, payload: dict, expected: set[str]) -> None:
     temp.replace(path)
 
 
+def sessions(start: str, end: str) -> list[str]:
+    status, body = request(PAPER, "/calendar", {"start": start, "end": end})
+    if status != 200 or not isinstance(body, list):
+        raise RuntimeError(f"calendar range status {status}")
+    return [row["date"] for row in body]
+
+
 def main() -> None:
-    for symbol in SYMBOLS:
-        for day in SESSIONS:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--symbols", default=",".join(DEFAULT_SYMBOLS))
+    parser.add_argument("--start", default="2024-01-02")
+    parser.add_argument("--end", default="")
+    parser.add_argument("--stage1", action="store_true")
+    args = parser.parse_args()
+    symbols = tuple(item.strip() for item in args.symbols.split(",") if item.strip())
+    end = args.end or datetime.now(ET).date().isoformat()
+    days = list(STAGE1) if args.stage1 else sessions(args.start, end)
+    for symbol in symbols:
+        for day in days:
             path = OUT / symbol / f"{day}.json"
             session = calendar(day)
-            start, end = bounds(day, session)
-            expected = expected_from_calendar(start, end)
+            start, close = bounds(day, session)
+            expected = expected_from_calendar(start, close)
             if path.exists():
                 existing = json.loads(path.read_text())
                 if existing.get("sha256") != fingerprint(existing.get("rows") or []):
@@ -116,14 +133,14 @@ def main() -> None:
                 accept(path, existing, expected)
                 print(json.dumps({"symbol": symbol, "day": day, "status": "revalidated"}))
                 continue
-            rows = bars(symbol, start.strftime("%Y-%m-%dT%H:%M:%SZ"), end.strftime("%Y-%m-%dT%H:%M:%SZ"))
+            rows = bars(symbol, start.strftime("%Y-%m-%dT%H:%M:%SZ"), close.strftime("%Y-%m-%dT%H:%M:%SZ"))
             payload = {
                 "symbol": symbol,
                 "day": day,
                 "feed": "sip",
                 "calendar": session,
                 "sha256": fingerprint(rows),
-                "provenance": {"endpoint": DATA, "retrievedBy": PYTHON, "downloadedOnAsus": False},
+                "provenance": {"endpoint": DATA, "retrievedBy": PYTHON, "downloadedOnAsus": True, "fullArchive": False},
                 "rows": rows,
             }
             accept(path, payload, expected)
